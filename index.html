@@ -278,12 +278,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <div style="position:relative;text-align:left;margin:38px auto 0;background:var(--bg-sunken);border:1px solid var(--rule-strong);border-radius:14px;padding:24px 26px;box-shadow:0 12px 34px var(--shadow)">
       <button class="copy-btn" id="copyBtn" type="button"><span class="copied">✓ copied</span><span class="label">copy</span></button>
       <div style="font-family:'IBM Plex Mono',monospace;font-size:.86rem;line-height:1.95;color:var(--ink);overflow-x:auto;white-space:nowrap">
-        <div style="color:var(--ink-faint)"># clone the repo</div>
-        <div><span style="color:var(--sea)">git</span> clone https://github.com/spectastic/spectastic</div>
-        <div><span style="color:var(--sea)">cd</span> spectastic</div>
+        <div style="color:var(--ink-faint)"># scaffold a spec-driven project</div>
+        <div><span style="color:var(--sea)">cd</span> my-new-project</div>
+        <div><span style="color:var(--sea)">npx</span> @spectastic/cli <span style="color:var(--crimson)">init</span></div>
         <div style="height:.85em"></div>
-        <div style="color:var(--ink-faint)"># bootstrap the lifecycle into your project</div>
-        <div><span style="color:var(--sea)">./scripts/spectastic</span> <span style="color:var(--crimson)">init</span></div>
+        <div style="color:var(--ink-faint)"># or install globally</div>
+        <div><span style="color:var(--sea)">npm</span> i -g @spectastic/cli &amp;&amp; <span style="color:var(--sea)">spectastic</span> <span style="color:var(--crimson)">init</span></div>
       </div>
     </div>
     <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">Then run <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--crimson)">/spectastic.principles</span> with your AI coding agent to author your project's principles.</p>
@@ -438,7 +438,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
   // ---------- copy button ----------
   const copyBtn = document.getElementById('copyBtn');
-  const cmdText = 'git clone https://github.com/spectastic/spectastic\ncd spectastic\n./scripts/spectastic init';
+  const cmdText = 'cd my-new-project\nnpx @spectastic/cli init';
   let copyTimer;
   copyBtn.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(cmdText); } catch(e){}
