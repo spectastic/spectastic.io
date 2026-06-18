@@ -80,6 +80,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 @media (max-width: 760px){
   .why-grid{grid-template-columns:1fr !important}
   .components-grid{grid-template-columns:1fr !important}
+  .change-grid{grid-template-columns:1fr !important}
 }
 </style>
 </head>
@@ -107,6 +108,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <nav style="display:flex;align-items:center;gap:30px">
       <a href="#why" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Why</a>
       <a href="#lifecycle" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Lifecycle</a>
+      <a href="#change" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Change</a>
       <a href="#components" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Components</a>
       <a href="#install" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Install</a>
       <a href="example.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Example</a>
@@ -201,6 +203,57 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <p id="phaseNote" style="font-family:'Source Serif 4',serif;font-size:1.12rem;line-height:1.6;color:var(--ink-soft);max-width:60ch;margin:20px 0 0">Establish the project's five non-negotiable principles — the constitution every later artifact is checked against.</p>
     </div>
     <p style="text-align:center;font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:24px 0 0">Eight commands. <span style="color:var(--crimson)">propose</span> &amp; <span style="color:var(--crimson)">apply</span> loop forever as the spec evolves.</p>
+
+    <div style="margin-top:36px;display:flex;justify-content:center">
+      <div style="display:flex;align-items:flex-start;gap:14px;max-width:64ch;background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:18px 22px">
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--bg);background:var(--ink);padding:4px 9px;border-radius:4px;white-space:nowrap;margin-top:3px">Quick wins</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:1rem;line-height:1.55;color:var(--ink-soft);margin:0">Some changes don't need a spec. Drop them into <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">inbox.html</code> as <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--crimson)">&lt;spec-triage type="just-do"&gt;</code> cards — <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--crimson)">/spectastic.implement</code> drains the inbox <em>before</em> it touches the active spec, so small batches don't queue behind the next big release.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHANGE MANAGEMENT ===== -->
+<section id="change" style="border-top:1px solid var(--rule);scroll-margin-top:74px">
+  <div style="max-width:1080px;margin:0 auto;padding:88px 32px">
+    <div style="text-align:center">
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--salmon)">Change management</div>
+      <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0">Specs evolve via PR-shaped proposals.</h2>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px auto 0">Each change is one <code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink)">proposal.html</code> — intent, scope, typed deltas, and tasks together. Reviewable in a browser; no <code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink)">git diff</code> needed.</p>
+    </div>
+
+    <div class="change-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:48px">
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint)">&lt;spec-delta op="modified"&gt;</div>
+          <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px;margin-left:auto">typed</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">REQ-AUTH-014</span>
+          <span style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)">priority lifted</span>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;line-height:1.85;margin-top:12px">
+          <div style="background:var(--del-bg);color:var(--del-ink);padding:3px 12px;border-radius:6px;margin-bottom:5px"><span style="opacity:.7">−</span>&nbsp; priority="should"</div>
+          <div style="background:var(--ins-bg);color:var(--ins-ink);padding:3px 12px;border-radius:6px"><span style="opacity:.7">+</span>&nbsp; priority="must"</div>
+        </div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:14px 0 0">Four ops — <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">added</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">modified</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">removed</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">renamed</code>. A missing or wrong op renders the visible label <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--crimson)">MISSING OP</code>. Silent failure impossible by construction.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--crimson);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint)">&lt;spec-risk&gt;</div>
+          <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--crimson);padding:3px 8px;border-radius:4px;margin-left:auto">adversarial</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--crimson);border:1px solid color-mix(in srgb,var(--crimson) 38%,transparent);padding:2px 8px;border-radius:5px">R-002</span>
+          <span style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ins-ink);border:1px solid color-mix(in srgb,var(--sea) 45%,transparent);padding:2px 8px;border-radius:4px;white-space:nowrap">mitigated</span>
+        </div>
+        <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1rem;line-height:1.55;color:var(--ink);margin:12px 0 0">Lifting REQ-AUTH-014 to <em>must</em> implicates the rate limiter — undocumented coupling we'd regret in 30 days.</p>
+        <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--crimson)">/propose</code> auto-fires the adversarial critic on <em>must</em>-tier edits, removed deltas, or cross-topic spans. Three risks land in a §5 risk register — <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">identified → mitigated / accepted / rejected</code>. <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--crimson)">/apply</code> refuses while any risk is still <code style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">identified</code>.</p>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);max-width:62ch;margin:34px auto 0">Withdraw is a first-class outcome too — <code style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--ink)">/apply --withdraw</code> archives the proposal under <code style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--ink)">changes/withdrawn/</code> and records "considered, withdrew" in the spec's changelog. Nothing is deleted; rejected ideas stay discoverable.</p>
   </div>
 </section>
 
@@ -282,11 +335,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div><span style="color:var(--sea)">cd</span> my-new-project</div>
         <div><span style="color:var(--sea)">npx</span> @spectastic/cli <span style="color:var(--crimson)">init</span></div>
         <div style="height:.85em"></div>
-        <div style="color:var(--ink-faint)"># or install globally</div>
-        <div><span style="color:var(--sea)">npm</span> i -g @spectastic/cli &amp;&amp; <span style="color:var(--sea)">spectastic</span> <span style="color:var(--crimson)">init</span></div>
+        <div style="color:var(--ink-faint)"># gate your PRs on a real grammar</div>
+        <div><span style="color:var(--sea)">npx</span> @spectastic/cli <span style="color:var(--crimson)">validate</span> "specs/**/*.html"</div>
       </div>
     </div>
-    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">Then run <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--crimson)">/spectastic.principles</span> with your AI coding agent to author your project's principles.</p>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px auto 0;max-width:52ch"><span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--crimson)">validate</span> emits human, JSON, or <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--ink)">SARIF</span> — drop it in GitHub Actions or GitLab CI and findings surface as inline PR annotations. Then run <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--crimson)">/spectastic.principles</span> with your AI coding agent to author your project's principles.</p>
   </div>
 </section>
 
@@ -306,6 +359,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px">Product</div>
         <a href="#why" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Why HTML</a>
         <a href="#lifecycle" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Lifecycle</a>
+        <a href="#change" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Change management</a>
         <a href="#components" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Components</a>
       </div>
       <div style="display:flex;flex-direction:column;gap:11px">
@@ -438,7 +492,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
   // ---------- copy button ----------
   const copyBtn = document.getElementById('copyBtn');
-  const cmdText = 'cd my-new-project\nnpx @spectastic/cli init';
+  const cmdText = 'cd my-new-project\nnpx @spectastic/cli init\nnpx @spectastic/cli validate "specs/**/*.html"';
   let copyTimer;
   copyBtn.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(cmdText); } catch(e){}
