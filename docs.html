@@ -180,39 +180,93 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     </div>
 
     <h2 id="components" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.6rem;letter-spacing:-.01em;color:var(--ink);margin:52px 0 0;scroll-margin-top:80px">Component vocabulary</h2>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.04rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Tag name is schema. A small set of semantic custom elements covers the spec shape — everything degrades to readable static HTML if the JS never loads.</p>
-    <div class="vocab-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px">
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-requirement&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Unit of conformance — stable id + priority.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.04rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Tag name is schema. Sixteen semantic custom elements cover the spec shape, grouped by job — everything degrades to readable static HTML if the JS never loads. The <a href="https://github.com/spectastic/spectastic#tag-reference" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:.98em">full reference</a> documents another ten editorial helpers (admonitions, tabs, glossary, conformance index).</p>
+
+    <div style="margin-top:24px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sea);margin-bottom:10px">Core</div>
+      <div class="vocab-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-meta&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Header metadata — status, owner, version, dates.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-tldr&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Boxed abstract — always near the top.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-requirement&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Unit of conformance — stable id + <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">priority="must|should|may"</code>.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-decision&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">ADR card — context, decision, consequences.</p>
+        </div>
       </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-decision&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">ADR card: context, decision, consequences.</p>
+    </div>
+
+    <div style="margin-top:24px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:10px">Discipline</div>
+      <div class="vocab-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-budget&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Live size gauge — words / reqs / read-time vs configurable budgets. Amber at 70%, red over.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-out-of-scope&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Deferral register — every entry requires <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">defer-to=</code>. Cuts become tracked deferrals.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-questions&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Numbered open-question register — blocks the estimability gate until resolved.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-parent&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Marks a spec as a slice of a larger umbrella — <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">specid="…"</code> required.</p>
+        </div>
       </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-diff&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Red/green change block via &lt;ins&gt; and &lt;del&gt;.</p>
+    </div>
+
+    <div style="margin-top:24px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--salmon);margin-bottom:10px">Change</div>
+      <div class="vocab-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-change&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Proposal wrapper — intent, scope, deltas, tasks; status pill <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">proposed → applied / withdrawn</code>.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-delta op=…&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">One typed change. <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">added | modified | removed | renamed</code>. Wrong op renders <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--crimson)">MISSING OP</code>.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-risk&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Adversarial finding — <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">identified → mitigated / accepted / rejected</code>. <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--crimson)">/apply</code> refuses on any <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">identified</code>.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-diff&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Red/green change block via semantic <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">&lt;ins&gt;</code> and <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">&lt;del&gt;</code>.</p>
+        </div>
       </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-matrix&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Option × criterion table with a winner row.</p>
-      </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-triage&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">One-screen debug card with a Y-statement.</p>
-      </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-budget&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Live size gauge: words, reqs, read-time.</p>
-      </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-delta op=…&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">One typed change to one requirement.</p>
-      </div>
-      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
-        <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-sidenote&gt;</code>
-        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Margin note for asides, Tufte-style.</p>
+    </div>
+
+    <div style="margin-top:24px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--crimson);margin-bottom:10px">Editorial</div>
+      <div class="vocab-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-matrix&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Option × criterion table with a <code style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">data-winner</code> row.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-tradeoff&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Inline bar sparklines scoring options on a few axes.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-triage&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">One-screen debug card — Y-statement, expected/actual, regen-test pill.</p>
+        </div>
+        <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px">
+          <code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">&lt;spec-sidenote&gt;</code>
+          <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Margin note for asides that would interrupt the reading flow.</p>
+        </div>
       </div>
     </div>
 
