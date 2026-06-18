@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#5f023e" transform="rotate(0 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#960462" transform="rotate(45 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#e1624f" transform="rotate(90 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#e0a23c" transform="rotate(135 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#3f6a37" transform="rotate(180 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#04a5bb" transform="rotate(225 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#00758f" transform="rotate(270 50 50)"></path>
+  <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="#7558b2" transform="rotate(315 50 50)"></path>
+</svg>

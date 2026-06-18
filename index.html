@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spectastic — Think it? Build it! Right.</title>
+<meta name="description" content="Spec-driven development with one beautiful, self-contained HTML file per artifact. A structured lifecycle that emits semantic HTML — rendered, reviewable, revision-safe.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+  --ins-bg:rgba(4,165,187,.12);--ins-ink:#0a7d8e;
+  --del-bg:rgba(225,98,79,.12);--del-ink:#c0432f;
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+  --ins-bg:rgba(66,202,221,.16);--ins-ink:#7ed8e6;
+  --del-bg:rgba(240,138,121,.16);--del-ink:#f3a596;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s ease,color .5s ease;overflow-x:hidden}
+::selection{background:var(--gold);color:#353534}
+@keyframes scUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes scWordUp{from{opacity:0;transform:translateY(.55em)}to{opacity:1;transform:none}}
+@keyframes scPop{0%{opacity:0;transform:scale(.4)}55%{opacity:1;transform:scale(1.22)}100%{opacity:1;transform:scale(1)}}
+@keyframes scFade{from{opacity:0}to{opacity:1}}
+@keyframes scFloat{0%,100%{transform:translateY(0) rotate(-1.4deg)}50%{transform:translateY(-7px) rotate(-1.4deg)}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important}}
+
+/* hover utilities */
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.btn-primary{display:inline-flex;align-items:center;gap:9px;font-family:'Lato',sans-serif;font-weight:700;color:var(--bg);background:var(--ink);text-decoration:none;border:none;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px var(--shadow)}
+.btn-primary.sm{font-size:.8rem;letter-spacing:.02em;padding:9px 16px;border-radius:999px;gap:8px}
+.btn-primary.sm:hover{transform:translateY(-1px);box-shadow:0 6px 18px var(--shadow)}
+.btn-primary.md{font-size:.92rem;padding:14px 26px;border-radius:999px}
+.btn-primary.lg{font-size:.95rem;padding:15px 30px;border-radius:999px}
+.btn-secondary{display:inline-flex;align-items:center;gap:9px;font-family:'Lato',sans-serif;font-weight:700;font-size:.92rem;color:var(--ink);background:transparent;border:1px solid var(--rule-strong);padding:14px 26px;border-radius:999px;text-decoration:none;transition:border-color .2s,transform .2s}
+.btn-secondary:hover{border-color:var(--ink-soft);transform:translateY(-2px)}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.why-card{background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:28px 26px;transition:transform .25s,border-color .25s,box-shadow .25s}
+.why-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px var(--shadow)}
+.why-card.salmon:hover{border-color:color-mix(in srgb,var(--salmon) 55%,var(--rule))}
+.why-card.sea:hover{border-color:color-mix(in srgb,var(--sea) 55%,var(--rule))}
+.why-card.purple:hover{border-color:color-mix(in srgb,var(--purple) 55%,var(--rule))}
+.sidenav a{padding:5px 0;display:block}
+.copy-btn{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:6px;font-family:'Lato',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.04em;color:var(--ink);background:var(--bg-raised);border:1px solid var(--rule-strong);padding:7px 12px;border-radius:8px;cursor:pointer;transition:border-color .2s}
+.copy-btn:hover{border-color:var(--ink-soft)}
+.copy-btn .copied{display:none;color:var(--ins-ink)}
+.copy-btn.is-copied .copied{display:inline}
+.copy-btn.is-copied .label{display:none}
+
+/* lifecycle */
+.step{cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center}
+.step .dot{width:2.4rem;height:2.4rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:600;background:var(--bg-raised);color:var(--ink-faint);border:1px solid var(--rule-strong);transition:transform .45s cubic-bezier(.2,.7,.2,1),background .45s,color .45s,box-shadow .45s,border-color .45s}
+.step .lbl{margin-top:.85rem;font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:400;transition:color .4s,font-weight .4s}
+.step.active .dot{transform:scale(1.18);background:var(--accent);color:var(--bg);border-color:var(--accent);box-shadow:0 8px 22px var(--shadow)}
+.step.active .lbl{color:var(--accent);font-weight:700}
+
+@media (max-width: 760px){
+  .why-grid{grid-template-columns:1fr !important}
+  .components-grid{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<!-- ===== NAV ===== -->
+<header style="position:sticky;top:0;z-index:50;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1160px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px">
+    <a href="#top" style="display:flex;align-items:baseline;gap:1px;text-decoration:none;color:var(--ink)">
+      <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.34rem;letter-spacing:-.01em">spectastic</span>
+      <svg width="16" height="16" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:3px;margin-top:2px"><use href="#spec-logo"/></svg>
+    </a>
+    <nav style="display:flex;align-items:center;gap:30px">
+      <a href="#why" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Why</a>
+      <a href="#lifecycle" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Lifecycle</a>
+      <a href="#components" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Components</a>
+      <a href="#install" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Install</a>
+      <a href="example.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Example</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+      <a href="https://github.com/spectastic/spectastic" target="_blank" rel="noopener" class="btn-primary sm">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section id="top" style="max-width:1160px;margin:0 auto;padding:0 32px;scroll-margin-top:84px">
+
+  <div style="min-height:84vh;display:flex;flex-direction:column;justify-content:center;padding:64px 0 56px;text-align:center;align-items:center">
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);animation:scFade .8s both">Spec-driven development · single-file HTML</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:480;font-size:clamp(2.7rem,7.2vw,6rem);line-height:1.02;letter-spacing:-.025em;margin:24px 0 0;color:var(--ink)">
+      <span style="display:inline-block;animation:scWordUp .7s .15s both">Think&nbsp;It?</span>
+      <span style="display:inline-block;white-space:nowrap;animation:scWordUp .7s .42s both">Build&nbsp;It!<sup style="display:inline-block;vertical-align:1.75em;font-size:.4em;font-style:italic;font-weight:500;color:var(--crimson);margin-left:.02em;transform-origin:center bottom;animation:scPop .55s 1.08s both"><svg width="0.95em" height="0.95em" aria-hidden="true" style="display:inline-block;vertical-align:-.12em;overflow:visible;margin-right:-.04em"><use href="#spec-logo"/></svg><span style="font-style:italic">Right</span></sup></span>
+    </h1>
+    <p style="font-family:'Source Serif 4',serif;font-size:clamp(1.05rem,1.7vw,1.28rem);line-height:1.62;color:var(--ink-soft);max-width:54ch;margin:46px auto 0;animation:scUp .8s .7s both">A structured spec lifecycle that emits one beautiful self-contained HTML file per artifact. Your spec reads like a quiet essay — packing tables, diagrams, diffs, and decision matrices. <span style="color:var(--ink)">Rendered, reviewable, revision-safe.</span></p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:36px;animation:scUp .8s .95s both">
+      <a href="https://github.com/spectastic/spectastic" target="_blank" rel="noopener" class="btn-primary md">View on GitHub</a>
+      <a href="#install" class="btn-secondary">Install it →</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.92rem;color:var(--ink-faint);max-width:50ch;margin:34px auto 0;animation:scFade 1s 1.45s both"><svg width="1.05em" height="1.05em" aria-hidden="true" style="display:inline-block;vertical-align:-.16em;overflow:visible;margin-right:.12em"><use href="#spec-logo"/></svg>right — spec-driven and verifiable, not vibe-coded. Intent is decided and reviewed <em>before</em> a line of code ships.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 8px;justify-content:center;margin-top:54px;animation:scFade 1s 1.3s both" id="verbsRow"></div>
+  </div>
+
+</section>
+
+<!-- ===== WHY ===== -->
+<section id="why" style="border-top:1px solid var(--rule);background:var(--bg-sunken);scroll-margin-top:74px">
+  <div style="max-width:1160px;margin:0 auto;padding:88px 32px">
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--crimson)">Why HTML</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);max-width:18ch;margin:18px 0 0">Markdown specs are tiring to read.</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.12rem;line-height:1.62;color:var(--ink-soft);max-width:60ch;margin:20px 0 0">Markdown-based spec tooling produces dense documents that reviewers find tiring. The format limits you to flat prose, fragile tables, and external diagram tools. Three patterns recur:</p>
+
+    <div class="why-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:48px">
+      <div class="why-card salmon">
+        <div style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--salmon)">The reader</div>
+        <div style="font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink);margin-top:13px">Review fatigue</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:1rem;line-height:1.58;color:var(--ink-soft);margin:12px 0 0">Long undifferentiated prose; no progressive disclosure. Reviewers lose the thread before they reach what matters.</p>
+      </div>
+      <div class="why-card sea">
+        <div style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--sea)">The format</div>
+        <div style="font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink);margin-top:13px">Markdown is thin</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:1rem;line-height:1.58;color:var(--ink-soft);margin:12px 0 0">No diagrams, no real tables, no inline annotation, no semantic anchors past headings. The format runs out before the spec does.</p>
+      </div>
+      <div class="why-card purple">
+        <div style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--purple)">The process</div>
+        <div style="font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink);margin-top:13px">“Waterfall in markdown”</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:1rem;line-height:1.58;color:var(--ink-soft);margin:12px 0 0">Gated phases duplicate background context across artifacts because cross-linking is weak.</p>
+      </div>
+    </div>
+
+    <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:clamp(1.4rem,2.6vw,2rem);line-height:1.32;color:var(--ink);max-width:30ch;margin:56px 0 0">HTML fixes those directly — the challenge is keeping the source as editable as markdown, for humans and LLMs alike. <span style="color:var(--crimson)">That's what the component vocabulary is for.</span></p>
+  </div>
+</section>
+
+<!-- ===== LIFECYCLE ===== -->
+<section id="lifecycle" style="border-top:1px solid var(--rule);scroll-margin-top:74px">
+  <div style="max-width:1000px;margin:0 auto;padding:88px 32px">
+    <div style="text-align:center">
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--sea)">The lifecycle</div>
+      <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0">Eight commands. One file each.</h2>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:58ch;margin:18px auto 0">Five cover the core spec lifecycle, two cover ongoing change management, and one runs alongside implementation to capture debug sessions.</p>
+    </div>
+
+    <div style="position:relative;margin-top:64px">
+      <div style="position:absolute;top:1.2rem;left:6.25%;right:6.25%;height:2px;background:var(--rule-strong);transform:translateY(-50%);z-index:0"></div>
+      <div id="stepFill" style="position:absolute;top:1.2rem;left:6.25%;width:0%;height:2px;background:var(--accent,var(--purple));transform:translateY(-50%);z-index:0;transition:width .55s cubic-bezier(.4,0,.2,1),background .55s"></div>
+      <div id="stepRow" style="position:relative;z-index:1;display:flex"></div>
+    </div>
+
+    <div id="phaseDetail" style="margin-top:46px;border:1px solid var(--rule);border-left:3px solid var(--accent,var(--purple));background:var(--bg-raised);border-radius:14px;padding:30px 34px;transition:border-color .5s;box-shadow:0 10px 30px var(--shadow)">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:18px;flex-wrap:wrap">
+        <div id="phaseLabel" style="font-family:'Lato',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,var(--purple))">Phase 01 / 08</div>
+        <div id="phaseGroup" style="font-family:'Lato',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Foundation</div>
+      </div>
+      <h3 id="phaseVerb" style="font-family:'Fraunces',serif;font-weight:540;font-size:clamp(1.8rem,3.6vw,2.6rem);letter-spacing:-.01em;color:var(--ink);margin:10px 0 0">principles</h3>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px">
+        <code style="display:inline-block;white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:.92rem;background:var(--bg-sunken);border:1px solid var(--rule);padding:9px 14px;border-radius:8px"><span style="color:var(--ink-faint)" id="cmdPrefix">/spectastic.</span><span id="cmdVerb" style="color:var(--accent,var(--purple));font-weight:600">principles</span><span style="color:var(--ink-faint)" id="cmdArgs"> &lt;name&gt;</span></code>
+        <span style="font-family:'Lato',sans-serif;font-size:.8rem;color:var(--ink-faint)">outputs</span>
+        <span style="color:var(--accent,var(--purple));font-family:'IBM Plex Mono',monospace;font-size:.78rem">→</span>
+        <code id="cmdOut" style="font-family:'IBM Plex Mono',monospace;font-size:.86rem;color:var(--ink-soft)">principles.html</code>
+      </div>
+      <p id="phaseNote" style="font-family:'Source Serif 4',serif;font-size:1.12rem;line-height:1.6;color:var(--ink-soft);max-width:60ch;margin:20px 0 0">Establish the project's five non-negotiable principles — the constitution every later artifact is checked against.</p>
+    </div>
+    <p style="text-align:center;font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:24px 0 0">Eight commands. <span style="color:var(--crimson)">propose</span> &amp; <span style="color:var(--crimson)">apply</span> loop forever as the spec evolves.</p>
+  </div>
+</section>
+
+<!-- ===== COMPONENTS ===== -->
+<section id="components" style="border-top:1px solid var(--rule);background:var(--bg-sunken);scroll-margin-top:74px">
+  <div style="max-width:1160px;margin:0 auto;padding:88px 32px">
+    <div style="text-align:center">
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--purple)">Component vocabulary</div>
+      <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0">Tag name is schema.</h2>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:60ch;margin:18px auto 0">A small set of semantic custom elements covers the spec shape. Everything degrades to readable static HTML if the JS never loads — the spec is still a spec.</p>
+    </div>
+
+    <div class="components-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:52px">
+
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint);margin-bottom:16px">&lt;spec-requirement&gt;</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">REQ-AUTH-014</span>
+          <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span>
+        </div>
+        <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.28rem;line-height:1.2;margin:14px 0 0;color:var(--ink)">Session tokens rotate on privilege change</h3>
+        <p style="font-family:'Source Serif 4',serif;font-size:.98rem;line-height:1.56;color:var(--ink-soft);margin:10px 0 0">The system <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> issue a fresh token whenever a role changes, invalidating the prior token within one request cycle.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint);margin-bottom:16px">&lt;spec-diff&gt;</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.84rem;line-height:1.9">
+          <div style="background:var(--del-bg);color:var(--del-ink);padding:3px 12px;border-radius:6px;margin-bottom:6px"><span style="opacity:.7">−</span>&nbsp; priority="should" &nbsp;rotate on next login</div>
+          <div style="background:var(--ins-bg);color:var(--ins-ink);padding:3px 12px;border-radius:6px"><span style="opacity:.7">+</span>&nbsp; priority="must" &nbsp;&nbsp;&nbsp;rotate within one cycle</div>
+        </div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:16px 0 0">Red/green change blocks use semantic <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">&lt;ins&gt;</span> and <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">&lt;del&gt;</span> — reviewable without a git checkout.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint);margin-bottom:16px">&lt;spec-matrix&gt;</div>
+        <table style="width:100%;border-collapse:collapse;font-family:'Source Serif 4',serif">
+          <thead><tr>
+            <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 8px 8px 0">Option</th>
+            <th style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 6px 8px">Effort</th>
+            <th style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 6px 8px">Risk</th>
+            <th style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 0 8px 6px">Fit</th>
+          </tr></thead>
+          <tbody style="font-size:.92rem;color:var(--ink-soft)">
+            <tr style="border-top:1px solid var(--rule)"><td style="padding:9px 8px 9px 0">Inline JS</td><td style="text-align:center">Low</td><td style="text-align:center">High</td><td style="text-align:center">—</td></tr>
+            <tr style="border-top:1px solid var(--rule);background:color-mix(in srgb,var(--gold) 38%,transparent)"><td style="padding:9px 8px 9px 0;color:var(--ink);font-weight:600">Web component&nbsp;<span style="color:var(--crimson)">✓</span></td><td style="text-align:center;color:var(--ink)">Med</td><td style="text-align:center;color:var(--ink)">Low</td><td style="text-align:center;color:var(--ink)">High</td></tr>
+            <tr style="border-top:1px solid var(--rule)"><td style="padding:9px 8px 9px 0">Server render</td><td style="text-align:center">High</td><td style="text-align:center">Med</td><td style="text-align:center">Med</td></tr>
+          </tbody>
+        </table>
+        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-faint);margin:14px 0 0">Option × criterion table with a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink-soft)">data-winner</span> row.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--sea);border-radius:14px;padding:24px 26px;box-shadow:0 8px 24px var(--shadow)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-faint);margin-bottom:16px">&lt;spec-triage&gt;</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px">implementation</span>
+          <span style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ins-ink);border:1px solid color-mix(in srgb,var(--sea) 45%,transparent);padding:2px 8px;border-radius:4px;white-space:nowrap">regen ✓</span>
+        </div>
+        <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1rem;line-height:1.5;color:var(--ink);margin:0">In the context of token refresh, facing a race on logout, we observed a double-rotation — so the fix serialises the rotation lock.</p>
+        <dl style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:14px 0 0;font-family:'Source Serif 4',serif;font-size:.9rem">
+          <dt style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:2px">Expected</dt><dd style="margin:0;color:var(--ink-soft)">one token after logout</dd>
+          <dt style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:2px">Actual</dt><dd style="margin:0;color:var(--ink-soft)">two, racing</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INSTALL ===== -->
+<section id="install" style="border-top:1px solid var(--rule);scroll-margin-top:74px">
+  <div style="max-width:760px;margin:0 auto;padding:88px 32px;text-align:center">
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--salmon)">Install</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0">Drop it into your project.</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:52ch;margin:18px auto 0">Bootstrap the eight-command lifecycle into your repo, then point your AI coding agent at it and start authoring — principles first.</p>
+
+    <div style="position:relative;text-align:left;margin:38px auto 0;background:var(--bg-sunken);border:1px solid var(--rule-strong);border-radius:14px;padding:24px 26px;box-shadow:0 12px 34px var(--shadow)">
+      <button class="copy-btn" id="copyBtn" type="button"><span class="copied">✓ copied</span><span class="label">copy</span></button>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.86rem;line-height:1.95;color:var(--ink);overflow-x:auto;white-space:nowrap">
+        <div style="color:var(--ink-faint)"># clone the repo</div>
+        <div><span style="color:var(--sea)">git</span> clone https://github.com/spectastic/spectastic</div>
+        <div><span style="color:var(--sea)">cd</span> spectastic</div>
+        <div style="height:.85em"></div>
+        <div style="color:var(--ink-faint)"># bootstrap the lifecycle into your project</div>
+        <div><span style="color:var(--sea)">./scripts/spectastic</span> <span style="color:var(--crimson)">init</span></div>
+      </div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">Then run <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.84em;color:var(--crimson)">/spectastic.principles</span> with your AI coding agent to author your project's principles.</p>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer style="border-top:1px solid var(--rule);background:var(--bg-sunken)">
+  <div style="max-width:1160px;margin:0 auto;padding:56px 32px;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink)">spectastic</span>
+        <svg width="14" height="14" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:2px"><use href="#spec-logo"/></svg>
+      </div>
+      <p style="font-family:'Fraunces',serif;font-style:italic;font-size:1.05rem;color:var(--ink-soft);margin:10px 0 0">Think it? Build it! Right.</p>
+      <p style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.04em;color:var(--ink-faint);margin:18px 0 0">v0.1 · single-file HTML spec tooling · spectastic.io</p>
+    </div>
+    <div style="display:flex;gap:56px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px">Product</div>
+        <a href="#why" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Why HTML</a>
+        <a href="#lifecycle" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Lifecycle</a>
+        <a href="#components" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Components</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px">Learn</div>
+        <a href="docs.html" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Docs</a>
+        <a href="example.html" class="lnk" style="font-family:'Source Serif 4',serif;font-size:.96rem">Example spec</a>
+        <a href="https://github.com/spectastic/spectastic" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:'Source Serif 4',serif;font-size:.96rem">GitHub ↗</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---------- theme ----------
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+
+  // ---------- verbs row ----------
+  const steps = [
+    { n:'01', verb:'principles', cmd:'/spectastic.principles <name>',  out:'principles.html',                 group:'Foundation',        note:"Establish the project's five non-negotiable principles — the constitution every later artifact is checked against.",       accent:'--purple' },
+    { n:'02', verb:'spec',       cmd:'/spectastic.spec <feature>',      out:'specs/<id>/spec.html',            group:'Core lifecycle',    note:'Specify one feature — goals, scoped requirements, decisions — with a live size budget that nudges you to split before it bloats.', accent:'--sea' },
+    { n:'03', verb:'plan',       cmd:'/spectastic.plan [id]',           out:'specs/<id>/plan.html',            group:'Core lifecycle',    note:'Plan the build. The estimability gate refuses to run while any open question or failing INVEST row remains.',                accent:'--crimson' },
+    { n:'04', verb:'tasks',      cmd:'/spectastic.tasks [id]',          out:'specs/<id>/tasks.html',           group:'Core lifecycle',    note:'Derive an ordered, checkable task breakdown — each task a stable T-NNN id, with [P] flags for work that can run in parallel.', accent:'--salmon' },
+    { n:'05', verb:'implement',  cmd:'/spectastic.implement [T-NNN]',   out:'code edits + ticked box',         group:'Core lifecycle',    note:'Build a task. The inner checkbox strikes the line through when done; drains the small-batch inbox first, then the active spec.', accent:'--sea' },
+    { n:'06', verb:'propose',    cmd:'/spectastic.propose <change>',    out:'changes/<slug>/proposal.html',    group:'Change management', note:'A PR-shaped change in one file — intent, scope, typed deltas, and an adversarial risk pass that fires on must-tier edits.',     accent:'--purple' },
+    { n:'07', verb:'apply',      cmd:'/spectastic.apply [<slug>]',      out:'spec patched · folder archived',  group:'Change management', note:'Land an approved change. Refuses while any risk is still unresolved; moves the change folder into the archive.',              accent:'--crimson' },
+    { n:'08', verb:'triage',     cmd:'/spectastic.triage <failure>',    out:'triage-log.html (append)',        group:'Alongside',         note:'Capture a debug session as one screen-sized card — Y-statement headline, expected/actual, layer, and a regen-test pill.',     accent:'--salmon' },
+  ];
+
+  const verbsRow = document.getElementById('verbsRow');
+  steps.forEach(s => {
+    const span = document.createElement('span');
+    span.textContent = s.verb;
+    span.style.cssText = "font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint);border:1px solid var(--rule);background:var(--bg-raised);padding:5px 11px;border-radius:999px";
+    verbsRow.appendChild(span);
+  });
+
+  // ---------- lifecycle stepper ----------
+  const stepRow = document.getElementById('stepRow');
+  const stepFill = document.getElementById('stepFill');
+  const phaseDetail = document.getElementById('phaseDetail');
+  const phaseLabel = document.getElementById('phaseLabel');
+  const phaseGroup = document.getElementById('phaseGroup');
+  const phaseVerb = document.getElementById('phaseVerb');
+  const phaseNote = document.getElementById('phaseNote');
+  const cmdPrefix = document.getElementById('cmdPrefix');
+  const cmdVerb = document.getElementById('cmdVerb');
+  const cmdArgs = document.getElementById('cmdArgs');
+  const cmdOut = document.getElementById('cmdOut');
+
+  const dots = steps.map((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'step';
+    el.innerHTML = `<div class="dot">${s.n}</div><div class="lbl">${s.verb}</div>`;
+    el.addEventListener('click', () => {
+      active = i;
+      restartTimer();
+      render();
+    });
+    stepRow.appendChild(el);
+    return el;
+  });
+
+  let active = 0;
+  function render(){
+    const cur = steps[active];
+    const accent = `var(${cur.accent})`;
+    phaseDetail.style.setProperty('--accent', accent);
+    stepFill.style.setProperty('--accent', accent);
+    phaseDetail.style.borderLeftColor = accent;
+    stepFill.style.background = accent;
+    stepFill.style.width = `calc(87.5% * ${active / (steps.length - 1)})`;
+    phaseLabel.style.color = accent;
+    phaseLabel.textContent = `Phase ${cur.n} / 08`;
+    phaseGroup.textContent = cur.group;
+    phaseVerb.textContent = cur.verb;
+    phaseNote.textContent = cur.note;
+
+    const sp = cur.cmd.indexOf(' ');
+    const cmdHead = sp === -1 ? cur.cmd : cur.cmd.slice(0, sp);
+    const args    = sp === -1 ? ''       : cur.cmd.slice(sp);
+    const dot     = cmdHead.lastIndexOf('.');
+    cmdPrefix.textContent = dot === -1 ? '' : cmdHead.slice(0, dot + 1);
+    cmdVerb.textContent   = dot === -1 ? cmdHead : cmdHead.slice(dot + 1);
+    cmdVerb.style.color   = accent;
+    cmdArgs.textContent   = args;
+    cmdOut.textContent    = cur.out;
+
+    dots.forEach((d, i) => d.classList.toggle('active', i === active));
+    const activeDot = dots[active].querySelector('.dot');
+    activeDot.style.background = accent;
+    activeDot.style.borderColor = accent;
+    dots.forEach((d, i) => {
+      if (i !== active) {
+        const v = d.querySelector('.dot');
+        v.style.background = '';
+        v.style.borderColor = '';
+      }
+    });
+    dots[active].querySelector('.lbl').style.color = accent;
+    dots.forEach((d, i) => {
+      if (i !== active) d.querySelector('.lbl').style.color = '';
+    });
+  }
+
+  let timer;
+  function restartTimer(){
+    clearInterval(timer);
+    timer = setInterval(() => { active = (active + 1) % steps.length; render(); }, 2600);
+  }
+  render();
+  restartTimer();
+
+  // ---------- copy button ----------
+  const copyBtn = document.getElementById('copyBtn');
+  const cmdText = 'git clone https://github.com/spectastic/spectastic\ncd spectastic\n./scripts/spectastic init';
+  let copyTimer;
+  copyBtn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(cmdText); } catch(e){}
+    copyBtn.classList.add('is-copied');
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => copyBtn.classList.remove('is-copied'), 1800);
+  });
+})();
+</script>
+</body>
+</html>
