@@ -64,8 +64,9 @@ select{appearance:none;font:inherit;font-size:.82rem;font-weight:600;color:var(-
 @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 
 /* ---- board ---- */
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(88vw,340px);aspect-ratio:1}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(88vw,340px)}
 .cell{position:relative;background:var(--tile);border:2px solid var(--tile-border);border-radius:6px;display:flex;align-items:center;justify-content:center;
+  aspect-ratio:1;min-width:0;overflow:hidden;
   font-size:clamp(2.4rem,13vw,3.6rem);font-weight:800;line-height:1;cursor:default;user-select:none;color:#fff}
 .cell.playable{cursor:pointer}
 .cell.playable:hover{border-color:var(--ink-faint)}
