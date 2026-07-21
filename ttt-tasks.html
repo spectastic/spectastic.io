@@ -106,9 +106,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
   <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
     <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">Eighteen tasks across six phases. The rules core lands first and everything depends on it; the engines stack up from Random to MCTS; the last phase is a self-play harness that proves the perfect engines are unbeatable. All eighteen are done.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">Twenty-three tasks across seven phases. The rules core lands first and everything depends on it; the engines stack up from Random to MCTS; a self-play harness proves the perfect engines are unbeatable; and a later change generalises the board to 5×5. All twenty-three are done.</p>
     <div style="margin-top:18px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Complete</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">18 / 18 complete</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Complete</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">23 / 23 complete</span></div>
       <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:100%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
     </div>
   </div>
@@ -191,6 +191,25 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     </div>
   </div>
 
+  <div class="phase-label" style="color:var(--salmon)">Phase 5 · Change — larger boards <span style="font-family:'IBM Plex Mono',monospace;font-size:.7em;color:var(--ink-faint);text-transform:none;letter-spacing:0">applied · v1.1.0</span></div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-500</span> &nbsp;<strong>Parameterise board size (N×N) + win length (K)</strong> — <span class="path">rules · FR-006</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-510</span> &nbsp;<strong>Depth-limited threat search for boards &gt; 3×3</strong> — <span class="path">engines · NFR-001</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-520</span> &nbsp;<strong>Board-size + win-length controls (valid per size)</strong> — <span class="path">view · FR-006</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-530</span> &nbsp;<strong>Tune search depth / MCTS iterations to hold &lt; 500 ms</strong> — <span class="path">engines · NFR-001</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-540</span> &nbsp;<strong>Decisiveness check in the harness (5×5/3 not always a draw)</strong> — <span class="path">verify · SC-004</span></div>
+    </div>
+  </div>
+
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§ &nbsp;Dependencies</h2>
   <pre style="margin:20px 0 0;background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:20px 24px;overflow-x:auto"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;line-height:1.7;color:var(--ink-soft)">rules core (T-010 · T-011 · T-012)  ──▶  every engine
 engines (T-100 … T-220)             ──▶  work chip (T-300)
@@ -198,6 +217,7 @@ everything                          ──▶  verification (T-900)</code></pre>
 
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§ &nbsp;Change log</h2>
   <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Applied change <a href="ttt-proposal.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">2026-07-20-larger-boards</a>: added Phase 5 (T-500…T-540) for configurable boards; all drained.</div></div>
     <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">All 18 tasks drained; Draft→Accepted bundled flip.</div></div>
     <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Task breakdown derived from spec + plan.</div></div>
   </div>
@@ -209,6 +229,8 @@ everything                          ──▶  verification (T-900)</code></pre>
       <a href="ttt-spec.html" class="switch">spec.html</a>
       <a href="ttt-plan.html" class="switch">plan.html</a>
       <a href="ttt-tasks.html" class="switch here">tasks.html</a>
+      <a href="ttt-triage-log.html" class="switch">triage-log.html</a>
+      <a href="ttt-proposal.html" class="switch">proposal.html</a>
       <a href="example-tictactoe.html" class="switch">↳ walkthrough</a>
       <a href="tictactoe.html" class="switch">▶ play the game</a>
     </div>

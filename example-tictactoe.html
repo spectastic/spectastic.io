@@ -109,7 +109,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   <main style="min-width:0">
     <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · build-along</div>
     <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Building an unbeatable tic-tac-toe, the spectastic way</h1>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">Tic-tac-toe is solved — so we over-engineered it. Six AI opponents, from a coin-flip to Monte Carlo Tree Search; two- and three-player modes; one self-contained HTML file. Here is how every decision was <em>driven</em> through the spectastic lifecycle — principles first, then spec, plan, tasks, a verification pass that had to <em>prove</em> the perfect players are unbeatable, and a triage log for the one defect that slipped past it.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">Tic-tac-toe is solved — so we over-engineered it. Six AI opponents, from a coin-flip to Monte Carlo Tree Search; two- and three-player modes; one self-contained HTML file. Here is how every decision was <em>driven</em> through the spectastic lifecycle — principles first, then spec, plan, tasks, a verification pass that had to <em>prove</em> the perfect players are unbeatable, a triage log for the one defect that slipped past it, and a change — proposed, risk-checked, and applied — that grew the board so three-player games aren't foregone draws.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
       <a href="tictactoe.html" class="btn-primary">▶ &nbsp;Play the game</a>
@@ -194,9 +194,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <!-- step 6 triage -->
       <div class="step">
         <div class="step-num" style="background:var(--salmon)">6</div>
-        <div>
+        <div style="padding-bottom:26px">
           <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Triage a defect</h3><a href="ttt-triage-log.html" class="artifact-link">triage-log.html</a></div>
           <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">Then, after acceptance, a real one slipped through: the board's cells went <strong style="color:var(--ink)">rectangular</strong> as tiles landed. No silent hotfix — it went through triage. Reproduced with measurements (rows at <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">135 / 127 / 70&nbsp;px</span>), root-caused to content-sized grid rows, classified at the <em>implementation</em> layer, fixed by making each cell square, and locked in with a geometry assertion so it can't return. The whole trail lives in the triage-log.</p>
+        </div>
+      </div>
+
+      <!-- step 7 change -->
+      <div class="step">
+        <div class="step-num" style="background:var(--sea)">7</div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Propose · apply · implement</h3><a href="ttt-proposal.html" class="artifact-link">proposal.html</a></div>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The lifecycle isn't only greenfield. Three-player games kept ending in draws, so a change was <em>proposed</em> — larger boards, shorter win lines — with typed deltas and an adversarial risk pass (beyond 3×3 the search turns heuristic; a first-cut <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">2.1&nbsp;s</span> move was tuned back under budget). Approved, <em>applied</em> into the spec at v1.1.0, and <em>implemented</em>. A 5×5 board won on three in a row now drew <strong style="color:var(--ink)">0 of 8</strong> games.</p>
         </div>
       </div>
 
@@ -263,7 +272,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <a href="ttt-plan.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">plan.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The approach &amp; the decisions</span></a>
       <a href="ttt-tasks.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">tasks.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Eighteen ordered, checkable tasks</span></a>
       <a href="ttt-triage-log.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">triage-log.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">A defect, reproduced &amp; closed</span></a>
-      <a href="tictactoe.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 9rem">▶ tictactoe.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The playable product</span></a>
+      <a href="ttt-proposal.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">proposal.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">A change: propose → apply → implement</span></a>
+      <a href="tictactoe.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 9rem">▶ tictactoe.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The playable product</span></a>
     </div>
 
     <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">

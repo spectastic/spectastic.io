@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tic Tac Toe — over-engineered · a spectastic worked example</title>
-<meta name="description" content="Over-engineered tic-tac-toe: play against Random, Minimax, Alpha-Beta, MaxN, Paranoid, and Monte Carlo Tree Search opponents. Built with spectastic.">
+<meta name="description" content="Over-engineered tic-tac-toe: play against Random, Minimax, Alpha-Beta, MaxN, Paranoid, and Monte Carlo Tree Search opponents on 3x3, 4x4, or 5x5 boards. Built with spectastic.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 :root{
@@ -40,12 +40,13 @@ main{width:100%;max-width:560px;padding:20px 16px 64px;display:flex;flex-directi
 .tagline{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);text-align:center;margin:2px 0 20px}
 
 /* ---- controls ---- */
-.controls{width:100%;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.controls{width:100%;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
 .ctrl-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ctrl-label{font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);flex:0 0 auto;width:66px}
+.ctrl-label{font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);flex:0 0 auto;width:56px}
 .seg{display:inline-flex;border:1px solid var(--tile-border);border-radius:8px;overflow:hidden}
-.seg button{appearance:none;border:0;background:transparent;color:var(--ink-soft);font:inherit;font-weight:700;font-size:.82rem;padding:7px 16px;cursor:pointer}
+.seg button{appearance:none;border:0;background:transparent;color:var(--ink-soft);font:inherit;font-weight:700;font-size:.8rem;padding:7px 14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button[disabled]{opacity:.32;cursor:not-allowed}
 .seat{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .dot{width:15px;height:15px;border-radius:4px;flex:0 0 auto}
 .seat .who{font-size:.85rem;font-weight:700;min-width:2.6em}
@@ -54,20 +55,19 @@ select{appearance:none;font:inherit;font-size:.82rem;font-weight:600;color:var(-
   background-repeat:no-repeat;background-position:right 10px center}
 .btn{appearance:none;border:0;font:inherit;font-weight:800;letter-spacing:.02em;font-size:.9rem;padding:11px 20px;border-radius:999px;cursor:pointer;background:var(--p1);color:#fff;transition:transform .12s}
 .btn:hover{transform:translateY(-1px)}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--tile-border)}
 
 /* ---- status ---- */
-.status{width:100%;min-height:34px;display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 12px;font-weight:700;font-size:1rem}
+.status{width:100%;min-height:34px;display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 12px;font-weight:700;font-size:1rem;text-align:center;flex-wrap:wrap}
 .status .swatch{width:14px;height:14px;border-radius:4px;display:inline-block}
 .chip{font-size:.7rem;font-weight:600;color:var(--ink-soft);background:var(--chip);border-radius:999px;padding:4px 11px;letter-spacing:.01em}
 .dots-anim::after{content:'';animation:dots 1.1s steps(4,end) infinite}
 @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 
 /* ---- board ---- */
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(88vw,340px)}
+.board{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:8px;width:min(92vw, calc(var(--n,3) * 104px))}
 .cell{position:relative;background:var(--tile);border:2px solid var(--tile-border);border-radius:6px;display:flex;align-items:center;justify-content:center;
   aspect-ratio:1;min-width:0;overflow:hidden;
-  font-size:clamp(2.4rem,13vw,3.6rem);font-weight:800;line-height:1;cursor:default;user-select:none;color:#fff}
+  font-size:calc(min(92vw, calc(var(--n,3) * 104px)) / var(--n,3) * 0.48);font-weight:800;line-height:1;cursor:default;user-select:none;color:#fff}
 .cell.playable{cursor:pointer}
 .cell.playable:hover{border-color:var(--ink-faint)}
 .cell.filled{border-color:transparent;animation:pop .28s ease}
@@ -83,10 +83,10 @@ details.about summary::-webkit-details-marker{display:none}
 details.about summary::before{content:'▸ ';color:var(--ink-faint)}
 details.about[open] summary::before{content:'▾ '}
 .eng{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule)}
-.eng:last-child{border-bottom:0}
 .eng .k{flex:0 0 5.4rem;font-weight:800;font-size:.82rem}
 .eng .d{font-size:.86rem;line-height:1.5;color:var(--ink-soft)}
 .eng .tag{font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+.about-note{font-size:.82rem;line-height:1.5;color:var(--ink-soft);padding:14px 0 0}
 
 /* ---- result overlay ---- */
 .overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 62%,transparent);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:24px;z-index:20}
@@ -119,6 +119,20 @@ details.about[open] summary::before{content:'▾ '}
       </div>
       <button class="btn" id="newGame" style="margin-left:auto">New game</button>
     </div>
+    <div class="ctrl-line">
+      <span class="ctrl-label">Board</span>
+      <div class="seg" id="sizeSeg" role="group" aria-label="Board size">
+        <button data-size="3" aria-pressed="true">3×3</button>
+        <button data-size="4" aria-pressed="false">4×4</button>
+        <button data-size="5" aria-pressed="false">5×5</button>
+      </div>
+      <span class="ctrl-label" style="width:auto;margin-left:6px">In&nbsp;a&nbsp;row</span>
+      <div class="seg" id="winSeg" role="group" aria-label="Marks in a row to win">
+        <button data-win="3" aria-pressed="true">3</button>
+        <button data-win="4" aria-pressed="false">4</button>
+        <button data-win="5" aria-pressed="false">5</button>
+      </div>
+    </div>
     <div class="ctrl-line" id="seatConfig"></div>
   </div>
 
@@ -128,12 +142,13 @@ details.about[open] summary::before{content:'▾ '}
 
   <details class="about">
     <summary>About the six opponents</summary>
-    <div class="eng"><div class="k">Random</div><div class="d">Picks any empty square uniformly at random. A losing strategy against anyone who's paying attention — the naive baseline. <span class="tag">2p · 3p</span></div></div>
-    <div class="eng"><div class="k">Minimax</div><div class="d">Searches the entire game tree, assuming the opponent plays perfectly. Scores wins <code>+</code>, losses <code>−</code>, draws <code>0</code>, and prefers faster wins. Unbeatable at 3×3. <span class="tag">2p</span></div></div>
+    <div class="eng"><div class="k">Random</div><div class="d">Picks any empty square uniformly at random. A losing strategy against anyone who's paying attention — the naive baseline. <span class="tag">any board</span></div></div>
+    <div class="eng"><div class="k">Minimax</div><div class="d">Searches the game tree, assuming the opponent plays perfectly. Scores wins <code>+</code>, losses <code>−</code>, draws <code>0</code>, and prefers faster wins. Unbeatable at 3×3. <span class="tag">2p</span></div></div>
     <div class="eng"><div class="k">Alpha-Beta</div><div class="d">Minimax with pruning — skips branches that can't beat a line already found. Identical play, a fraction of the positions explored. <span class="tag">2p</span></div></div>
     <div class="eng"><div class="k">MaxN</div><div class="d">The three-player generalisation: every node scores a <em>vector</em> of utilities, and each player maximises their own. No zero-sum shortcut. <span class="tag">3p</span></div></div>
     <div class="eng"><div class="k">Paranoid</div><div class="d">Collapses three players to "me vs. the world" — assumes the other two coordinate against it. Cheaper, and often deeper. <span class="tag">3p</span></div></div>
-    <div class="eng"><div class="k">MCTS</div><div class="d">Monte Carlo Tree Search. Knows only the rules; learns by playing thousands of random games and trusting what wins. <span class="tag">2p · 3p</span></div></div>
+    <div class="eng"><div class="k">MCTS</div><div class="d">Monte Carlo Tree Search. Knows only the rules; learns by playing thousands of random games and trusting what wins. <span class="tag">any board</span></div></div>
+    <p class="about-note">On boards larger than 3×3, exhaustive search is intractable — so Minimax, Alpha-Beta, MaxN, and Paranoid switch to a <strong>depth-limited search with a threat heuristic</strong> (strong, but no longer provably perfect). MCTS and Random scale unchanged.</p>
   </details>
 
   <p class="footnote">
@@ -153,120 +168,167 @@ details.about[open] summary::before{content:'▾ '}
 <script>
 (function(){
   "use strict";
-  const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   const MARKS=['✕','◯','△'];
   const COLORS=['var(--p1)','var(--p2)','var(--p3)'];
-  const NAMES=['You','CPU','CPU'];
-
-  // engine catalogues per mode
   const ENGINES2=[['minimax','Minimax'],['alphabeta','Minimax + α-β'],['mcts','MCTS'],['random','Random']];
   const ENGINES3=[['maxn','MaxN'],['paranoid','Paranoid'],['mcts','MCTS'],['random','Random']];
   const LABEL={random:'Random',minimax:'Minimax',alphabeta:'Alpha-Beta',maxn:'MaxN',paranoid:'Paranoid',mcts:'MCTS'};
+  const WIN=100000, INF=Infinity;
+
+  // ---- board geometry (set per game) ----
+  let SIZE=3, WINLEN=3, LINES=[], MAXDEPTH=99, MCTS_ITERS=2500;
+
+  function genLines(N,K){
+    const lines=[];
+    const at=(r,c)=>r*N+c;
+    for(let r=0;r<N;r++)for(let c=0;c<=N-K;c++){const l=[];for(let i=0;i<K;i++)l.push(at(r,c+i));lines.push(l);}      // →
+    for(let c=0;c<N;c++)for(let r=0;r<=N-K;r++){const l=[];for(let i=0;i<K;i++)l.push(at(r+i,c));lines.push(l);}      // ↓
+    for(let r=0;r<=N-K;r++)for(let c=0;c<=N-K;c++){const l=[];for(let i=0;i<K;i++)l.push(at(r+i,c+i));lines.push(l);} // ↘
+    for(let r=0;r<=N-K;r++)for(let c=K-1;c<N;c++){const l=[];for(let i=0;i<K;i++)l.push(at(r+i,c-i));lines.push(l);}  // ↙
+    return lines;
+  }
+  function configure(size,win){
+    SIZE=size; WINLEN=win; LINES=genLines(size,win);
+    MAXDEPTH = size===3 ? 99 : (size===4 ? 4 : 3);
+    MCTS_ITERS = size===3 ? 2500 : (size===4 ? 1200 : 600);
+  }
 
   const state={
-    nPlayers:2,
+    nPlayers:2, size:3, winLen:3,
     board:new Array(9).fill(null),
-    current:0,
-    over:false,
+    current:0, over:false,
     seats:[{kind:'human'},{kind:'cpu',engine:'minimax'},{kind:'cpu',engine:'maxn'}],
-    lastWork:null,
-    busy:false,
+    lastWork:null, busy:false,
   };
 
   // ---------- rules ----------
   function winnerInfo(b){
-    for(const ln of LINES){const[a,c,d]=ln;if(b[a]!=null&&b[a]===b[c]&&b[a]===b[d])return{winner:b[a],line:ln};}
+    for(const ln of LINES){const p=b[ln[0]];if(p==null)continue;let ok=true;for(let i=1;i<ln.length;i++){if(b[ln[i]]!==p){ok=false;break;}}if(ok)return{winner:p,line:ln};}
     return b.every(x=>x!=null)?{winner:'draw',line:null}:{winner:null,line:null};
   }
-  function winnerIdx(b){for(const ln of LINES){const[a,c,d]=ln;if(b[a]!=null&&b[a]===b[c]&&b[a]===b[d])return b[a];}return null;}
-  function isFull(b){for(let i=0;i<9;i++)if(b[i]==null)return false;return true;}
-  function empties(b){const e=[];for(let i=0;i<9;i++)if(b[i]==null)e.push(i);return e;}
+  function winnerIdx(b){
+    for(const ln of LINES){const p=b[ln[0]];if(p==null)continue;let ok=true;for(let i=1;i<ln.length;i++){if(b[ln[i]]!==p){ok=false;break;}}if(ok)return p;}
+    return null;
+  }
+  function isFull(b){for(let i=0;i<b.length;i++)if(b[i]==null)return false;return true;}
+  function empties(b){const e=[];for(let i=0;i<b.length;i++)if(b[i]==null)e.push(i);return e;}
+
+  // candidate moves: on 3x3, every empty; on bigger boards, empties adjacent to a mark (focuses the search)
+  function neighborMoves(b){
+    const set=new Set();let any=false;
+    for(let i=0;i<b.length;i++){
+      if(b[i]==null)continue;any=true;
+      const r=(i/SIZE)|0,c=i%SIZE;
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+        if(!dr&&!dc)continue;const nr=r+dr,nc=c+dc;
+        if(nr<0||nc<0||nr>=SIZE||nc>=SIZE)continue;
+        const j=nr*SIZE+nc;if(b[j]==null)set.add(j);
+      }
+    }
+    if(!any)return [((SIZE*SIZE-1)/2)|0];
+    return [...set];
+  }
+  const movesFor = b => SIZE===3 ? empties(b) : neighborMoves(b);
+
+  // threat heuristic: reward K-windows owned by a single player, weighted by how full they are
+  function evalVec(b,n){
+    const s=new Array(n).fill(0);
+    for(const ln of LINES){
+      let owner=-1,cnt=0,mixed=false;
+      for(const idx of ln){const v=b[idx];if(v==null)continue;if(owner===-1)owner=v;else if(owner!==v){mixed=true;break;}cnt++;}
+      if(!mixed&&owner!==-1)s[owner]+=Math.pow(10,cnt-1);
+    }
+    return s;
+  }
 
   // ---------- engines ----------
   function eRandom(b){const e=empties(b);return{move:e[(Math.random()*e.length)|0],work:'—'};}
 
   function minimax(b,me,toMove,depth,cnt){
     const w=winnerIdx(b);
-    if(w===me)return 10-depth;
-    if(w!=null)return depth-10;
+    if(w!=null)return w===me?(WIN-depth):(depth-WIN);
     if(isFull(b))return 0;
+    if(depth>=MAXDEPTH){const ev=evalVec(b,2);return ev[me]-ev[1-me];}
     cnt.n++;
-    const e=empties(b);
-    if(toMove===me){let best=-Infinity;for(const m of e){b[m]=toMove;best=Math.max(best,minimax(b,me,1-toMove,depth+1,cnt));b[m]=null;}return best;}
-    let best=Infinity;for(const m of e){b[m]=toMove;best=Math.min(best,minimax(b,me,1-toMove,depth+1,cnt));b[m]=null;}return best;
+    const moves=movesFor(b);
+    if(toMove===me){let best=-INF;for(const m of moves){b[m]=toMove;best=Math.max(best,minimax(b,me,1-toMove,depth+1,cnt));b[m]=null;}return best;}
+    let best=INF;for(const m of moves){b[m]=toMove;best=Math.min(best,minimax(b,me,1-toMove,depth+1,cnt));b[m]=null;}return best;
   }
   function eMinimax(b,me){
-    const cnt={n:0};let bestM=null,bestS=-Infinity;
-    for(const m of empties(b)){b[m]=me;const s=minimax(b,me,1-me,1,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    const cnt={n:0};let bestM=null,bestS=-INF;
+    for(const m of movesFor(b)){b[m]=me;const s=minimax(b,me,1-me,1,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    if(bestM==null)bestM=empties(b)[0];
     return{move:bestM,work:cnt.n.toLocaleString()+' positions'};
   }
 
   function alphabeta(b,me,toMove,depth,alpha,beta,cnt){
     const w=winnerIdx(b);
-    if(w===me)return 10-depth;
-    if(w!=null)return depth-10;
+    if(w!=null)return w===me?(WIN-depth):(depth-WIN);
     if(isFull(b))return 0;
+    if(depth>=MAXDEPTH){const ev=evalVec(b,2);return ev[me]-ev[1-me];}
     cnt.n++;
-    const e=empties(b);
-    if(toMove===me){let best=-Infinity;for(const m of e){b[m]=toMove;best=Math.max(best,alphabeta(b,me,1-toMove,depth+1,alpha,beta,cnt));b[m]=null;alpha=Math.max(alpha,best);if(beta<=alpha)break;}return best;}
-    let best=Infinity;for(const m of e){b[m]=toMove;best=Math.min(best,alphabeta(b,me,1-toMove,depth+1,alpha,beta,cnt));b[m]=null;beta=Math.min(beta,best);if(beta<=alpha)break;}return best;
+    const moves=movesFor(b);
+    if(toMove===me){let best=-INF;for(const m of moves){b[m]=toMove;best=Math.max(best,alphabeta(b,me,1-toMove,depth+1,alpha,beta,cnt));b[m]=null;alpha=Math.max(alpha,best);if(beta<=alpha)break;}return best;}
+    let best=INF;for(const m of moves){b[m]=toMove;best=Math.min(best,alphabeta(b,me,1-toMove,depth+1,alpha,beta,cnt));b[m]=null;beta=Math.min(beta,best);if(beta<=alpha)break;}return best;
   }
   function eAlphaBeta(b,me){
-    const cnt={n:0};let bestM=null,bestS=-Infinity;
-    for(const m of empties(b)){b[m]=me;const s=alphabeta(b,me,1-me,1,-Infinity,Infinity,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    const cnt={n:0};let bestM=null,bestS=-INF;
+    for(const m of movesFor(b)){b[m]=me;const s=alphabeta(b,me,1-me,1,-INF,INF,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    if(bestM==null)bestM=empties(b)[0];
     return{move:bestM,work:cnt.n.toLocaleString()+' positions'};
   }
 
   function maxn(b,toMove,depth,n,cnt){
     const w=winnerIdx(b);
-    if(w!=null){const v=new Array(n).fill(depth-10);v[w]=10-depth;return v;}
+    if(w!=null){const v=new Array(n).fill(depth-WIN);v[w]=WIN-depth;return v;}
     if(isFull(b))return new Array(n).fill(0);
+    if(depth>=MAXDEPTH)return evalVec(b,n);
     cnt.n++;
     let best=null;
-    for(const m of empties(b)){b[m]=toMove;const v=maxn(b,(toMove+1)%n,depth+1,n,cnt);b[m]=null;if(best===null||v[toMove]>best[toMove])best=v;}
+    for(const m of movesFor(b)){b[m]=toMove;const v=maxn(b,(toMove+1)%n,depth+1,n,cnt);b[m]=null;if(best===null||v[toMove]>best[toMove])best=v;}
     return best;
   }
   function eMaxN(b,me,n){
-    const cnt={n:0};let bestM=null,bestS=-Infinity;
-    for(const m of empties(b)){b[m]=me;const v=maxn(b,(me+1)%n,1,n,cnt);b[m]=null;if(v[me]>bestS){bestS=v[me];bestM=m;}}
+    const cnt={n:0};let bestM=null,bestS=-INF;
+    for(const m of movesFor(b)){b[m]=me;const v=maxn(b,(me+1)%n,1,n,cnt);b[m]=null;if(v[me]>bestS){bestS=v[me];bestM=m;}}
+    if(bestM==null)bestM=empties(b)[0];
     return{move:bestM,work:cnt.n.toLocaleString()+' positions'};
   }
 
   function paranoid(b,toMove,depth,n,r,cnt){
     const w=winnerIdx(b);
-    if(w===r)return 10-depth;
-    if(w!=null)return depth-10;
+    if(w===r)return WIN-depth;
+    if(w!=null)return depth-WIN;
     if(isFull(b))return 0;
+    if(depth>=MAXDEPTH){const ev=evalVec(b,n);let others=0;for(let i=0;i<n;i++)if(i!==r)others+=ev[i];return ev[r]-others;}
     cnt.n++;
-    const e=empties(b);
-    if(toMove===r){let best=-Infinity;for(const m of e){b[m]=toMove;best=Math.max(best,paranoid(b,(toMove+1)%n,depth+1,n,r,cnt));b[m]=null;}return best;}
-    let best=Infinity;for(const m of e){b[m]=toMove;best=Math.min(best,paranoid(b,(toMove+1)%n,depth+1,n,r,cnt));b[m]=null;}return best;
+    const moves=movesFor(b);
+    if(toMove===r){let best=-INF;for(const m of moves){b[m]=toMove;best=Math.max(best,paranoid(b,(toMove+1)%n,depth+1,n,r,cnt));b[m]=null;}return best;}
+    let best=INF;for(const m of moves){b[m]=toMove;best=Math.min(best,paranoid(b,(toMove+1)%n,depth+1,n,r,cnt));b[m]=null;}return best;
   }
   function eParanoid(b,me,n){
-    const cnt={n:0};let bestM=null,bestS=-Infinity;
-    for(const m of empties(b)){b[m]=me;const s=paranoid(b,(me+1)%n,1,n,me,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    const cnt={n:0};let bestM=null,bestS=-INF;
+    for(const m of movesFor(b)){b[m]=me;const s=paranoid(b,(me+1)%n,1,n,me,cnt);b[m]=null;if(s>bestS){bestS=s;bestM=m;}}
+    if(bestM==null)bestM=empties(b)[0];
     return{move:bestM,work:cnt.n.toLocaleString()+' positions'};
   }
 
   function rollout(b,toMove,n){
     while(true){
-      const w=winnerIdx(b);
-      if(w!=null)return w;
-      const e=empties(b);
-      if(e.length===0)return 'draw';
-      b[e[(Math.random()*e.length)|0]]=toMove;
-      toMove=(toMove+1)%n;
+      const w=winnerIdx(b);if(w!=null)return w;
+      const e=empties(b);if(e.length===0)return 'draw';
+      b[e[(Math.random()*e.length)|0]]=toMove;toMove=(toMove+1)%n;
     }
   }
-  function eMCTS(b,me,n,iters){
-    iters=iters||2500;
+  function eMCTS(b,me,n){
+    const iters=MCTS_ITERS;
     const root={board:b.slice(),toMove:me,parent:null,move:null,children:[],untried:empties(b),visits:0,wins:0};
     if(root.untried.length===1)return{move:root.untried[0],work:'0 simulations'};
     const C=1.414;
     for(let i=0;i<iters;i++){
       let node=root;
       while(node.untried.length===0&&node.children.length>0){
-        let best=null,bv=-Infinity;
+        let best=null,bv=-INF;
         for(const c of node.children){const v=c.wins/c.visits+C*Math.sqrt(Math.log(node.visits)/c.visits);if(v>bv){bv=v;best=c;}}
         node=best;
       }
@@ -289,16 +351,16 @@ details.about[open] summary::before{content:'▾ '}
     return{move:best.move,work:iters.toLocaleString()+' simulations'};
   }
 
-  function chooseMove(engine,b,me,n){
-    const work=b.slice();
+  function chooseMove(engine,board,me,n){
+    const b=board.slice();
     switch(engine){
-      case 'random':return eRandom(work);
-      case 'minimax':return eMinimax(work,me);
-      case 'alphabeta':return eAlphaBeta(work,me);
-      case 'maxn':return eMaxN(work,me,n);
-      case 'paranoid':return eParanoid(work,me,n);
-      case 'mcts':return eMCTS(work,me,n);
-      default:return eRandom(work);
+      case 'random':return eRandom(b);
+      case 'minimax':return eMinimax(b,me);
+      case 'alphabeta':return eAlphaBeta(b,me);
+      case 'maxn':return eMaxN(b,me,n);
+      case 'paranoid':return eParanoid(b,me,n);
+      case 'mcts':return eMCTS(b,me,n);
+      default:return eRandom(b);
     }
   }
 
@@ -327,9 +389,10 @@ details.about[open] summary::before{content:'▾ '}
   }
 
   function renderBoard(info){
+    boardEl.style.setProperty('--n',state.size);
     boardEl.innerHTML='';
     const humanTurn=!state.over&&!state.busy&&state.seats[state.current].kind==='human';
-    for(let i=0;i<9;i++){
+    for(let i=0;i<state.board.length;i++){
       const c=document.createElement('div');c.className='cell';
       const v=state.board[i];
       if(v!=null){c.classList.add('filled','p'+v);c.textContent=MARKS[v];if(info&&info.line&&info.line.includes(i))c.classList.add('win');}
@@ -377,43 +440,65 @@ details.about[open] summary::before{content:'▾ '}
       const res=chooseMove(seat.engine,state.board,state.current,state.nPlayers);
       state.busy=false;
       place(res.move,res.work);
-    },320);
+    },300);
   }
 
   function finish(info){
     let title,body;
     if(info.winner==='draw'){title='Draw';body='A perfectly balanced game. As all things should be.';}
-    else if(info.winner===0){title='You win!';body='You beat the machine. Enjoy it — Minimax never will let it happen again.';}
-    else{const s=state.seats[info.winner];title='CPU wins';body='Taken down by '+LABEL[s.engine]+' ('+MARKS[info.winner]+'). '+(state.lastWork?state.lastWork.split(' · ')[1]+' to close it out.':'');}
+    else if(info.winner===0){title='You win!';body='You beat the machine. Enjoy it.';}
+    else{const s=state.seats[info.winner];body='Taken down by '+LABEL[s.engine]+' ('+MARKS[info.winner]+').'+(state.lastWork?' '+state.lastWork.split(' · ')[1]+' to close it out.':'');title='CPU wins';}
     document.getElementById('resultTitle').textContent=title;
     document.getElementById('resultBody').textContent=body;
     setTimeout(()=>overlay.classList.add('show'),650);
   }
 
   function newGame(){
-    state.board=new Array(9).fill(null);
+    configure(state.size,state.winLen);
+    state.board=new Array(state.size*state.size).fill(null);
     state.current=0;state.over=false;state.busy=false;state.lastWork=null;
     overlay.classList.remove('show');
     renderBoard();setStatus();
     maybeCPU();
   }
 
-  // mode switch
+  function updateWinSeg(){
+    for(const b of document.querySelectorAll('#winSeg button')){
+      const w=+b.dataset.win;
+      b.disabled = w>state.size;
+      b.setAttribute('aria-pressed', w===state.winLen ? 'true':'false');
+    }
+  }
+
+  // ---- control handlers ----
   document.getElementById('modeSeg').addEventListener('click',e=>{
     const btn=e.target.closest('button');if(!btn)return;
     const m=+btn.dataset.mode;if(m===state.nPlayers)return;
     state.nPlayers=m;
     for(const b of document.querySelectorAll('#modeSeg button'))b.setAttribute('aria-pressed',b===btn?'true':'false');
-    // reset engines to valid defaults for the mode
     state.seats[1]={kind:'cpu',engine:m===2?'minimax':'maxn'};
     state.seats[2]={kind:'cpu',engine:'paranoid'};
     renderSeats();newGame();
+  });
+  document.getElementById('sizeSeg').addEventListener('click',e=>{
+    const btn=e.target.closest('button');if(!btn)return;
+    const s=+btn.dataset.size;if(s===state.size)return;
+    state.size=s;
+    if(state.winLen>s)state.winLen=s;
+    for(const b of document.querySelectorAll('#sizeSeg button'))b.setAttribute('aria-pressed',b===btn?'true':'false');
+    updateWinSeg();newGame();
+  });
+  document.getElementById('winSeg').addEventListener('click',e=>{
+    const btn=e.target.closest('button');if(!btn||btn.disabled)return;
+    const w=+btn.dataset.win;if(w===state.winLen)return;
+    state.winLen=w;
+    updateWinSeg();newGame();
   });
   document.getElementById('newGame').addEventListener('click',newGame);
   document.getElementById('playAgain').addEventListener('click',newGame);
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('show');});
 
-  renderSeats();newGame();
+  updateWinSeg();renderSeats();newGame();
 })();
 </script>
 </body>
