@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Over-engineered tic-tac-toe · Implementation plan — spectastic</title>
+<meta name="description" content="The implementation plan that drove the tic-tac-toe worked example — a pure rules core, an engine registry, and a thin view — authored with spectastic.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.02em;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.lnk-crimson{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.switch{font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft);text-decoration:none;padding:7px 13px;border:1px solid var(--rule);border-radius:8px;transition:border-color .2s,color .2s;white-space:nowrap}
+.switch:hover{border-color:var(--ink-soft);color:var(--ink)}
+.switch.here{background:var(--bg-sunken);color:var(--ink);border-color:var(--rule-strong)}
+@media (max-width: 680px){
+  .gn-grid{grid-template-columns:1fr !important}
+  .budget-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:880px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-tictactoe.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-tic-tac-toe/plan.html</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<article style="max-width:740px;margin:0 auto;padding:56px 32px 40px">
+
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Implementation plan · 001-tic-tac-toe</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Building over-engineered tic-tac-toe</h1>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">A pure rules core, an engine registry, and a thin view — plus the one decision that actually mattered.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:22px;padding-bottom:24px;border-bottom:1px solid var(--rule)">
+    <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:4px 10px;border-radius:5px">accepted</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">spec</span> &nbsp;001-tic-tac-toe</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">owner</span> &nbsp;games</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">created</span> &nbsp;2026-07-20</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">read time</span> &nbsp;6 min</span>
+  </div>
+
+  <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">Three layers: pure rules, a registry of six interchangeable engines, and a thin DOM view. The engines come straight from the algorithmic interlude; the only genuine fork was whether three-player tic-tac-toe needs a bigger board. It doesn't.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§1 &nbsp;Principles check</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:'Source Serif 4',serif">
+      <thead><tr>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 10px 10px 0">Principle</th>
+        <th style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 10px 10px">Gate</th>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 0 10px 10px">How met</th>
+      </tr></thead>
+      <tbody style="font-size:.98rem;color:var(--ink-soft)">
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 10px 12px 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">P-1</span></td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--spec-5);padding:3px 9px;border-radius:4px">OK</span></td><td style="padding:12px 0 12px 10px">Rules live in pure functions, no DOM.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 10px 12px 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">P-2</span></td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--spec-5);padding:3px 9px;border-radius:4px">OK</span></td><td style="padding:12px 0 12px 10px">One HTML file, no build.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 10px 12px 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">P-3</span></td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--spec-5);padding:3px 9px;border-radius:4px">OK</span></td><td style="padding:12px 0 12px 10px">All six engines behind <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">chooseMove()</span>.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 10px 12px 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">P-4</span></td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--spec-5);padding:3px 9px;border-radius:4px">OK</span></td><td style="padding:12px 0 12px 10px">A self-play harness proves SC-001–003.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 10px 12px 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)">P-5</span></td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--spec-5);padding:3px 9px;border-radius:4px">OK</span></td><td style="padding:12px 0 12px 10px">Wordle-grade board, minimal chrome.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§2 &nbsp;Technical context</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px">
+    <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Language</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Vanilla JS (ES2019).</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Framework</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">None.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Build</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">None.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Storage</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">None.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Testing</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">In-browser self-play harness.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Performance</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">&lt; 500 ms per move.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Constraints</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Single file, runs from <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">file://</span>.</dd>
+    </dl>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§3 &nbsp;Grounding &amp; evidence</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:'Source Serif 4',serif">
+      <thead><tr>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 12px 10px 0">Claim</th>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 12px 10px">Source</th>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 12px 10px">Status</th>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 0 10px 12px">Finding</th>
+      </tr></thead>
+      <tbody style="font-size:.95rem;color:var(--ink-soft)">
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">Engine set = Random → MCTS</td><td style="padding:12px 12px">Over-Engineering Tic-Tac-Toe (article)</td><td style="padding:12px 12px;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px">verified</span></td><td style="padding:12px 0 12px 12px">Six named engines adopted verbatim as the difficulty ladder.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">3×3 game tree ≤ 9! = 362,880 leaves</td><td style="padding:12px 12px">Combinatorial bound</td><td style="padding:12px 12px;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px">verified</span></td><td style="padding:12px 0 12px 12px">Exhaustive search is tractable in the browser.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">Alpha-Beta explores far fewer nodes than Minimax</td><td style="padding:12px 12px">Self-play measurement</td><td style="padding:12px 12px;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px">verified</span></td><td style="padding:12px 0 12px 12px">Reply to a centre opening: 29,632 positions (Minimax) vs 4,979 (α-β); to a corner: 31,972 vs 3,886.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">MCTS at 2,500 iterations plays soundly on 3×3</td><td style="padding:12px 12px">Spike</td><td style="padding:12px 12px;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">spike</span></td><td style="padding:12px 0 12px 12px">Sound within the 500 ms budget, though not provably optimal.</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">3×3 Minimax moving second cannot lose</td><td style="padding:12px 12px">Classic result + self-play</td><td style="padding:12px 12px;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:3px 8px;border-radius:4px">verified</span></td><td style="padding:12px 0 12px 12px">Zero losses across 40 random-opponent games.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§4 &nbsp;Approach</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Three layers, cleanly separated. A <strong style="color:var(--ink);font-weight:600">pure rules core</strong> holds the board, its legal moves, and win/draw detection — plain functions over plain data, with no reference to the DOM. On top sits an <strong style="color:var(--ink);font-weight:600">engine registry</strong> keyed by name: Random, Minimax, Alpha-Beta, MaxN, Paranoid, and MCTS, each reached through one <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">chooseMove()</span> contract, so adding an engine never touches the loop.</p>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">A <strong style="color:var(--ink);font-weight:600">thin DOM view</strong> renders the board, the controls, and the result overlay — and nothing more. A player click drives the game loop, which advances the turn and, for any CPU seat, calls <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">chooseMove()</span> against the current registry entry. The rules core is the single source of truth; the view only reflects it.</p>
+
+  <figure style="margin:24px 0 0;border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:26px 24px;overflow-x:auto">
+    <svg viewBox="0 0 640 150" width="100%" style="max-width:640px;display:block;margin:0 auto;font-family:'Lato',sans-serif" role="img" aria-label="Rules core feeds the engine registry, which drives the DOM view and result">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--rule-strong)"/>
+        </marker>
+      </defs>
+      <rect x="8" y="45" width="196" height="60" rx="12" fill="none" stroke="var(--sea)" stroke-width="1.5"/>
+      <text x="106" y="70" text-anchor="middle" fill="var(--ink)" font-size="12" font-weight="700">Rules core</text>
+      <text x="106" y="88" text-anchor="middle" fill="var(--ink-soft)" font-size="10">board · legal moves · win/draw</text>
+
+      <rect x="238" y="45" width="164" height="60" rx="12" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+      <text x="320" y="70" text-anchor="middle" fill="var(--ink)" font-size="12" font-weight="700">Engine registry</text>
+      <text x="320" y="88" text-anchor="middle" fill="var(--ink-soft)" font-size="10">6 engines · chooseMove()</text>
+
+      <rect x="436" y="45" width="196" height="60" rx="12" fill="none" stroke="var(--rule-strong)" stroke-width="1.5"/>
+      <text x="534" y="70" text-anchor="middle" fill="var(--ink)" font-size="12" font-weight="700">DOM view + result</text>
+      <text x="534" y="88" text-anchor="middle" fill="var(--ink-soft)" font-size="10">render · controls · overlay</text>
+
+      <line x1="206" y1="75" x2="234" y2="75" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="404" y1="75" x2="432" y2="75" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <path d="M534 105 L534 130 L106 130 L106 107" fill="none" stroke="var(--rule)" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+      <text x="320" y="145" text-anchor="middle" fill="var(--ink-faint)" font-size="9.5">player click drives the loop</text>
+    </svg>
+  </figure>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§5 &nbsp;Alternatives considered</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:'Source Serif 4',serif">
+      <thead><tr>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 8px 10px 0">Option</th>
+        <th style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 10px 10px">MaxN cost</th>
+        <th style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 10px 10px">Winnable</th>
+        <th style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 0 10px 10px">Tractable &lt; 500 ms</th>
+      </tr></thead>
+      <tbody style="font-size:.98rem;color:var(--ink-soft)">
+        <tr style="border-top:1px solid var(--rule);background:color-mix(in srgb,var(--gold) 36%,transparent)"><td style="padding:11px 8px 11px 0;color:var(--ink);font-weight:600">3×3 (reuse)&nbsp;<span style="color:var(--crimson)">✓</span></td><td style="text-align:center;color:var(--ink)">Low</td><td style="text-align:center;color:var(--ink)">Yes (drawish)</td><td style="text-align:center;color:var(--ink)">Yes</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:11px 8px 11px 0">4×4, 3-in-a-row</td><td style="text-align:center">High</td><td style="text-align:center">Yes</td><td style="text-align:center">Marginal</td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:11px 8px 11px 0">5×5, 4-in-a-row</td><td style="text-align:center">Very high</td><td style="text-align:center">Yes</td><td style="text-align:center">No</td></tr>
+      </tbody>
+    </table>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.92rem;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">Bigger boards make MaxN meaningful but blow the move-time budget. 3×3 keeps the search instant.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§6 &nbsp;Decisions</h2>
+
+  <div style="border:1px solid var(--rule);border-top:3px solid var(--purple);background:var(--bg-raised);border-radius:12px;padding:24px 26px;margin-top:20px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--purple)">D-001</span><span style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)">Architecture decision</span><span style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:1px 7px;border-radius:5px;margin-left:auto">verified</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.3rem;margin:12px 0 0;color:var(--ink)">Keep three-player on the 3×3 board</h3>
+    <dl style="margin:16px 0 0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Context</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">MaxN's cost climbs steeply with board size, and a larger board breaks the 500 ms budget.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Decision</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink)">Reuse the 3×3 board for three players.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Consequences</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Strong three-player play tends to draw — accepted, and surfaced as a verify finding rather than treated as a defect.</dd>
+    </dl>
+  </div>
+
+  <div style="border:1px solid var(--rule);border-top:3px solid var(--purple);background:var(--bg-raised);border-radius:12px;padding:24px 26px;margin-top:16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--purple)">D-002</span><span style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)">Architecture decision</span><span style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:1px 7px;border-radius:5px;margin-left:auto">verified</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.3rem;margin:12px 0 0;color:var(--ink)">Mode-scoped engine menu</h3>
+    <dl style="margin:16px 0 0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Context</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Minimax and Alpha-Beta assume exactly one opponent; MaxN and Paranoid need three or more players.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Decision</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink)">Offer Minimax/Alpha-Beta only in two-player, MaxN/Paranoid only in three-player; Random and MCTS span both.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Consequences</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">The menu maps honestly onto the article's taxonomy; no engine is offered where it degenerates.</dd>
+    </dl>
+  </div>
+
+  <div style="border:1px solid var(--rule);border-top:3px solid var(--purple);background:var(--bg-raised);border-radius:12px;padding:24px 26px;margin-top:16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--purple)">D-003</span><span style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)">Architecture decision</span><span style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 40%,transparent);padding:1px 7px;border-radius:5px;margin-left:auto">spike</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.3rem;margin:12px 0 0;color:var(--ink)">MCTS budget = 2,500 iterations</h3>
+    <dl style="margin:16px 0 0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Context</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">MCTS trades iterations for strength.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Decision</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink)">Fix 2,500 iterations.</dd>
+      <dt style="font-family:'Lato',sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px">Consequences</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Sound 3×3 play inside the perf budget; revisit if the board ever grows.</dd>
+    </dl>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§7 &nbsp;Project structure</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-sunken);border-radius:12px;padding:20px 24px;margin-top:20px;overflow-x:auto">
+    <pre style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:.82rem;line-height:1.7;color:var(--ink-soft)"><code><span style="color:var(--ink)">tictactoe.html</span>
+ ├─ <span style="color:var(--sea)">rules/</span>        board · legalMoves · winner · isDraw   <span style="color:var(--ink-faint)">(pure)</span>
+ ├─ <span style="color:var(--sea)">engines/</span>      random · minimax · alphabeta · maxn · paranoid · mcts
+ ├─ <span style="color:var(--sea)">view/</span>         board render · controls · result overlay
+ └─ <span style="color:var(--sea)">verify/</span>       self-play harness (SC-001–003)</code></pre>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§8 &nbsp;Risks &amp; mitigations</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:'Source Serif 4',serif">
+      <thead><tr>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 12px 10px 0">Risk</th>
+        <th style="text-align:left;font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 12px 10px">Mitigation</th>
+        <th style="font-family:'Lato',sans-serif;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 0 10px 12px">Status</th>
+      </tr></thead>
+      <tbody style="font-size:.98rem;color:var(--ink-soft)">
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">MaxN first move on the empty 3×3 explores ~362k nodes</td><td style="padding:12px 12px">Still resolves under 500 ms; bounded by the 9-cell board.</td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--ink-faint);padding:3px 8px;border-radius:4px">accepted</span></td></tr>
+        <tr style="border-top:1px solid var(--rule)"><td style="padding:12px 12px 12px 0;color:var(--ink)">MCTS is non-deterministic (seedless)</td><td style="padding:12px 12px">Acceptable for a demo; results are stable in aggregate.</td><td style="text-align:center;white-space:nowrap"><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--ink-faint);padding:3px 8px;border-radius:4px">accepted</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§9 &nbsp;Change log</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Accepted; grounding gate cleared, all decisions grounded.</div></div>
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Draft plan: three-layer approach, engine registry.</div></div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px">This worked example</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a href="ttt-principles.html" class="switch">principles.html</a>
+      <a href="ttt-spec.html" class="switch">spec.html</a>
+      <a href="ttt-plan.html" class="switch here">plan.html</a>
+      <a href="ttt-tasks.html" class="switch">tasks.html</a>
+      <a href="example-tictactoe.html" class="switch">↳ walkthrough</a>
+      <a href="tictactoe.html" class="switch">▶ play the game</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">One file. Renders anywhere. Degrades to readable static HTML.</p>
+  </div>
+</article>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examples — spectastic</title>
+<meta name="description" content="Worked examples built end to end with spectastic — including an over-engineered tic-tac-toe with six AI opponents, driven through the full lifecycle.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --green:#6aaa64;--amber:#c9b458;--slate:#787c7e;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --green:#6aaa64;--amber:#c9b458;--slate:#8a8e90;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--bg);background:var(--ink);padding:11px 20px;border-radius:999px;text-decoration:none;transition:transform .2s}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--ink);border:1px solid var(--rule-strong);padding:11px 20px;border-radius:999px;text-decoration:none;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--ink-soft)}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 38%,transparent);padding:2px 8px;border-radius:999px}
+.card{background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--rule-strong)}
+@media (max-width: 760px){
+  .feature{grid-template-columns:1fr !important}
+  .mini-grid{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="index.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
+      <a href="ex.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Extended</a>
+      <a href="https://github.com/spectastic/spectastic" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">GitHub</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1080px;margin:0 auto;padding:60px 32px 96px">
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Examples</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Worked examples</h1>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:16px 0 0">Not screenshots — real builds. Each example is driven end to end through the spectastic lifecycle, artifacts and all, so you can read exactly how the decisions were made.</p>
+
+  <!-- FEATURED: tic-tac-toe -->
+  <a href="example-tictactoe.html" style="text-decoration:none;color:inherit;display:block;margin-top:36px">
+    <div class="feature card" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:30px 32px">
+      <div style="display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:7px">
+        <div style="background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">✕</div>
+        <div style="background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">◯</div>
+        <div style="border:2px solid var(--rule-strong);border-radius:6px"></div>
+        <div style="border:2px solid var(--rule-strong);border-radius:6px"></div>
+        <div style="background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">✕</div>
+        <div style="background:var(--slate);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">△</div>
+        <div style="border:2px solid var(--rule-strong);border-radius:6px"></div>
+        <div style="background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">◯</div>
+        <div style="background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:'Lato',sans-serif;font-size:1.2rem">✕</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="pill">Build-along</span><span style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">● Live</span></div>
+        <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:12px 0 0">Over-engineered tic-tac-toe</h2>
+        <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.56;color:var(--ink-soft);margin:9px 0 0;max-width:52ch">A tic-tac-toe you can't beat — six AI opponents from Random to Monte Carlo Tree Search, two- and three-player modes, one file. Watch every decision get driven through principles, spec, plan, tasks, and a verification pass that proves the perfect players never lose.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <span class="btn-primary">Read the build →</span>
+          <span class="btn-secondary">▶ Play the game</span>
+        </div>
+      </div>
+    </div>
+  </a>
+
+  <!-- mini grid: session-token + enterprise -->
+  <div class="mini-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <a href="example.html" style="text-decoration:none;color:inherit">
+      <div class="card" style="height:100%;padding:24px 26px">
+        <span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Spec anatomy</span>
+        <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.28rem;color:var(--ink);margin:12px 0 0">Session token rotation</h3>
+        <p style="font-family:'Source Serif 4',serif;font-size:.98rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">A single, focused spec rendered in the house style — status meta, budget gauges, requirements, a decision, and an options table. The anatomy of one artifact, up close.</p>
+        <span style="display:inline-block;margin-top:14px;font-family:'Lato',sans-serif;font-weight:700;font-size:.82rem;color:var(--crimson)">Read the spec →</span>
+      </div>
+    </a>
+    <div class="card" style="height:100%;padding:24px 26px;opacity:.72">
+      <span class="pill" style="color:var(--ink-faint);border-color:var(--rule-strong)">Coming soon</span>
+      <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.28rem;color:var(--ink);margin:12px 0 0">Enterprise walkthrough</h3>
+      <p style="font-family:'Source Serif 4',serif;font-size:.98rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">A larger build with real change management — umbrella specs, sliced features, adversarial risk passes, and archived change proposals. The lifecycle at scale.</p>
+      <span style="display:inline-block;margin-top:14px;font-family:'Lato',sans-serif;font-weight:700;font-size:.82rem;color:var(--ink-faint)">In progress</span>
+    </div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <a href="docs.html" class="btn-secondary">Read the docs →</a>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.95rem;color:var(--ink-faint);margin:0">Every example is one or more self-contained HTML files. Open them anywhere.</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>

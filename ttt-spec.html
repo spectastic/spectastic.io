@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Over-engineered tic-tac-toe · Specification — spectastic</title>
+<meta name="description" content="The feature specification that drove the tic-tac-toe worked example — six AI opponents, two modes, one file — authored with spectastic.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.02em;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.lnk-crimson{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.switch{font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft);text-decoration:none;padding:7px 13px;border:1px solid var(--rule);border-radius:8px;transition:border-color .2s,color .2s;white-space:nowrap}
+.switch:hover{border-color:var(--ink-soft);color:var(--ink)}
+.switch.here{background:var(--bg-sunken);color:var(--ink);border-color:var(--rule-strong)}
+@media (max-width: 680px){
+  .gn-grid{grid-template-columns:1fr !important}
+  .budget-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:880px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-tictactoe.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-tic-tac-toe/spec.html</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<article style="max-width:740px;margin:0 auto;padding:56px 32px 40px">
+
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Feature specification · 001-tic-tac-toe</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Over-engineered tic-tac-toe</h1>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">A tic-tac-toe you can't beat — six opponents from a coin-flip to a tree-search AI, in one file.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:22px;padding-bottom:24px;border-bottom:1px solid var(--rule)">
+    <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:4px 10px;border-radius:5px">accepted</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">owner</span> &nbsp;games</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">version</span> &nbsp;1.0.0</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">created</span> &nbsp;2026-07-20</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">smallest demoable</span> &nbsp;one 2-player game vs Random</span>
+  </div>
+
+  <div class="budget-row" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:24px">
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Words</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">1,120 / 1500</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:75%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Requirements</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">10 / 20</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:50%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Read time</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">5 / 12 min</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:42%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+  </div>
+
+  <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">Tic-tac-toe is solved — so we over-engineer it. One self-contained HTML file plays the classic 3×3 game against <em>six</em> opponents that trace the arc from naive to formidable: Random, Minimax, Alpha-Beta, MaxN, Paranoid, and Monte Carlo Tree Search — across both 2-player and 3-player modes. The rules stay a pure, framework-free core; every engine hides behind one interface; and "unbeatable" is a claim the tests are required to prove.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§1 &nbsp;Context</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">The point isn't to win at tic-tac-toe — a child can force a draw. The point is to make the game a teaching surface for the algorithmic progression in <a href="https://www.sympatheticengineering.com/Library/03-Resources/Over-Engineering-Tic-Tac-Toe-%E2%80%94-An-Algorithmic-Interlude" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Over-Engineering Tic-Tac-Toe</a>: from a coin-flip, to exhaustive search, to search that prunes, to the multiplayer generalisations, to a learner that knows only the rules. Each engine is meant to be tried, felt, and compared side by side.</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§2 &nbsp;User scenarios</h2>
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:20px">
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US1</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">P1</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As a player,</strong> I pick an opponent and play a full 2-player game on a 3×3 board.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> I place a mark on any empty cell on my turn; the CPU replies; the game ends the instant someone makes a line or the board fills, and the result is shown.</p>
+    </div>
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US2</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">P2</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As a player,</strong> I switch to 3-player mode and choose an engine for each CPU seat.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> a third seat (△) appears; the opponent menu now offers the multiplayer engines; turns rotate three ways; the game still detects wins and draws correctly.</p>
+    </div>
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US3</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--ink-faint);padding:3px 8px;border-radius:4px">P3</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As a curious player,</strong> I want to see how each opponent "thinks."</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> after each CPU move a chip reports its work — positions explored, or simulations run — and a legend one-lines every engine.</p>
+    </div>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§3 &nbsp;Requirements</h2>
+
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Only legal moves are accepted</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">A move <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> land only on an empty cell, only on the player-to-move's turn. Occupied cells and out-of-turn input are ignored.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Wins and draws end the game immediately</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The system <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> detect a completed line across all eight rows, columns, and diagonals and halt play on that move; a full board with no line <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> resolve as a draw.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-003" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-003</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Six engines behind one interface</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The product <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> offer Random, Minimax, Alpha-Beta, MaxN, Paranoid, and MCTS, each selectable and each reached through a single <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">chooseMove(engine, board, player, players)</span> contract. Adding an engine <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST NOT</span> touch the game loop.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-004" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-004</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Two- and three-player modes</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The game <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> support 2 and 3 players on the 3×3 board, and the opponent menu <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> offer only the engines that are meaningful for the current mode.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-005" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-005</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">should</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Show each engine's work</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">After a CPU move the game <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">SHOULD</span> report the engine and the effort it spent — positions explored (search) or simulations run (MCTS).</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="NFR-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 40%,transparent);padding:2px 8px;border-radius:5px">NFR-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">A move resolves under 500 ms</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">Every engine <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> return a move in under 500 ms on a laptop, bounding both exhaustive search and the MCTS iteration budget.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="NFR-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 40%,transparent);padding:2px 8px;border-radius:5px">NFR-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">One self-contained file, zero dependencies</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The whole product <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> be one HTML file with no build step and no runtime dependencies — it opens from <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">file://</span>.</p>
+  </div>
+
+  <div style="margin-top:22px;border:1px dashed var(--rule-strong);border-radius:12px;padding:20px 24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--salmon)">Out of scope</div>
+    <ul style="list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:9px">
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-faint)"><span style="color:var(--salmon)">×</span>Larger boards / N-in-a-row <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--purple)">→ defer-to TBD</span></li>
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-faint)"><span style="color:var(--salmon)">×</span>Networked / remote multiplayer <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--purple)">→ defer-to TBD</span></li>
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-faint)"><span style="color:var(--salmon)">×</span>Persisted stats / accounts <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--purple)">→ defer-to TBD</span></li>
+    </ul>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§4 &nbsp;Data model</h2>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px">
+    <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Board</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)">Nine cells, each <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">null | 0 | 1 | 2</span> (empty, or the player who owns it).</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Seat</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">{ kind: human | cpu, engine }</span> — seat 0 is you; CPU seats carry a chosen engine.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Game</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">{ board, current, players, over }</span> — whose turn, how many seats, and whether play has ended.</dd>
+    </dl>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§5 &nbsp;Success criteria</h2>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px">
+    <div style="border:1px solid var(--rule);border-left:3px solid var(--sea);background:var(--bg-raised);border-radius:12px;padding:18px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span id="SC-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">SC-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:10px 0 0"><strong>A perfect engine never loses.</strong> A random player wins <em>zero</em> of at least 20 games against Minimax and against Alpha-Beta.</p>
+    </div>
+    <div style="border:1px solid var(--rule);border-left:3px solid var(--sea);background:var(--bg-raised);border-radius:12px;padding:18px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span id="SC-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">SC-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:10px 0 0"><strong>Every game terminates cleanly.</strong> In 2- and 3-player modes, play always ends in a win or a draw with no illegal or over-filled board states.</p>
+    </div>
+    <div style="border:1px solid var(--rule);border-left:3px solid var(--sea);background:var(--bg-raised);border-radius:12px;padding:18px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span id="SC-003" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">SC-003</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">should</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:10px 0 0"><strong>Pruning demonstrably pays.</strong> For the same opening, Alpha-Beta explores strictly fewer positions than plain Minimax.</p>
+    </div>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§6 &nbsp;Open questions</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">None open at write time. The one real design fork — whether 3-player needs a bigger board for MaxN to matter — was resolved in the <a href="ttt-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a> (D-001): keep the 3×3 board, accept that strong 3-player play tends to draw, and surface that as a finding rather than a defect.</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§7 &nbsp;Change log</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Accepted. All tasks drained; self-play verification passed SC-001–003. Draft→Accepted bundled flip across spec, plan, and tasks.</div></div>
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.2.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Added FR-004 (3-player mode) and the mode-scoped engine menu after the plan sized MaxN on 3×3.</div></div>
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Draft. Two-player game, four engines, success criteria.</div></div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px">This worked example</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a href="ttt-principles.html" class="switch">principles.html</a>
+      <a href="ttt-spec.html" class="switch here">spec.html</a>
+      <a href="ttt-plan.html" class="switch">plan.html</a>
+      <a href="ttt-tasks.html" class="switch">tasks.html</a>
+      <a href="example-tictactoe.html" class="switch">↳ walkthrough</a>
+      <a href="tictactoe.html" class="switch">▶ play the game</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">One file. Renders anywhere. Degrades to readable static HTML.</p>
+  </div>
+</article>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>
