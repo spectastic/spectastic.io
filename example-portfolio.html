@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A portfolio engine in Java — a multi-spec worked example with spectastic</title>
-<meta name="description" content="A build-along worked example: a real-time position, portfolio-weight, and FIFO/LIFO tax-lot engine in Java + Quarkus, decomposed into five specs and driven through the full spectastic lifecycle to a verified, terminal state.">
+<meta name="description" content="A build-along worked example: a real-time position, portfolio-weight, and FIFO/LIFO/HIFO tax-lot engine in Java + Quarkus, decomposed into five specs and driven through the full spectastic lifecycle to a verified, terminal state.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -123,7 +123,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   <main style="min-width:0">
     <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · multi-spec · Java</div>
     <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Five specs, one ledger, proven to the cent</h1>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">A real-time position, portfolio-weight, and FIFO/LIFO tax-lot engine — the kind of thing a trading desk runs — built in <strong style="color:var(--ink)">Java&nbsp;21 + Quarkus</strong>. It's too big for one spec, so spectastic <strong style="color:var(--ink)">decomposes it</strong>: an umbrella and four child slices, driven all the way from principles to a <em>verified</em> terminal state. The proof isn't a toy you poke — it's a passing test suite you can re-run.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">A real-time position, portfolio-weight, and FIFO/LIFO/HIFO tax-lot engine — the kind of thing a trading desk runs — built in <strong style="color:var(--ink)">Java&nbsp;21 + Quarkus</strong>. It's too big for one spec, so spectastic <strong style="color:var(--ink)">decomposes it</strong>: an umbrella and four child slices, driven all the way from principles to a <em>verified</em> terminal state. The proof isn't a toy you poke — it's a passing test suite you can re-run.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">
       <span class="pill">Multi-spec</span>
@@ -169,7 +169,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
           <text x="496" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">gross/net · concentration</text>
           <rect x="600" y="122" width="96" height="48" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
           <text x="648" y="142" text-anchor="middle" fill="var(--ink)">005 · tax-lots</text>
-          <text x="648" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">FIFO/LIFO</text>
+          <text x="648" y="159" text-anchor="middle" font-size="9" font-weight="400" fill="var(--ink-soft)">FIFO/LIFO/HIFO</text>
         </g>
         <path d="M24 200 H696" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3"/>
         <path d="M112 170 L112 200 M304 170 L304 200 M496 170 L496 200 M648 170 L648 200" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2 3"/>
@@ -308,17 +308,30 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 }</div>
       <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ a position flipping long↔short doesn't bleed its old basis into the new side. <span style="color:var(--ink-soft)">spec 003 · FR-002</span></div>
 
-      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">FIFO/LIFO relief — the rule the calculator plays</div>
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">FIFO/LIFO/HIFO relief — the rule the calculator plays</div>
       <div class="code"><span class="k">while</span> (remaining &gt; 0 &amp;&amp; !lots.isEmpty()) {
-  <span class="t">Lot</span> lot = policy == <span class="t">FIFO</span> ? lots.peekFirst() : lots.peekLast();
+  <span class="t">Lot</span> lot = selectLot(lots, policy);                  <span class="c">// the policy picks the lot; the rest is identical</span>
   <span class="k">long</span> take = Math.min(remaining, lot.qtyOpen);
   <span class="k">long</span> gain = take * (sellPrice - lot.basisPerUnit);  <span class="c">// exact: basis IS the fill price</span>
   records.add(<span class="k">new</span> <span class="t">RealizedGainRecord</span>(lot.openSeq, take, gain, …));
   lot.qtyOpen -= take;
   remaining   -= take;
-  <span class="k">if</span> (lot.qtyOpen == 0) poll(lots, policy);         <span class="c">// full lot consumed</span>
+  <span class="k">if</span> (lot.qtyOpen == 0) lots.remove(lot);             <span class="c">// full lot consumed (interior, for HIFO)</span>
+}
+
+<span class="c">// FIFO the oldest, LIFO the newest, HIFO the highest cost basis — a scan (D-004)</span>
+<span class="t">Lot</span> selectLot(<span class="t">Deque</span>&lt;<span class="t">Lot</span>&gt; lots, <span class="t">ReliefPolicy</span> policy) {
+  <span class="k">switch</span> (policy) {
+    <span class="k">case</span> <span class="t">FIFO</span>: <span class="k">return</span> lots.peekFirst();
+    <span class="k">case</span> <span class="t">LIFO</span>: <span class="k">return</span> lots.peekLast();
+    <span class="k">case</span> <span class="t">HIFO</span>:
+      <span class="t">Lot</span> best = <span class="k">null</span>;
+      <span class="k">for</span> (<span class="t">Lot</span> lot : lots)
+        <span class="k">if</span> (best == <span class="k">null</span> || lot.basisPerUnit &gt; best.basisPerUnit) best = lot;
+      <span class="k">return</span> best;
+  }
 }</div>
-      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ FIFO relieves the head, LIFO the tail; a partial sell splits the boundary lot. <span style="color:var(--ink-soft)">spec 005 · FR-002</span></div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ FIFO relieves the head, LIFO the tail, HIFO scans for the highest basis; a partial sell splits the boundary lot. <span style="color:var(--ink-soft)">spec 005 · FR-002, plan D-004</span></div>
     </div>
 
     <!-- TRUST -->
