@@ -70,6 +70,12 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   .card-grid{grid-template-columns:1fr !important}
   .calc-grid{grid-template-columns:1fr !important}
 }
+@media (max-width: 600px){
+  .topnav{gap:14px;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .topnav::-webkit-scrollbar{display:none}
+  .topnav a,.topnav button{flex:0 0 auto;white-space:nowrap}
+  .nav-eyebrow{display:none}
+}
 </style>
 </head>
 <body>
@@ -94,9 +100,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
         <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
       </span>
-      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
+      <span class="nav-eyebrow" style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
     </a>
-    <div style="display:flex;align-items:center;gap:18px">
+    <div class="topnav" style="display:flex;align-items:center;gap:18px">
       <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
       <a href="ex.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Extended</a>
       <a href="#play" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">Try the calculator</a>
@@ -133,7 +139,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
-      <a href="#play" class="btn-primary">▶ &nbsp;Try the calculator</a>
+      <a href="#play" class="btn-primary">▷ &nbsp;Try the calculator</a>
       <a href="#lifecycle" class="btn-secondary">Read the build →</a>
     </div>
 
@@ -371,12 +377,13 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/004-portfolio-weights/spec.html" style="color:var(--crimson);text-decoration:none">004-portfolio-weights</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Gross/net denominator, sum-to-one, concentration</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/004-portfolio-weights/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/004-portfolio-weights/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/004-portfolio-weights/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/004-portfolio-weights/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/005-tax-lots/spec.html" style="color:var(--crimson);text-decoration:none">005-tax-lots</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">FIFO/LIFO/HIFO relief, partial split, realized/unrealized P&amp;L</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/005-tax-lots/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/005-tax-lots/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/005-tax-lots/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/005-tax-lots/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/005-tax-lots/changes/archive/2026-07-22-hifo-relief/proposal.html" style="color:var(--purple);text-decoration:none">↳ hifo-relief</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The <strong style="color:var(--ink)">applied change</strong> that added HIFO — three deltas, an adversarial risk pass, tasks folded and drained. <a href="examples/portfolio/specs/005-tax-lots/changes/archive/2026-07-22-hifo-relief/proposal.html" style="color:var(--purple);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--purple) 40%,transparent)">Read the proposal →</a></span></div></div>
-      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 11rem">▶ mvn verify</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The Java + Quarkus project — 22 tests, green</span></div>
+      <a href="https://github.com/spectastic/example-portfolio-analytics" target="_blank" rel="noopener" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 11rem">▷ mvn verify</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The Java + Quarkus project — 22 tests, green · <span style="color:var(--sea);border-bottom:1px solid color-mix(in srgb,var(--sea) 40%,transparent)">view the source on GitHub&nbsp;↗</span></span></a>
     </div>
     <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:14px 0 0">These are the real, rendered artifacts — the same files <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em">spectastic validate</span> checks; the excerpts above are drawn from them verbatim.</p>
 
     <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">
-      <a href="#play" class="btn-primary">▶ &nbsp;Try the calculator</a>
+      <a href="#play" class="btn-primary">▷ &nbsp;Try the calculator</a>
+      <a href="https://github.com/spectastic/example-portfolio-analytics" target="_blank" rel="noopener" class="btn-secondary">View source on GitHub&nbsp;↗</a>
       <a href="examples.html" class="btn-secondary">← All examples</a>
     </div>
   </main>
@@ -452,7 +459,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
       reliefEl.innerHTML = steps.map(s =>
         'lot ' + s.n + ' &nbsp;<b style="color:var(--ink)">' + s.take + '</b> @ ' + money(s.priceC) +
         ' &nbsp;<span style="color:' + (s.full ? 'var(--ink-faint)' : 'var(--salmon)') + '">' +
-        (s.full ? '✓ closed' : '✂ split') + '</span>'
+        (s.full ? '✓ closed' : '✄ split') + '</span>'
       ).join('<br>');
     }
     const realizedEl = document.getElementById('pf-realized');
