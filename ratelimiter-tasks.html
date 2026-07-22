@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Per-tenant API rate limiting · Tasks — spectastic</title>
+<meta name="description" content="The task breakdown that drove the rate-limiter enterprise worked example — fifteen tasks across five phases, every box ticked — authored with spectastic.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.02em;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.lnk-crimson{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.switch{font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft);text-decoration:none;padding:7px 13px;border:1px solid var(--rule);border-radius:8px;transition:border-color .2s,color .2s;white-space:nowrap}
+.switch:hover{border-color:var(--ink-soft);color:var(--ink)}
+.switch.here{background:var(--bg-sunken);color:var(--ink);border-color:var(--rule-strong)}
+@media (max-width: 680px){
+  .gn-grid{grid-template-columns:1fr !important}
+  .budget-row{flex-direction:column}
+}
+.task{display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--rule)}
+.task:first-child{border-top:0}
+.task input{margin-top:5px;width:16px;height:16px;accent-color:var(--sea);flex:0 0 auto}
+.task .body{font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);line-height:1.5}
+.task .body strong{color:var(--ink);font-weight:600}
+.task .tid{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink-faint)}
+.task .path{font-family:'IBM Plex Mono',monospace;font-size:.76em;color:var(--sea)}
+.phase{border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:14px 24px;margin-top:18px}
+.phase-label{font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);padding:8px 0 2px}
+.phase-note{font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:10px 0 0}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:880px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-ratelimiter.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-rate-limiting/tasks.html</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<article style="max-width:740px;margin:0 auto;padding:56px 32px 40px">
+
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Task breakdown · 001-rate-limiting</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Tasks</h1>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">Setup, a pure token-bucket core, the middleware and 429 semantics, runtime tuning, observability, then a fail-open and latency-gate polish — every box ticked.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:22px;padding-bottom:24px;border-bottom:1px solid var(--rule)">
+    <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:4px 10px;border-radius:5px">draft</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">spec</span> &nbsp;001-rate-limiting</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">plan</span> &nbsp;<a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">plan.html</a></span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">created</span> &nbsp;2026-07-21</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">read time</span> &nbsp;~4 min</span>
+  </div>
+
+  <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">15 tasks across five phases — pure core first, then the middleware and 429 semantics, runtime tuning, observability, and a fail-open + latency-gate polish. All fifteen done.</p>
+    <div style="margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Complete</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">15 / 15 complete</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:100%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 1 · Setup</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-001</span> &nbsp;<strong>Scaffold the module</strong> — and wire the 8 enterprise enforcement tools (Prettier, ESLint, tsc, Vitest, Semgrep, npm audit, coverage, OTel) <span class="path">src/ratelimit/</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-002</span> &nbsp;<strong>Define the ports</strong> — typed limiter + store interfaces, contract-first <span class="path">src/ratelimit/ports/</span></div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 2 · Foundational</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-010</span> &nbsp;<strong>Clock port + fake clock</strong> — deterministic time for the bucket <span class="path">src/ratelimit/ports/clock.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-011</span> &nbsp;<strong>In-memory store adapters</strong> — policy + state over a Map <span class="path">src/ratelimit/adapters/</span></div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 3a · US1 · Fair share under load</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-100</span> &nbsp;<strong>Token-bucket test</strong> — failing first; refill, draw, exhaustion <span class="path">tests/ratelimit/token-bucket.test.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-110</span> &nbsp;<strong>Token-bucket core</strong> — pure refill/draw (D-001) <span class="path">src/ratelimit/core/token-bucket.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-120</span> &nbsp;<strong>Limiter middleware</strong> — resolve tenant from auth context, emit 429 + Retry-After <span class="path">src/ratelimit/http/middleware.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-130</span> &nbsp;<strong>Fairness load test</strong> — one tenant at 10× budget doesn't starve others <span class="path">tests/ratelimit/fairness.loadtest.ts</span></div>
+    </div>
+    <p class="phase-note">Closes FR-001, FR-003, and success criterion SC-001.</p>
+  </div>
+
+  <div class="phase-label">Phase 3b · US2 · Tune a tenant without a deploy</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-200</span> &nbsp;<strong>Runtime policy update</strong> — mutate a tenant's limit through the policy store <span class="path">src/ratelimit/adapters/memory-policy-store.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-210</span> &nbsp;<strong>Hot-reload test</strong> — a limit change governs within 10 s, no restart <span class="path">tests/ratelimit/policy-reload.test.ts</span></div>
+    </div>
+    <p class="phase-note">Closes FR-002 and SC-002.</p>
+  </div>
+
+  <div class="phase-label">Phase 3c · US3 · See every decision</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-300</span> &nbsp;<strong>Decision metric</strong> — OTel counter tagged tenant + outcome (P-15) <span class="path">src/ratelimit/http/middleware.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-310</span> &nbsp;<strong>Rate-limit headers</strong> — Limit / Remaining / Reset on every response <span class="path">src/ratelimit/http/middleware.ts</span></div>
+    </div>
+    <p class="phase-note">Closes FR-004.</p>
+  </div>
+
+  <div class="phase-label">Phase 4 · Polish</div>
+  <div class="phase">
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-900</span> &nbsp;<strong>Fail-open wrapper</strong> — catch store faults, allow + emit error metric (D-002) <span class="path">src/ratelimit/http/middleware.ts</span></div>
+    </div>
+    <div class="task"><input type="checkbox" checked disabled>
+      <div class="body"><span class="tid">T-901</span> &nbsp;<strong>Latency gate</strong> — micro-benchmark asserting p99 &lt; 5 ms added <span class="path">tests/ratelimit/latency.bench.ts</span></div>
+    </div>
+    <p class="phase-note">Closes NFR-001 and NFR-002.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§ &nbsp;Dependencies</h2>
+  <pre style="margin:20px 0 0;background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:20px 24px;overflow-x:auto"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;line-height:1.7;color:var(--ink-soft)">ports (T-002)            ──▶  core + adapters + middleware
+core (T-110)             ──▶  middleware (T-120)
+middleware (T-120)       ──▶  metrics · headers · fail-open (T-300 · T-310 · T-900)</code></pre>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§ &nbsp;Change log</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-21</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Task breakdown derived from spec + plan.</div></div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px">This worked example</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a href="ratelimiter-principles.html" class="switch">principles.html</a>
+      <a href="ratelimiter-spec.html" class="switch">spec.html</a>
+      <a href="ratelimiter-plan.html" class="switch">plan.html</a>
+      <a href="ratelimiter-tasks.html" class="switch here">tasks.html</a>
+      <a href="example-ratelimiter.html" class="switch">↳ walkthrough</a>
+      <a href="ratelimiter.html" class="switch">▶ simulator</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">One file. Renders anywhere. Degrades to readable static HTML.</p>
+  </div>
+</article>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>

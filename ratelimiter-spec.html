@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Per-tenant API rate limiting · Specification — spectastic</title>
+<meta name="description" content="The feature specification that drove the rate-limiter worked example — a fair, configurable per-tenant request budget with observable, fail-open enforcement — authored with spectastic.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.02em;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.lnk-crimson{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.switch{font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft);text-decoration:none;padding:7px 13px;border:1px solid var(--rule);border-radius:8px;transition:border-color .2s,color .2s;white-space:nowrap}
+.switch:hover{border-color:var(--ink-soft);color:var(--ink)}
+.switch.here{background:var(--bg-sunken);color:var(--ink);border-color:var(--rule-strong)}
+@media (max-width: 680px){
+  .gn-grid{grid-template-columns:1fr !important}
+  .budget-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:880px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-ratelimiter.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-rate-limiting/spec.html</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<article style="max-width:740px;margin:0 auto;padding:56px 32px 40px">
+
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Feature specification · 001-rate-limiting</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Per-tenant API rate limiting</h1>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">Keep one noisy tenant from starving everyone else — a fair, configurable request budget per tenant.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:22px;padding-bottom:24px;border-bottom:1px solid var(--rule)">
+    <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--ink-faint);padding:4px 10px;border-radius:5px">draft</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">owner</span> &nbsp;Platform API (@platform)</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">reviewers</span> &nbsp;@security, @sre</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">created</span> &nbsp;2026-07-21</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">smallest demoable</span> &nbsp;one endpoint returns 429 + Retry-After when a tenant exceeds its budget</span>
+  </div>
+
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.95rem;line-height:1.55;color:var(--ink-faint);margin:16px 0 0">A single slice of a larger rate-limiting umbrella. This spec is the in-process, per-node, per-tenant limiter; the distributed shared-store limiter and non-tenant budget axes are deferred to later slices.</p>
+
+  <div class="budget-row" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:24px">
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Words</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">1,180 / 1500</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:79%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Requirements</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">8 / 20</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:40%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+    <div style="flex:1;min-width:160px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:10px;padding:13px 15px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'Lato',sans-serif"><span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;white-space:nowrap">Read time</span><span style="font-size:.76rem;color:var(--ink-soft);white-space:nowrap">5 / 12 min</span></div>
+      <div style="height:5px;border-radius:3px;background:var(--bg-sunken);margin-top:9px;overflow:hidden"><div style="width:42%;height:100%;border-radius:3px;background:var(--sea)"></div></div>
+    </div>
+  </div>
+
+  <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">A per-tenant rate limiter for the public API. Each tenant gets a configurable request budget; requests within budget pass, over-budget requests are rejected with <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">429 Too Many Requests</span> and a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">Retry-After</span>. The limiter is cheap enough to sit in the hot path and <em>fails open</em>, so a limiter fault never takes the API down with it.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§1 &nbsp;Context</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">The public API has no per-tenant throttling. A single tenant running a backfill or a buggy retry loop can saturate shared capacity and degrade latency for every other tenant — we have seen it in three incidents this quarter.</p>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">The users are API consumers (who deserve a fair share and a clear signal when throttled), platform operators (who need to tune a tenant's budget without shipping code), and on-call SREs (who need the limiter to be observable and never the cause of an outage).</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§2 &nbsp;User scenarios</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">Each story is independently testable: if you implemented only US1, you would still have a viable MVP.</p>
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:20px">
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US1 · Fair share under load</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">P1</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As an API consumer,</strong> I want to stay served up to my tenant's budget and get a clear signal past it, so that one noisy neighbour can't starve me.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> requests within budget return normally; the request that first exceeds the budget receives <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">429</span> with a <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">Retry-After</span> whose value elapses before the budget refills.</p>
+    </div>
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US2 · Tune a tenant without a deploy</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">P2</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As a platform operator,</strong> I want to change a tenant's limit at runtime, so that I can grant a temporary raise or clamp an abuser without shipping code.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> updating a tenant's policy takes effect for subsequent requests without a process restart or redeploy.</p>
+    </div>
+    <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">US3 · See every decision</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--ink-faint);padding:3px 8px;border-radius:4px">P3</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:11px 0 0"><strong>As an on-call SRE,</strong> I want to observe allow/deny decisions and remaining budget, so that I can tell throttling apart from an outage at 3am.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 0"><em>Acceptance:</em> each decision emits a metric tagged by tenant and outcome; a throttled response carries rate-limit headers.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;border:1px solid var(--rule);background:var(--bg-sunken);border-radius:12px;padding:18px 24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Edge cases</div>
+    <ul style="list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:9px">
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="color:var(--sea)">·</span>Limiter backend fault mid-request — the request is allowed (fail-open), not rejected.</li>
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="color:var(--sea)">·</span>A request with no resolvable tenant — treated as anonymous and billed to a shared anonymous budget, never allowed to bypass limiting.</li>
+    </ul>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§3 &nbsp;Requirements</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">Conformance keywords (<span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">SHOULD</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MAY</span>) follow RFC 2119.</p>
+
+  <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:26px 0 0">Functional</div>
+
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Enforce a per-tenant budget, reject over-budget with 429</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The API <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> enforce a per-tenant request budget over a rolling window and reject over-budget requests with <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">429 Too Many Requests</span> and a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">Retry-After</span> header.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-faint);margin:8px 0 0"><em>Rationale:</em> 429 + Retry-After is the interoperable contract clients already implement backoff against.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Runtime-configurable limit and window</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">Each tenant's limit and window <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> be configurable at runtime, and a change <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> take effect for subsequent requests without a redeploy or restart.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-003" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-003</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Tenant identity from trusted context, not headers</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The tenant identity used for a decision <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> be derived from the authenticated request context, never from a client-supplied header, so a caller cannot spoof another tenant's budget.</p>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="FR-004" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 40%,transparent);padding:2px 8px;border-radius:5px">FR-004</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">should</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Rate-limit headers on every response</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">Responses <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">SHOULD</span> carry <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">X-RateLimit-Limit</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">X-RateLimit-Remaining</span>, and <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">X-RateLimit-Reset</span> headers on both allowed and throttled responses.</p>
+  </div>
+
+  <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:30px 0 0">Non-functional</div>
+
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="NFR-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 40%,transparent);padding:2px 8px;border-radius:5px">NFR-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Negligible latency on the hot path</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">Enforcement <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> add negligible latency to a request on the hot path.</p>
+    <div style="margin-top:14px;border:1px solid color-mix(in srgb,var(--purple) 34%,transparent);background:var(--bg-sunken);border-radius:9px;padding:11px 14px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;line-height:1.7;color:var(--ink)"><span style="font-weight:600;color:var(--purple)">SLO</span> · signal=<span style="color:var(--ink)">latency</span> · objective <span style="color:var(--ink)">p99 &lt; 5 ms added</span> · window <span style="color:var(--ink)">28d</span> · budgeting <span style="color:var(--ink)">occurrences</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-faint);margin:7px 0 0">Added latency the limiter imposes on a request on the hot path (good ÷ valid requests).</p>
+    </div>
+  </div>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="NFR-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:600;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 40%,transparent);padding:2px 8px;border-radius:5px">NFR-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+    <h3 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.22rem;line-height:1.24;margin:13px 0 0;color:var(--ink)">Fail open — a limiter fault never rejects traffic</h3>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:9px 0 0">The limiter <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST</span> fail open: a limiter backend fault <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;font-weight:600;color:var(--crimson)">MUST NOT</span> reject legitimate traffic.</p>
+    <div style="margin-top:14px;border:1px solid color-mix(in srgb,var(--purple) 34%,transparent);background:var(--bg-sunken);border-radius:9px;padding:11px 14px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;line-height:1.7;color:var(--ink)"><span style="font-weight:600;color:var(--purple)">SLO</span> · signal=<span style="color:var(--ink)">errors</span> · objective <span style="color:var(--ink)">99.95% of requests unaffected by limiter faults</span> · window <span style="color:var(--ink)">28d</span> · budgeting <span style="color:var(--ink)">occurrences</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-faint);margin:7px 0 0">Fraction of requests served without being wrongly rejected by a limiter fault.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:22px;border:1px dashed var(--rule-strong);border-radius:12px;padding:20px 24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--salmon)">Out of scope</div>
+    <ul style="list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:9px">
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-faint)"><span style="color:var(--salmon)">×</span>A distributed, shared-store limiter (Redis-backed) for multi-node consistency — this slice is in-process per node <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--purple)">→ defer-to TBD</span></li>
+      <li style="display:flex;gap:10px;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-faint)"><span style="color:var(--salmon)">×</span>Global and per-endpoint budgets (limits on axes other than tenant) <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--purple)">→ defer-to TBD</span></li>
+    </ul>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§4 &nbsp;Data model</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">Only the entities this feature owns.</p>
+  <div style="border:1px solid var(--rule);background:var(--bg-raised);border-radius:12px;padding:22px 26px;margin-top:20px">
+    <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px">
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">RateLimitPolicy</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">tenantId</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">limit</span> (requests), <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">window</span> (duration), optional <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">burst</span> — the configured budget for a tenant.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">RateLimitState</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">tenantId</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">tokens</span> (remaining), <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">updatedAt</span> — the live counter the limiter mutates per request.</dd>
+      <dt style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);padding-top:2px">Decision</dt><dd style="margin:0;font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">allowed</span> (bool), <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">remaining</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">retryAfter</span> — the per-request verdict returned to the caller and the metrics pipeline.</dd>
+    </dl>
+  </div>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.95rem;line-height:1.55;color:var(--ink-faint);margin:14px 0 0">Policy is read-mostly and changes rarely; state is write-heavy and per-request. Keeping them separate lets a config change (policy) apply without disturbing live counters (state).</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§5 &nbsp;Success criteria</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">Technology-agnostic, measurable outcomes. These are how we know it worked.</p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px">
+    <div style="border:1px solid var(--rule);border-left:3px solid var(--sea);background:var(--bg-raised);border-radius:12px;padding:18px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span id="SC-001" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">SC-001</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--salmon);padding:3px 8px;border-radius:4px">must</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:10px 0 0"><strong>One abuser can't degrade the fleet.</strong> Under a load test where one tenant sends 10× its budget, every other tenant's requests continue to succeed at their normal rate, and the abusive tenant receives <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">429</span> for its over-budget requests.</p>
+    </div>
+    <div style="border:1px solid var(--rule);border-left:3px solid var(--sea);background:var(--bg-raised);border-radius:12px;padding:18px 24px">
+      <div style="display:flex;align-items:center;gap:8px"><span id="SC-002" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--sea)">SC-002</span><span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--purple);padding:3px 8px;border-radius:4px">should</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.55;color:var(--ink);margin:10px 0 0"><strong>Config changes land fast, without a deploy.</strong> An operator changes a tenant's limit and the new limit governs decisions within 10 seconds, with no redeploy.</p>
+    </div>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§6 &nbsp;Assumptions</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:16px">
+    <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:0">Every authenticated request already carries a resolvable tenant identity in its context.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:0">Per-node, in-process limiting is acceptable for v1; cross-node drift within a tenant's budget is tolerable until the distributed slice lands.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§7 &nbsp;Open questions</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.6;color:var(--ink-soft);margin:14px 0 0">None outstanding — the algorithm choice, fail-open behaviour, and identity source were all anchored during the interview and moved to the <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a> or into the requirements above.</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§8 &nbsp;Change log</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-21</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Initial draft.</div></div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px">This worked example</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a href="ratelimiter-principles.html" class="switch">principles.html</a>
+      <a href="ratelimiter-spec.html" class="switch here">spec.html</a>
+      <a href="ratelimiter-plan.html" class="switch">plan.html</a>
+      <a href="ratelimiter-tasks.html" class="switch">tasks.html</a>
+      <a href="example-ratelimiter.html" class="switch">↳ walkthrough</a>
+      <a href="ratelimiter.html" class="switch">▶ simulator</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">One file. Renders anywhere. Degrades to readable static HTML.</p>
+  </div>
+</article>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate limiter — a spectastic enterprise worked example</title>
+<meta name="description" content="An interactive rate-limiter simulator: watch token-bucket vs sliding-window decide a request burst, allow vs 429. Built through the spectastic enterprise lifecycle.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;--green:#3f6a37;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;--spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --ok:#3f6a37;--ok-bg:rgba(63,106,55,.14);--deny:#c0432f;--deny-bg:rgba(225,98,79,.16);
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;--green:#8fb56a;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;--spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --ok:#8fb56a;--ok-bg:rgba(143,181,106,.18);--deny:#f08a79;--deny-bg:rgba(240,138,121,.18);
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem}
+.back-link:hover{color:var(--ink)}
+.mono{font-family:'IBM Plex Mono',monospace}
+.seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:9px;overflow:hidden}
+.seg button{appearance:none;border:0;background:transparent;color:var(--ink-soft);font-family:'Lato',sans-serif;font-weight:700;font-size:.82rem;padding:8px 16px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{appearance:none;border:0;font-family:'Lato',sans-serif;font-weight:800;font-size:.85rem;padding:10px 18px;border-radius:999px;cursor:pointer;background:var(--crimson);color:#fff;transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-strong)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--rule-strong);outline:none;width:120px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--sea);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:var(--sea);cursor:pointer}
+.ctl{display:flex;align-items:center;gap:10px}
+.ctl label{font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.ctl .val{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--ink);min-width:3.4em}
+.tile{background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:14px 16px}
+.tile .k{font-family:'Lato',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.tile .v{font-family:'Fraunces',serif;font-size:1.7rem;line-height:1.1;margin-top:4px}
+.pill{display:inline-flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;font-weight:600;flex:0 0 auto}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.deny{background:var(--deny-bg);color:var(--deny)}
+.token{width:100%;border-radius:4px;background:var(--sea);transition:height .18s ease}
+@media (max-width:720px){ .viz{grid-template-columns:1fr !important} .tiles{grid-template-columns:1fr 1fr !important} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:940px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-ratelimiter.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Rate limiter</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">How this was built</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:940px;margin:0 auto;padding:44px 32px 80px">
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Enterprise example · simulator</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.4vw,2.9rem);line-height:1.05;letter-spacing:-.02em;margin:12px 0 0;color:var(--ink)">Per-tenant rate limiter</h1>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:14px 0 0">Send a burst of requests and watch the limiter decide: within budget → served, over budget → <span class="mono" style="color:var(--deny)">429</span>. Switch the algorithm to feel the difference between a token bucket and a sliding window.</p>
+
+  <!-- controls -->
+  <div style="margin-top:28px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Algorithm</span>
+      <div class="seg" id="algoSeg" role="group" aria-label="Algorithm">
+        <button data-algo="bucket" aria-pressed="true">Token bucket</button>
+        <button data-algo="window" aria-pressed="false">Sliding window</button>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        <button class="btn" id="burst">Burst +10</button>
+        <button class="btn ghost" id="reset">Reset</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:26px;flex-wrap:wrap">
+      <div class="ctl"><label>Limit</label><input type="range" id="limit" min="2" max="20" value="8"><span class="val" id="limitV">8 req</span></div>
+      <div class="ctl"><label>Window</label><input type="range" id="window" min="2" max="20" value="10"><span class="val" id="windowV">10 s</span></div>
+      <div class="ctl"><label>Traffic</label><input type="range" id="traffic" min="0" max="20" value="4"><span class="val" id="trafficV">4 rps</span></div>
+    </div>
+  </div>
+
+  <!-- stat tiles -->
+  <div class="tiles" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px">
+    <div class="tile"><div class="k">Allowed</div><div class="v" id="statAllowed" style="color:var(--ok)">0</div></div>
+    <div class="tile"><div class="k">Throttled · 429</div><div class="v" id="statDenied" style="color:var(--deny)">0</div></div>
+    <div class="tile"><div class="k" id="stateK">Tokens left</div><div class="v" id="statState">8</div></div>
+    <div class="tile"><div class="k">Reject rate</div><div class="v" id="statRate">0%</div></div>
+  </div>
+
+  <!-- visualization -->
+  <div class="viz" style="display:grid;grid-template-columns:200px 1fr;gap:16px;margin-top:16px;align-items:stretch">
+    <!-- state panel -->
+    <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:16px;display:flex;flex-direction:column">
+      <div style="font-family:'Lato',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)" id="panelTitle">Bucket</div>
+      <div id="panelBody" style="flex:1;margin-top:12px;min-height:170px;display:flex;align-items:flex-end;gap:5px"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink-faint);margin-top:10px" id="panelNote"></div>
+    </div>
+    <!-- request feed -->
+    <div style="background:var(--bg-sunken);border:1px solid var(--rule);border-radius:14px;padding:16px;overflow:hidden">
+      <div style="font-family:'Lato',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Request feed</div>
+      <div id="feed" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;align-content:flex-start;max-height:172px;overflow:hidden"></div>
+    </div>
+  </div>
+
+  <details style="margin-top:26px;border-top:1px solid var(--rule);padding-top:18px">
+    <summary style="cursor:pointer;font-family:'Lato',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);list-style:none">How each limiter decides</summary>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:14px 16px">
+        <div class="mono" style="font-size:.8rem;color:var(--sea);font-weight:600">Token bucket</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A bucket of <em>limit</em> tokens refills at <em>limit ÷ window</em> per second. Each request spends a token; an empty bucket means <span class="mono" style="color:var(--deny)">429</span>. Naturally allows bursts up to the bucket size — the choice the <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.96em">plan</a> made.</p>
+      </div>
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:14px 16px">
+        <div class="mono" style="font-size:.8rem;color:var(--sea);font-weight:600">Sliding window</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Counts the requests in the trailing <em>window</em> seconds; once that count hits <em>limit</em>, further requests get <span class="mono" style="color:var(--deny)">429</span> until the oldest ages out. Smoother, but no burst headroom.</p>
+      </div>
+    </div>
+  </details>
+
+  <p style="margin-top:30px;font-family:'Source Serif 4',serif;font-size:.9rem;color:var(--ink-faint);text-align:center;line-height:1.6">
+    A worked example built through the <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">spectastic enterprise lifecycle</a> — umbrella spec, SLOs, an enforcement floor, and a grounded decision behind every choice.
+  </p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const state={
+    algo:'bucket', limit:8, windowMs:10000, traffic:4,
+    tokens:8, stamps:[], allowed:0, denied:0, feed:[], nowMs:0, carry:0,
+  };
+  function refillRate(){ return state.limit/(state.windowMs/1000); } // tokens per second
+
+  function reset(){
+    state.tokens=state.limit; state.stamps=[]; state.allowed=0; state.denied=0; state.feed=[]; state.carry=0;
+    render();
+  }
+
+  // one request through the current algorithm; returns true=allowed
+  function decide(){
+    if(state.algo==='bucket'){
+      if(state.tokens>=1){ state.tokens-=1; return true; }
+      return false;
+    } else {
+      const cut=state.nowMs-state.windowMs;
+      state.stamps=state.stamps.filter(t=>t>cut);
+      if(state.stamps.length<state.limit){ state.stamps.push(state.nowMs); return true; }
+      return false;
+    }
+  }
+  function request(){
+    const ok=decide();
+    if(ok) state.allowed++; else state.denied++;
+    state.feed.push(ok);
+    if(state.feed.length>60) state.feed.shift();
+  }
+  function burst(n){ for(let i=0;i<n;i++) request(); render(); }
+
+  // simulation tick: advance clock, refill, generate steady traffic
+  const TICK=100;
+  setInterval(()=>{
+    state.nowMs+=TICK;
+    // token refill
+    state.tokens=Math.min(state.limit, state.tokens + refillRate()*(TICK/1000));
+    // age out window stamps for a live display
+    const cut=state.nowMs-state.windowMs;
+    state.stamps=state.stamps.filter(t=>t>cut);
+    // steady traffic (fractional accumulation)
+    state.carry += state.traffic*(TICK/1000);
+    while(state.carry>=1){ request(); state.carry-=1; }
+    render();
+  }, TICK);
+
+  function render(){
+    $('statAllowed').textContent=state.allowed;
+    $('statDenied').textContent=state.denied;
+    const total=state.allowed+state.denied;
+    $('statRate').textContent=(total? Math.round(100*state.denied/total):0)+'%';
+
+    if(state.algo==='bucket'){
+      $('stateK').textContent='Tokens left';
+      $('statState').textContent=Math.floor(state.tokens);
+      $('panelTitle').textContent='Bucket · '+state.limit+' tokens';
+      $('panelNote').textContent='refill '+refillRate().toFixed(1)+' tok/s';
+      // render tokens as a row of vertical bars filling from left
+      const body=$('panelBody'); body.style.alignItems='flex-end';
+      let html='';
+      const whole=Math.floor(state.tokens), frac=state.tokens-whole;
+      for(let i=0;i<state.limit;i++){
+        let h= i<whole?100 : (i===whole? Math.round(frac*100):0);
+        const col = h>0? 'var(--sea)':'var(--rule-strong)';
+        html+='<div style="flex:1;display:flex;align-items:flex-end;height:100%"><div class="token" style="height:'+Math.max(h,6)+'%;background:'+col+';opacity:'+(h>0?1:.35)+'"></div></div>';
+      }
+      body.innerHTML=html;
+    } else {
+      $('stateK').textContent='In window';
+      $('statState').textContent=state.stamps.length+' / '+state.limit;
+      $('panelTitle').textContent='Window · last '+(state.windowMs/1000)+'s';
+      $('panelNote').textContent=state.stamps.length+' of '+state.limit+' used';
+      // render a timeline: recent window with request ticks; bar fills as it approaches limit
+      const body=$('panelBody'); body.style.alignItems='stretch';
+      const usedPct=Math.min(100, Math.round(100*state.stamps.length/state.limit));
+      const barCol = state.stamps.length>=state.limit ? 'var(--deny)' : 'var(--sea)';
+      body.innerHTML=
+        '<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:8px">'
+        +'<div style="font-family:\'IBM Plex Mono\',monospace;font-size:1.4rem;color:'+barCol+'">'+state.stamps.length+'<span style="color:var(--ink-faint);font-size:.9rem"> / '+state.limit+'</span></div>'
+        +'<div style="height:12px;border-radius:6px;background:var(--rule-strong);overflow:hidden"><div style="height:100%;width:'+usedPct+'%;background:'+barCol+';transition:width .18s"></div></div>'
+        +'</div>';
+    }
+
+    // request feed (newest last)
+    const feed=$('feed');
+    feed.innerHTML=state.feed.map(ok=>'<span class="pill '+(ok?'ok':'deny')+'">'+(ok?'200':'429')+'</span>').join('');
+  }
+
+  // controls
+  $('algoSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.algo=b.dataset.algo;
+    for(const x of document.querySelectorAll('#algoSeg button'))x.setAttribute('aria-pressed',x===b?'true':'false');
+    reset();});
+  function bindRange(id,fmt,apply){const el=$(id);const out=$(id+'V');el.addEventListener('input',()=>{apply(+el.value);out.textContent=fmt(+el.value);render();});}
+  bindRange('limit',v=>v+' req',v=>{state.limit=v; state.tokens=Math.min(state.tokens,v);});
+  bindRange('window',v=>v+' s',v=>{state.windowMs=v*1000;});
+  bindRange('traffic',v=>v+' rps',v=>{state.traffic=v;});
+  $('burst').addEventListener('click',()=>burst(10));
+  $('reset').addEventListener('click',reset);
+
+  // theme
+  const root=document.documentElement, toggle=$('themeToggle');
+  function syncIcons(){const d=root.dataset.theme==='dark';toggle.querySelector('.theme-sun').style.display=d?'':'none';toggle.querySelector('.theme-moon').style.display=d?'none':'';}
+  try{const s=localStorage.getItem('spectastic-theme');if(s==='dark'||s==='light')root.dataset.theme=s;}catch(e){}
+  syncIcons();
+  toggle.addEventListener('click',()=>{const n=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=n;try{localStorage.setItem('spectastic-theme',n);}catch(e){}syncIcons();});
+
+  reset();
+})();
+</script>
+</body>
+</html>

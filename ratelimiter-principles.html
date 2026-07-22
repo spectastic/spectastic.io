@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enterprise principles · rate-limiter example — spectastic</title>
+<meta name="description" content="The twenty enterprise-profile principles the rate-limiter worked example answers to — the inherited floor every feature is checked against.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.02em;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.lnk-crimson{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.switch{font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft);text-decoration:none;padding:7px 13px;border:1px solid var(--rule);border-radius:8px;transition:border-color .2s,color .2s;white-space:nowrap}
+.switch:hover{border-color:var(--ink-soft);color:var(--ink)}
+.switch.here{background:var(--bg-sunken);color:var(--ink);border-color:var(--rule-strong)}
+.p-card{background:var(--bg-raised);border:1px solid var(--rule);border-radius:11px;padding:15px 17px}
+.p-id{font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 38%,transparent);padding:1px 7px;border-radius:5px}
+@media (max-width: 700px){ .p-grid{grid-template-columns:1fr !important} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:880px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="example-ratelimiter.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">principles.html</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<article style="max-width:820px;margin:0 auto;padding:56px 32px 40px">
+
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Project principles · enterprise profile</div>
+  <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Principles</h1>
+  <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">Twenty non-negotiables the rate limiter — and every feature in the project — answers to.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:22px;padding-bottom:24px;border-bottom:1px solid var(--rule)">
+    <span style="font-family:'Lato',sans-serif;font-weight:900;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);padding:4px 10px;border-radius:5px">accepted</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">owner</span> &nbsp;Platform API (@platform)</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">version</span> &nbsp;1.0.0</span>
+    <span style="font-family:'Lato',sans-serif;font-size:.78rem;color:var(--ink-soft)"><span style="color:var(--ink-faint)">created</span> &nbsp;2026-07-21</span>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 38%,transparent);padding:2px 8px;border-radius:5px;margin-left:auto">profile: enterprise</span>
+  </div>
+
+  <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
+    <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">These aren't authored per feature — they're <em>inherited</em>. <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">spectastic init --profile enterprise</span> composes this floor before a word of spec is written, and it's the strictest of the four profiles. The rate-limiter's <a href="ratelimiter-spec.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">spec</a>, <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a>, and <a href="ratelimiter-tasks.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">tasks</a> are all checked against it — §1 of the plan re-walks the relevant ones.</p>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§1 &nbsp;Purpose &amp; scope</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Project-wide rules, not feature rules. Every spec in this project inherits them; a plan opens by re-walking each relevant one and must clear it or record an accepted risk. The enterprise profile turns them from advice into an enforced floor — the difference the <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">walkthrough</a> is really about.</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§2 &nbsp;The twenty principles</h2>
+
+  <!-- Craft -->
+  <div style="margin-top:24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sea);margin-bottom:12px">Craft</div>
+    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="p-card"><span class="p-id">P-1</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Clarity over cleverness</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Prefer the simplest code the next reader — human or agent — can follow. Clever indirection is a cost, not a flex.</p></div>
+      <div class="p-card"><span class="p-id">P-2</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Small, reversible changes</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Ship in slices. Every change should be easy to revert; a large irreversible batch is a design smell.</p></div>
+      <div class="p-card"><span class="p-id">P-3</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Explicit over implicit</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Name things. No hidden magic, no action-at-a-distance an agent can't see from the code in front of it.</p></div>
+      <div class="p-card"><span class="p-id">P-4</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">One set of conventions, enforced</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A single formatter and lint config, applied automatically. Style is decided once and enforced by the toolchain, not debated per PR.</p></div>
+      <div class="p-card"><span class="p-id">P-5</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Record the why</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Decisions carry their rationale. Code says what; a decision log or comment says why it had to be this way.</p></div>
+    </div>
+  </div>
+
+  <!-- Verification & rigor -->
+  <div style="margin-top:24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:12px">Verification &amp; rigor</div>
+    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="p-card"><span class="p-id">P-6</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Tests accompany behavior</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Code that ships carries a test for the behavior it adds. The demoable path is covered before it merges.</p></div>
+      <div class="p-card"><span class="p-id">P-7</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Done means verified</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Every level of testing is produced — unit, integration, and a behavioral check on the running code. Presence is never accepted as proof.</p></div>
+      <div class="p-card"><span class="p-id">P-8</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Ship dark by default</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A change to a working system ships behind a toggle, off by default, reaching users by a deliberate, reversible flip.</p></div>
+      <div class="p-card"><span class="p-id">P-9</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Decisions are grounded</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A claim without a cited source is not yet a decision. Every design-bearing choice records the evidence it rests on.</p></div>
+      <div class="p-card"><span class="p-id">P-10</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">The enforcement floor holds</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">When a gate tool fails, fix the gate before removing it. Disabling a gate is a last resort — explicit and recorded, never a silent convenience.</p></div>
+    </div>
+  </div>
+
+  <!-- Interfaces & security -->
+  <div style="margin-top:24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--salmon);margin-bottom:12px">Interfaces &amp; security</div>
+    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="p-card"><span class="p-id">P-11</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Contract-first interfaces</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A component that exposes an interface ships a checked-in contract before the code behind it — the agent's target and the consumer's guarantee.</p></div>
+      <div class="p-card"><span class="p-id">P-12</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Library-first boundaries</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Keep the reusable core separate from its entry point. Logic lives in a testable library; the endpoint or UI is a thin adapter.</p></div>
+      <div class="p-card"><span class="p-id">P-13</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Secure by default</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Safe defaults are the floor: no hardcoded credentials, secrets from the environment, authorization on by default. Every insecurity is a reviewed exception.</p></div>
+      <div class="p-card"><span class="p-id">P-14</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Least privilege</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Grant the narrowest capability that does the job — to a service, a token, and an autonomous agent alike. Bound the blast radius first.</p></div>
+    </div>
+  </div>
+
+  <!-- Reliability -->
+  <div style="margin-top:24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sea);margin-bottom:12px">Reliability</div>
+    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="p-card"><span class="p-id">P-15</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Structured observability</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">The running system emits the golden signals (latency, traffic, errors, saturation) through a standard exporter — health observed in production, not guessed from logs.</p></div>
+      <div class="p-card"><span class="p-id">P-16</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Service level objectives</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Each production-facing reliability target is an SLO with an explicit SLI and error budget. The remaining budget, not opinion, sets the pace of change.</p></div>
+    </div>
+  </div>
+
+  <!-- Supply chain & delivery -->
+  <div style="margin-top:24px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:12px">Delivery &amp; supply chain</div>
+    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="p-card"><span class="p-id">P-17</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Semantic versioning</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Versions are MAJOR.MINOR.PATCH — a compatibility contract dependents and agents can reason about mechanically before an upgrade.</p></div>
+      <div class="p-card"><span class="p-id">P-18</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Supply-chain hygiene</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Pin, audit, and prune dependencies; adding one is a reviewed decision, not a reflex. Bound the blast radius at the manifest.</p></div>
+      <div class="p-card"><span class="p-id">P-19</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Supply-chain provenance</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">Publish an SBOM and a build attestation for every release, so a consumer can verify what went into an artifact and where it came from.</p></div>
+      <div class="p-card"><span class="p-id">P-20</span> <strong style="font-family:'Fraunces',serif;font-weight:560;font-size:1rem">Accessibility conformance</strong><p style="font-family:'Source Serif 4',serif;font-size:.9rem;line-height:1.5;color:var(--ink-soft);margin:7px 0 0">A user-facing product meets audited WCAG 2.x AA. A service or CLI with no user-facing surface satisfies this trivially.</p></div>
+    </div>
+  </div>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§3 &nbsp;Governance</h2>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Principles change only by proposal, and the set carries a semantic version. The enterprise profile also declares the <em>enforcement policy</em> — the tool categories the rigor requires — which <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic enforce</span> checks and the <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a> resolves to concrete tools.</p>
+
+  <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§4 &nbsp;Change log</h2>
+  <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-21</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Established by <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">init --profile enterprise</span> — the twenty-principle floor composed from the base + enterprise axis.</div></div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px">This worked example</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a href="ratelimiter-principles.html" class="switch here">principles.html</a>
+      <a href="ratelimiter-spec.html" class="switch">spec.html</a>
+      <a href="ratelimiter-plan.html" class="switch">plan.html</a>
+      <a href="ratelimiter-tasks.html" class="switch">tasks.html</a>
+      <a href="example-ratelimiter.html" class="switch">↳ walkthrough</a>
+      <a href="ratelimiter.html" class="switch">▶ simulator</a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:22px 0 0">One file. Renders anywhere. Degrades to readable static HTML.</p>
+  </div>
+</article>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+</script>
+</body>
+</html>
