@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Real-time portfolio analytics · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 001-portfolio-analytics</p>
+  <h1>Real-time portfolio analytics</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it: one append-only ledger, analytics as pure folds, exact integer money, on Java 21 + Quarkus.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">001-portfolio-analytics</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>001-portfolio-analytics</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-22">22 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Build the platform as an <strong>event-sourced core</strong>: a single append-only <code>TradeLedger</code>, and each
+    analytic a stateful in-memory <strong>projection</strong> that folds <code>TradeEvent</code> and <code>PriceTick</code>.
+    All money is <strong>exact integer fixed-point</strong> (scale 1e-4), so the fast path and a from-zero replay are the same
+    integer function and reconcile bit-for-bit — the whole reliability case rests on that. The stack is Java 21 + Quarkus
+    3.37.3. The single biggest risk is that the spike's in-memory hot tail is not the durable, cold-tiering store the
+    unlimited-history NFR ultimately needs — deferred deliberately and logged.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>This umbrella carries the platform-wide principle conformance for all five specs; each child plan checks only the
+principles most load-bearing for its slice and points here. Verified against
+<a href="../../principles.html">v0.1.0</a> (enterprise, 20 principles).</p>
+
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-1 · Clarity over cleverness</td><td><spec-pill>OK</spec-pill></td><td>One idea — fold a ledger. No framework magic on the hot path.</td></tr>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>Sliced into five specs; each analytic is an independent projection addable/removable without touching the ledger.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Money scale, denominator basis, and relief policy are all explicit, never inferred.</td></tr>
+    <tr><td>P-4 · One set of conventions, enforced</td><td><spec-pill>OK</spec-pill></td><td>Spotless/format + a single money representation; jacoco in the build.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>Decisions D-001..D-004 below carry context + consequences.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td>TDD per user story; reconcile-to-replay is the anchoring test.</td></tr>
+    <tr><td>P-7 · Done means verified</td><td><spec-pill>OK</spec-pill></td><td>Each slice closes its SC via a passing test; the platform is verified by the end-to-end reconcile run.</td></tr>
+    <tr><td>P-8 · Ship dark by default</td><td><spec-pill>OK</spec-pill></td><td>Analytics REST behind <code>portfolio.analytics.enabled</code>, default false.</td></tr>
+    <tr><td>P-9 · Decisions are grounded</td><td><spec-pill>OK</spec-pill></td><td>§3 evidence table; the stack decision rests on a toolchain probe run this turn.</td></tr>
+    <tr><td>P-10 · The enforcement floor holds</td><td><spec-pill>OK</spec-pill></td><td>Build fails on format, test, or coverage regression; no waivers.</td></tr>
+    <tr><td>P-11 · Contract-first interfaces</td><td><spec-pill>OK</spec-pill></td><td>OpenAPI generated via smallrye-openapi at <code>/q/openapi</code>; each analytic an independently versioned contract (spec FR-004).</td></tr>
+    <tr><td>P-12 · Library-first boundaries</td><td><spec-pill>OK</spec-pill></td><td>Domain (model/ledger/position/weights/tax) is pure Java with no Quarkus imports; the framework touches only <code>api/</code> and the wiring bean.</td></tr>
+    <tr><td>P-13 · Secure by default</td><td><spec-pill>OK</spec-pill></td><td>Read-only analytics, no secrets, strict CSP inherited by artifacts; no user-supplied code path.</td></tr>
+    <tr><td>P-14 · Least privilege</td><td><spec-pill>OK</spec-pill></td><td>Ingest is a single logical writer; consumers get read views, never the mutable projection.</td></tr>
+    <tr><td>P-15 · Structured observability</td><td><spec-pill>OK</spec-pill></td><td>Micrometer timers on every fold step; Prometheus at <code>/q/metrics</code> — the SLO instrument.</td></tr>
+    <tr><td>P-16 · Service level objectives</td><td><spec-pill>OK</spec-pill></td><td>Every NFR across the five specs carries a <code>&lt;spec-slo&gt;</code>; the timers measure exactly those.</td></tr>
+    <tr><td>P-17 · Semantic versioning</td><td><spec-pill>OK</spec-pill></td><td>Module <code>1.0.0-SNAPSHOT</code>; the analytic contracts version independently (FR-004).</td></tr>
+    <tr><td>P-18 · Supply-chain hygiene</td><td><spec-pill>OK</spec-pill></td><td>Pinned Quarkus BOM; dependency-check is a wired-but-optional build step for the spike.</td></tr>
+    <tr><td>P-19 · Supply-chain provenance</td><td><span style="display:inline-block;padding:0.05em 0.5em;border-radius:0.5em;background:var(--c-muted);color:var(--c-bg);font:600 0.72rem var(--font-sans)">n/a</span></td><td>SBOM + build attestation deferred for the spike — not exercised; would land before any real release.</td></tr>
+    <tr><td>P-20 · Accessibility conformance</td><td><span style="display:inline-block;padding:0.05em 0.5em;border-radius:0.5em;background:var(--c-muted);color:var(--c-bg);font:600 0.72rem var(--font-sans)">n/a</span></td><td>Backend analytics platform with no end-user UI; the spec-family artifacts themselves are accessible HTML.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 (Temurin 21.0.9 LTS).</dd>
+  <dt>Frameworks</dt>       <dd>Quarkus 3.37.3 (quarkus-rest, rest-jackson, arc, micrometer-registry-prometheus, smallrye-openapi); build via Maven.</dd>
+  <dt>Architecture</dt>     <dd>Event-sourced modular monolith: a ledger plus one projection per analytic. Domain is framework-free (P-12); Quarkus touches only <code>api/</code> and the wiring bean.</dd>
+  <dt>Storage</dt>          <dd>In-memory append-only hot tail for the spike (single writer). Durable + cold-tiering store deferred to <code>TBD-storage-engine</code>.</dd>
+  <dt>Testing</dt>          <dd>JUnit 5 unit tests on the pure domain (no Quarkus boot, fast) plus one <code>@QuarkusTest</code> REST smoke via REST-assured. The anchoring test is reconcile-to-replay.</dd>
+  <dt>Coverage</dt>         <dd>Diff-aware via jacoco: patch target ≥ 90% on touched domain code, and a change never lowers coverage of the lines it touches. No single universal %.</dd>
+  <dt>Perf targets</dt>     <dd>The umbrella envelope: tick-to-analytic p99 &lt; 1 ms in-process; the child SLOs ladder beneath it (append 5 µs → position 25 µs → tax relief 40 µs → full-book reweight 500 µs).</dd>
+  <dt>Constraints</dt>      <dd>No floating point on the money path (exact integer fixed-point, scale 1e-4). Analytics off by default (ship dark). Single logical writer.</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>3 · Grounding &amp; evidence</h2>
+<p>The design-bearing facts and how each was confirmed.</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Java 21 and a current Quarkus are available in this environment</td>
+        <td><code>asdf where java temurin-21.0.9</code>; <code>quarkus-bom/maven-metadata.xml</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Temurin 21.0.9 present; 3.37.3 is the latest stable Final (3.38 is a CR).</td></tr>
+    <tr><td>Exact integer money makes reconcile-to-replay bit-exact</td>
+        <td><code>spec.html#NFR-002</code> (reconcile to the cent)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>An integer fold has no rounding divergence between fast path and replay — they are the same function.</td></tr>
+    <tr><td>Pure folds let a new analytic be added without touching the ledger</td>
+        <td><code>spec.html#FR-001</code>, <code>#SC-002</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>A projection depends only on the event stream; the ledger has no analytic-specific coupling.</td></tr>
+    <tr><td>An in-memory hot tail meets the spike's append latency</td>
+        <td>The append micro-benchmark (deferred)</td>
+        <td><spec-status value="blocked">assumed</spec-status></td>
+        <td>Plausible for an <code>ArrayList</code>/array append; not yet measured — accepted as risk R-1, and the durable store is deferred anyway.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>4 · Approach</h2>
+
+<p>The ledger is the spine. Producers append immutable <code>TradeEvent</code>s; a market-data feed supplies
+<code>PriceTick</code>s. The <code>AnalyticsPlatform</code> bean fans each event into three projections — the position engine,
+the weight book, and the tax-lot book — every one a pure fold whose state at sequence <code>N</code> is a function of the
+prefix <code>[0, N]</code>. Because the fold is pure and the arithmetic is exact integers, the same code that maintains the
+live view also replays history to reconcile it. REST resources expose read views behind a feature toggle; Micrometer times
+each fold so the latency SLOs are measured, not asserted.</p>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 720 260" role="img" aria-label="Event-sourced platform: ledger fans events into three fold projections behind a REST surface">
+  <style>
+    .box { fill:#fcfbf7; stroke:#c4c1bb; stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill:#4a4a46; letter-spacing:0.05em; text-transform:uppercase; }
+    .body { font: 400 11px "Source Serif 4", Georgia, serif; fill:#353534; }
+    .arr { stroke:#73706d; stroke-width:1.2; fill:none; }
+  </style>
+  <rect class="box" x="24"  y="104" width="150" height="52" rx="4"/>
+  <text class="label" x="38" y="126">Producers</text>
+  <text class="body"  x="38" y="144">trades · price ticks</text>
+  <rect class="box" x="238" y="104" width="150" height="52" rx="4"/>
+  <text class="label" x="252" y="126">TradeLedger</text>
+  <text class="body"  x="252" y="144">append-only · seq</text>
+  <rect class="box" x="470" y="20"  width="220" height="46" rx="4"/>
+  <text class="label" x="484" y="40">Position engine</text>
+  <text class="body"  x="484" y="57">net qty · basis · MTM</text>
+  <rect class="box" x="470" y="86"  width="220" height="46" rx="4"/>
+  <text class="label" x="484" y="106">Portfolio weights</text>
+  <text class="body"  x="484" y="123">gross/net · concentration</text>
+  <rect class="box" x="470" y="152" width="220" height="46" rx="4"/>
+  <text class="label" x="484" y="172">Tax-lot book</text>
+  <text class="body"  x="484" y="189">FIFO/LIFO · realized P&amp;L</text>
+  <rect class="box" x="238" y="196" width="150" height="46" rx="4"/>
+  <text class="label" x="252" y="216">REST + metrics</text>
+  <text class="body"  x="252" y="233">read views (dark)</text>
+  <path class="arr" d="M174 130 L238 130" marker-end="url(#a)"/>
+  <path class="arr" d="M388 126 L470 44"  marker-end="url(#a)"/>
+  <path class="arr" d="M388 130 L470 109" marker-end="url(#a)"/>
+  <path class="arr" d="M388 134 L470 174" marker-end="url(#a)"/>
+  <path class="arr" d="M313 156 L313 196" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#73706d"/></marker></defs>
+</svg>
+<figcaption>The ledger fans each event into three pure-fold projections; REST serves read views (dark by default) and Micrometer times each fold.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>5 · Alternatives considered</h2>
+
+<spec-matrix>
+<table>
+  <thead>
+    <tr><th>Option</th><th>Fast boot + built-in metrics/OpenAPI</th><th>Exact-math fit (JVM)</th><th>Dev speed here</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr data-winner><td>Java 21 + Quarkus (chosen)</td><td>5</td><td>5</td><td>5</td><td class="score">15</td></tr>
+    <tr><td>Java 21 + Spring Boot</td><td>3</td><td>5</td><td>4</td><td class="score">12</td></tr>
+    <tr><td>Go or Rust service</td><td>4</td><td>4</td><td>2</td><td class="score">10</td></tr>
+  </tbody>
+</table>
+</spec-matrix>
+<p>Quarkus wins on batteries-included observability (Micrometer) and contract-first OpenAPI with a fast dev loop, while the
+JVM's <code>long</code> arithmetic gives us exact fixed-point money for free. Spring Boot is close but heavier to boot;
+Go/Rust would cost dev velocity for no correctness gain here.</p>
+</section>
+
+
+<section id="decisions">
+<h2>6 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Event-sourced projections over a single append-only ledger</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The spec's whole reliability case (<code>spec.html#FR-001</code>, <code>#NFR-002</code>) is that a live analytic must always equal a from-zero replay.</dd>
+    <dt>Decision</dt>     <dd>Model each analytic as a stateful in-memory projection that folds the ledger; the fast path and replay call the same fold function.</dd>
+    <dt>Consequences</dt> <dd>+ Reconcile-to-replay is a mechanical test, not a hope. + New analytics need no ledger change. − Projection state must be rebuildable/snapshot-able; no analytic may hold hidden non-fold state.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Exact integer fixed-point money (scale 1e-4)</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>"Reconcile to the cent" (<code>#NFR-002</code>) is impossible to guarantee with binary floating point.</dd>
+    <dt>Decision</dt>     <dd>Represent every price and monetary amount as a <code>long</code> in units of 1e-4 currency (<code>PRICE_SCALE = 10_000</code>); quantities are whole <code>long</code>s. No <code>double</code> on the money path; portfolio weights use <code>double</code> only for the final display ratio.</dd>
+    <dt>Consequences</dt> <dd>+ Bit-exact folds and audit-grade realized gain. + Tax-lot basis needs no division (a lot's basis-per-unit is the exact fill price). − A hard invariant to police (no stray <code>double</code>); − average-cost basis reduction uses deterministic integer division, which the position engine and tax-lot book reconcile in aggregate but decompose differently.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · Java 21 + Quarkus 3.37.3 on Maven</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>Need built-in observability and contract-first OpenAPI with a fast loop; toolchain probe (§3) confirmed Java 21 + Quarkus 3.37.3 available.</dd>
+    <dt>Decision</dt>     <dd>Quarkus with rest, rest-jackson, arc, micrometer-registry-prometheus, smallrye-openapi; JUnit 5 + REST-assured; jacoco for coverage.</dd>
+    <dt>Consequences</dt> <dd>+ Metrics, OpenAPI, and DI out of the box; + JVM exact-integer math. − Quarkus is pinned to a Java-21-compatible release (avoid the bleeding-edge Java 25 default on this machine).</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-004" grounding="assumed">
+  <h4>D-004 · In-memory hot tail for the spike; durable store deferred</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="review">Provisional</spec-status></dd>
+    <dt>Context</dt>      <dd>Unlimited history + durability (<code>#NFR-003</code>, ledger <code>#NFR-004</code>) ultimately need a tiered durable store; the spike proves the folds, not the storage engine.</dd>
+    <dt>Decision</dt>     <dd>Back the ledger with an in-memory append-only structure; model snapshot/restore so the durable engine can slot in later. Durability + cold-tiering deferred to <code>TBD-storage-engine</code>.</dd>
+    <dt>Consequences</dt> <dd>+ Fastest path to a working, testable platform. − The unlimited-history and no-loss SLOs are demonstrated in shape (snapshot bounds memory), not proven at scale — carried as risk R-1.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>7 · Project structure</h2>
+
+<p>New paths, grouped by the D-001 boundary (framework-free domain vs. the thin Quarkus edge).</p>
+
+<pre><code>pom.xml                                  Quarkus BOM + extensions + jacoco
+src/main/resources/application.properties  ship-dark toggle, metrics, openapi
+src/main/java/io/spectastic/portfolio/
+  model/     Side, TradeEvent, PriceTick, Money (scale)         # shared, spec 001
+  ledger/    TradeLedger, Snapshot                              # spec 002
+  position/  PositionEngine, Position                           # spec 003
+  weights/   PortfolioWeights, WeightBasis                      # spec 004
+  tax/       TaxLotBook, Lot, ReliefPolicy, RealizedGainRecord  # spec 005
+  AnalyticsPlatform.java                 @ApplicationScoped wiring: ledger + projections
+  api/       AnalyticsResource + DTOs    JAX-RS read surface (dark)
+src/test/java/io/spectastic/portfolio/
+  LedgerTest, PositionEngineTest, PortfolioWeightsTest,
+  TaxLotBookTest, ReconcileToReplayTest, AnalyticsResourceIT
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>8 · Risks &amp; mitigations</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>R-1 · In-memory ledger is not the durable, cold-tiering store unlimited history needs</td><td>H</td><td>M</td><td>Snapshot/restore modelled now so the durable engine slots in behind the same interface; scope-limited to the spike; deferred to <code>TBD-storage-engine</code>.</td></tr>
+    <tr><td>R-2 · A stray <code>double</code> creeps into the money path and breaks reconcile-to-the-cent</td><td>M</td><td>H</td><td>Single money representation (D-002); reconcile-to-replay test would catch any drift; weights are the only sanctioned <code>double</code>, and only for a display ratio.</td></tr>
+    <tr><td>R-3 · Aggregate (position) and per-lot (tax) basis diverge</td><td>M</td><td>M</td><td>An explicit invariant test: Σ open-lot qty equals net position qty per instrument; the two are maintained separately by design.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="complexity">
+<h2>9 · Complexity tracking</h2>
+<p>Where this plan adds anything beyond the minimum the specs demand.</p>
+
+<spec-assumption>
+<p>Maintaining two basis decompositions — aggregate average-cost in the position engine and exact per-lot in the tax-lot
+book — is deliberate duplication, not accidental: they answer different questions (current exposure vs. which shares were
+sold) and the specs assign them to different slices. They are kept honest by the aggregate-agreement invariant (R-3), not
+merged.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>10 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the architecture (event-sourced folds), the money representation (exact integer fixed-point), and the
+stack (Java 21 + Quarkus) were all settled and grounded this turn; storage durability is explicitly deferred to
+<code>TBD-storage-engine</code>, not left open.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>11 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial plan. Event-sourced projections over a single append-only ledger (D-001), exact integer fixed-point money at scale 1e-4 (D-002), Java 21 + Quarkus 3.37.3 (D-003), and an in-memory hot tail with durable storage deferred (D-004). Carries the platform-wide 20-principle check for the child plans.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 001-portfolio-analytics · Real-time portfolio analytics · authored 22 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

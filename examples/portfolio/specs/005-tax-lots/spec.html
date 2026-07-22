@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>FIFO/LIFO tax lot tracking · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 005-tax-lots</p>
+  <h1>FIFO/LIFO tax lot tracking</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Every buy opens a lot; every sell relieves lots by policy — FIFO or LIFO — realizing gain to the cent, with an audit record for each closed lot.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>005-tax-lots</span>
+    <b>Parent</b>      <span><spec-parent specid="001-portfolio-analytics"><a href="../001-portfolio-analytics/spec.html">001-portfolio-analytics</a></spec-parent></span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Buy 100 then 100 at different prices, sell 150 under FIFO; realized gain relieves the oldest lot fully and the next partially, to the cent.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="9" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>Tax lots decompose a position into the individual purchases that make it up, because realized gain depends on
+    <em>which</em> shares you sold. This slice folds the <a href="../002-trade-ledger/spec.html">ledger</a> into an ordered set
+    of open lots per instrument; on a sell it <strong>relieves lots by a configured policy — FIFO (oldest first) or LIFO
+    (newest first)</strong> — splitting a lot on partial consumption and computing realized gain as proceeds minus relieved
+    basis. Policy is fixed at relief time and recorded on an immutable audit record per closed lot. Realized and unrealized
+    gain must reconcile to a full replay to the cent.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends on the umbrella model and the ledger (002). Its aggregate basis must agree with the position engine (003) but it maintains its own lot decomposition.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (correct FIFO/LIFO relief, to-the-cent realized gain, an audit trail), not a named ordered structure.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — defensible realized-gain numbers finance can file on.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Lot open, ordered relief, and partial-lot split are well-defined; the policy set is fixed to FIFO/LIFO for this slice.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One lot book, five functional requirements; wash sales and HIFO/specific-lot are deferred.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Relief order, split arithmetic, and reconcile-to-replay are all mechanically checkable against worked examples.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>A position's net quantity says nothing about its tax treatment: sell 150 of a 200-share position and the realized gain
+depends entirely on which lots you relieve. FIFO and LIFO give materially different numbers, and finance must be able to
+show <em>why</em> a figure is what it is. So this slice keeps the lot-level decomposition the position engine deliberately
+does not — an ordered book of open purchases — and relieves it deterministically on every sell.</p>
+<p>It owns lots, relief policy, realized/unrealized gain, and the audit record. It reads events from
+<a href="../002-trade-ledger/spec.html">002</a>; portfolio weighting and net position math are siblings.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Open lots on buys <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>finance analyst</strong>, I want each buy to open a distinct lot carrying its quantity, cost basis, and
+acquisition time, so the position is decomposed into relievable purchases.</p>
+<p><em>Acceptance:</em> after a series of buys, the open-lot book lists one lot per buy in acquisition order, and their
+quantities sum to the long position.</p>
+
+<h3 id="US2">US2 · Relieve by FIFO or LIFO on a sell <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>finance analyst</strong>, I want a sell to consume open lots by the configured policy and compute realized
+gain, so the number reflects the elected method.</p>
+<p><em>Acceptance:</em> under FIFO a sell relieves the oldest lots first; under LIFO the newest first; a partial consumption
+splits the boundary lot; realized gain equals proceeds minus relieved basis, to the cent.</p>
+
+<h3 id="US3">US3 · Auditable realized gain <spec-pill>P2</spec-pill></h3>
+<p>As a <strong>tax preparer</strong>, I want an immutable record per relieved lot — policy, proceeds, basis, gain, holding
+period — so every realized figure is traceable.</p>
+<p><em>Acceptance:</em> each relief emits an audit record naming the lot, the policy applied, and the components of the gain;
+summing the records reproduces cumulative realized gain.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Partial lot.</strong> A sell smaller than the boundary lot splits it, leaving an open remainder with the original basis and acquisition time.</li>
+  <li><strong>Oversell into short.</strong> A sell exceeding open long lots closes them all and opens a short lot for the residual; symmetric relief applies to a later buy-to-cover.</li>
+  <li><strong>Correction.</strong> A compensating event folds through the same relief logic; there is no retroactive edit of a prior audit record — a reversal is itself recorded.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>Each buy <spec-rule>MUST</spec-rule> open a <strong>tax lot</strong> per <code>(account, instrument)</code> carrying quantity,
+cost basis, acquisition timestamp, and ledger sequence, held in an <strong>acquisition-ordered</strong> structure.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+    <p>On a sell the slice <spec-rule>MUST</spec-rule> relieve open lots by the configured policy — <strong>FIFO</strong> (oldest
+    acquired first), <strong>LIFO</strong> (newest first), or <strong>HIFO</strong> (highest cost basis first) — <spec-rule>MUST</spec-rule>
+    split the boundary lot on partial consumption, and <spec-rule>MUST</spec-rule> compute <strong>realized gain</strong> as
+    proceeds minus relieved basis.</p>
+  </spec-requirement>
+
+<spec-requirement id="FR-003" priority="must">
+    <p>Relief <strong>policy</strong> (FIFO, LIFO, or HIFO) <spec-rule>MUST</spec-rule> be selectable per account (or per
+    instrument), <spec-rule>MUST</spec-rule> be fixed at relief time, and <spec-rule>MUST</spec-rule> be recorded on the
+    realized-gain record for auditability.</p>
+  </spec-requirement>
+
+<spec-requirement id="FR-004" priority="must">
+<p>The slice <spec-rule>MUST</spec-rule> compute <strong>unrealized gain</strong> per open lot on price ticks and
+<strong>cumulative realized gain</strong> across relieved lots, both reconciling to a full replay.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-005" priority="should">
+<p>Each relieved lot <spec-rule level="should">SHOULD</spec-rule> emit an <strong>immutable audit record</strong> — lot
+sequence, policy, proceeds, relieved basis, realized gain, holding period — for downstream tax reporting.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="must">
+<p>Lot relief on a sell <spec-rule>MUST</spec-rule> meet <a href="#SLO-relief">SLO-relief</a> for a position of up to 1,000
+open lots.</p>
+<spec-slo id="SLO-relief" target="NFR-001" signal="latency" objective="p99 &lt; 40 &micro;s at &le; 1000 open lots" window="28d" budgeting="occurrences">
+  in-process wall-clock to match, split, and record lot relief for one sell (good ÷ valid sells)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-002" priority="must">
+<p>Realized and unrealized gain <spec-rule>MUST</spec-rule> reconcile to a full replay per
+<a href="#SLO-pnl-reconcile">SLO-pnl-reconcile</a>.</p>
+<spec-slo id="SLO-pnl-reconcile" target="NFR-002" signal="errors" objective="99.999% of daily reconciliations bit-match replay" window="28d" budgeting="occurrences">
+  daily incremental-vs-replay P&amp;L reconciliations matching to the cent (matching ÷ total)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-003" priority="must">
+<p>The open-lot set <spec-rule>MUST</spec-rule> stay bounded per <a href="#SLO-lotset">SLO-lotset</a>: a fully-closed
+position holds zero lots, so memory tracks open lots, not lifetime trades.</p>
+<spec-slo id="SLO-lotset" target="NFR-003" signal="saturation" objective="open lots &le; open buys; 0 lots when flat" window="28d" budgeting="occurrences">
+  open-lot count as a fraction of open (unrelieved) buys per position, sampled at peak (open lots ÷ open buys)
+</spec-slo>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="003-position-engine">Net quantity and position-level VWAP basis — this slice keeps lot-level detail, not the aggregate.</li>
+    <li defer-to="004-portfolio-weights">Market-value weighting of holdings — unrelated to lot relief.</li>
+    <li defer-to="TBD-wash-sale">Wash-sale disallowance and the resulting basis/holding-period adjustments — a jurisdiction-specific overlay.</li>
+    <li defer-to="TBD-hifo-specific-lot">Additional relief policies (HIFO, specific-lot, average-cost) beyond FIFO/LIFO.</li>
+    <li defer-to="TBD-corporate-actions-basis">Basis adjustments from splits, spin-offs, and return-of-capital.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>The slice owns the lot book and the audit records; it folds the umbrella's <code>TradeEvent</code>s and <code>PriceTick</code>s.</p>
+<dl>
+  <dt><code>Lot</code></dt><dd><code>{ account, instrument, openSeq, acquiredTs, qtyOpen, basisPerUnit, side (long|short) }</code>, held acquisition-ordered.</dd>
+  <dt><code>RealizedGainRecord</code></dt><dd><code>{ relievedLotSeq, sellSeq, policy (FIFO|LIFO), qty, proceeds, relievedBasis, realizedGain, holdingPeriod }</code> — immutable.</dd>
+</dl>
+<spec-note>
+<p>Invariant: at any sequence, the sum of open-lot quantities equals the position engine's net long quantity for that
+instrument (and symmetrically for shorts). The two slices decompose the same truth differently; they must agree in
+aggregate.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+    <p>Buy 100 @ 10 then 100 @ 12 and sell 150: under FIFO realized gain relieves the first lot fully and 50 of the second
+    (basis 100·10 + 50·12), leaving a 50-share open lot @ 12; under LIFO it relieves the second fully and 50 of the first.
+    And for a non-monotonic book — buy 100 @ 10, 100 @ 14, 100 @ 12, sell 150 — <strong>HIFO</strong> relieves the two
+    costliest lots first: 100 @ 14 fully and 50 @ 12 (relieved basis 100·14 + 50·12 = 2000), leaving 50 @ 12 and 100 @ 10 open
+    and realizing the smallest gain of the three policies. Each is computed to the cent and matches a full replay.</p>
+  </spec-requirement>
+
+<spec-requirement id="SC-002" priority="should">
+<p>Each relief emits an audit record whose fields sum, across all reliefs, to the cumulative realized gain, and whose recorded
+policy matches the account's elected method at relief time.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>Relief policy is elected before the sell and does not change retroactively; a policy change applies only to future
+reliefs.</p>
+</spec-assumption>
+<spec-assumption>
+<p>Wash-sale and corporate-action adjustments are out of scope here, so basis and holding period derive purely from the trade
+events as recorded.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the FIFO/LIFO relief semantics, partial-lot split, per-account policy election fixed at relief time, and
+the immutable audit record were all settled in the interview; further policies (HIFO, specific-lot) are deferred, not open.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-21">21 Jul 2026</time><span>Initial draft. Child of 001-portfolio-analytics: acquisition-ordered lots (FR-001), FIFO/LIFO relief with partial-lot split and realized gain (FR-002), per-account policy fixed at relief time and recorded (FR-003), realized/unrealized reconciliation (FR-004), immutable audit records (FR-005). Envelope: relief latency (NFR-001), P&amp;L reconcile-to-replay (NFR-002), bounded open-lot set (NFR-003). Wash sales and HIFO/specific-lot deferred.</span></li>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Applied <a href="./changes/archive/2026-07-22-hifo-relief/proposal.html">2026-07-22-hifo-relief</a>: Applied 2026-07-22-hifo-relief: added HIFO (highest-basis-first) relief policy alongside FIFO/LIFO — FR-002/FR-003 extended, SC-001 gains a distinguishing three-lot example; HIFO promoted from TBD-hifo-specific-lot..</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  005-tax-lots · FIFO/LIFO tax lot tracking · authored 21 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

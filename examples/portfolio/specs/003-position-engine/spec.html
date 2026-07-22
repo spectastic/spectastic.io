@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Real-time position engine · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 003-position-engine</p>
+  <h1>Real-time position engine</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Net position and cost basis per instrument, folded incrementally from the ledger and revalued on every price tick — and always equal to a full replay.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>003-position-engine</span>
+    <b>Parent</b>      <span><spec-parent specid="001-portfolio-analytics"><a href="../001-portfolio-analytics/spec.html">001-portfolio-analytics</a></spec-parent></span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Two fills in an instrument produce the correct signed net quantity and VWAP cost basis; a price tick updates its mark-to-market value.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="8" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>The position engine folds the <a href="../002-trade-ledger/spec.html">ledger</a> into live per-instrument state:
+    a signed <strong>net quantity</strong>, a <strong>volume-weighted average cost basis</strong> of the open exposure, and a
+    <strong>mark-to-market value</strong> revalued on each price tick. Every update is incremental and O(1) per event, yet the
+    result must equal a from-zero replay. It handles the awkward cases that break naive averaging — a position crossing
+    through zero, and corrections arriving as compensating events — without special-case mutation.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends on the umbrella model and the ledger (002) as its input stream. Weights and tax lots consume it, not the reverse.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (correct signed net, VWAP basis, MTM), not a named data structure or accumulation order.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — the desk's live "what do I hold, at what basis, worth what" view.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>An incremental fold with a known revaluation step; the sign-flip and correction cases are enumerable.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One fold, five functional requirements; realized-gain and weighting are deferred to siblings.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Net qty, basis, and MTM all reconcile to replay; latency is directly measurable.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>Position is the most-read number on the desk and the input to almost everything else — weights, exposure, and (with lot
+detail) realized gain. Recomputing it from the whole ledger on every fill is impossible at HFT rates, so it must be an
+incremental fold; but an incrementally-maintained average cost basis is exactly where subtle drift creeps in, especially
+when a position flips from long to short. This slice keeps the fold correct and fast.</p>
+<p>It owns net quantity, cost basis, and mark-to-market revaluation. Turning positions into portfolio weights is
+<a href="../004-portfolio-weights/spec.html">004</a>; splitting basis into tax lots and realizing gain is
+<a href="../005-tax-lots/spec.html">005</a>.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Net quantity and basis from fills <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>desk engineer</strong>, I want each fill to update the instrument's signed net quantity and average cost
+basis incrementally, so my position is live without a batch recompute.</p>
+<p><em>Acceptance:</em> after any sequence of buys and sells, net quantity equals the signed sum of fills and the basis
+equals the VWAP of the currently-open exposure; both match a full replay.</p>
+
+<h3 id="US2">US2 · Mark-to-market on a tick <spec-pill>P2</spec-pill></h3>
+<p>As a <strong>risk viewer</strong>, I want a price tick to revalue held instruments, so mark-to-market value and unrealized
+P&amp;L are current.</p>
+<p><em>Acceptance:</em> a tick for a held instrument updates its MTM value and unrealized P&amp;L in O(1); a tick for an
+un-held instrument is a no-op.</p>
+
+<h3 id="US3">US3 · Consistent cross-instrument snapshot <spec-pill>P3</spec-pill></h3>
+<p>As a <strong>weights consumer (004)</strong>, I want all positions as of a single ledger sequence, so I never read a torn
+mix of pre- and post-event state.</p>
+<p><em>Acceptance:</em> a snapshot at sequence <code>N</code> reflects every instrument's state at exactly <code>N</code> — no
+instrument ahead of or behind another.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Position crosses zero.</strong> A sell that flips long to short resets the cost basis to the crossing fill's price for the residual — the old long basis does not bleed into the new short.</li>
+  <li><strong>Flat position.</strong> A fully-closed instrument holds a net quantity of zero and carries no basis; it must not accumulate floating-point residue over millions of round-trips.</li>
+  <li><strong>Correction.</strong> A compensating event folds like any fill; there is no separate mutate-in-place path.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>The engine <spec-rule>MUST</spec-rule> maintain a signed <strong>net quantity</strong> per <code>(account, instrument)</code>,
+updated incrementally per fill, equal to the signed sum of fills folded from the ledger.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>The engine <spec-rule>MUST</spec-rule> maintain an <strong>average cost basis</strong> (VWAP of open exposure) per position,
+updated incrementally, and <spec-rule>MUST</spec-rule> reset basis to the crossing fill when a position changes sign.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="must">
+<p>On each <code>PriceTick</code> the engine <spec-rule>MUST</spec-rule> revalue held instruments — <strong>mark-to-market
+value</strong> and <strong>unrealized P&amp;L</strong> — in O(1) per held instrument, without touching quantity.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="must">
+<p>The engine <spec-rule>MUST</spec-rule> expose a <strong>consistent snapshot</strong> of all positions at a given ledger
+sequence, with no torn reads across instruments.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-005" priority="should">
+<p>Corrections <spec-rule level="should">SHOULD</spec-rule> be handled by folding compensating events, with no
+special-case mutation path distinct from a normal fill.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="must">
+<p>Per-trade position update <spec-rule>MUST</spec-rule> meet <a href="#SLO-update">SLO-update</a>, staying within the
+umbrella's tick-to-analytic envelope.</p>
+<spec-slo id="SLO-update" target="NFR-001" signal="latency" objective="p99 &lt; 25 &micro;s" window="28d" budgeting="occurrences">
+  in-process wall-clock to fold one fill into net quantity and basis (good ÷ valid fills)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-002" priority="must">
+<p>Per-tick mark-to-market revaluation <spec-rule>MUST</spec-rule> meet <a href="#SLO-revalue">SLO-revalue</a>.</p>
+<spec-slo id="SLO-revalue" target="NFR-002" signal="latency" objective="p99 &lt; 15 &micro;s" window="28d" budgeting="occurrences">
+  in-process wall-clock to revalue one held instrument on a price tick (good ÷ valid ticks)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-003" priority="must">
+<p>Net quantity and cost basis <spec-rule>MUST</spec-rule> reconcile to a full replay per
+<a href="#SLO-position-reconcile">SLO-position-reconcile</a>.</p>
+<spec-slo id="SLO-position-reconcile" target="NFR-003" signal="errors" objective="99.999% of daily reconciliations bit-match replay" window="28d" budgeting="occurrences">
+  daily incremental-vs-replay position reconciliations matching to the cent (matching ÷ total)
+</spec-slo>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="004-portfolio-weights">Turning position market values into portfolio weights and concentration — the weights slice consumes positions.</li>
+    <li defer-to="005-tax-lots">Splitting the aggregate basis into individual tax lots and realizing gain on sells under FIFO/LIFO.</li>
+    <li defer-to="TBD-corporate-actions">Splits, dividends, and symbol changes that adjust quantity or basis outside a trade — a later slice.</li>
+    <li defer-to="TBD-fx-translation">Translating non-base-currency positions into a common reporting currency.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>The engine's own state is a single row per open position; everything else it reads from the ledger.</p>
+<dl>
+  <dt><code>Position</code></dt><dd><code>{ account, instrument, netQty (signed), basis (VWAP of open exposure), mtmValue, unrealizedPnl, asOfSeq }</code>.</dd>
+  <dt>Revaluation input</dt><dd>The umbrella's <code>PriceTick</code>; drives <code>mtmValue</code> and <code>unrealizedPnl</code> only, never <code>netQty</code>.</dd>
+</dl>
+<spec-note>
+<p>Invariant: aggregate cost basis here is the position-level VWAP. The <em>lot-level</em> basis needed for realized-gain
+relief is a different decomposition and belongs to <a href="../005-tax-lots/spec.html">005</a> — the two must agree in
+aggregate but are maintained separately.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+<p>For any generated fill-and-tick stream, the engine's net quantity, VWAP basis, and mark-to-market value match a from-zero
+replay to the cent, including across at least one sign-flip and one correction.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="should">
+<p>A price tick revalues a held instrument and is a verified no-op for an un-held instrument, both within
+<a href="#SLO-revalue">SLO-revalue</a>.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>The ledger (002) delivers fills in gap-free sequence order; the engine relies on that ordering rather than re-sorting.</p>
+</spec-assumption>
+<spec-assumption>
+<p>Instrument reference data (multiplier, currency) is stable within a session; corporate actions are deferred.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the sign-flip basis-reset rule and the read-consistency (snapshot-at-sequence) contract were settled in
+the interview; lot-level decomposition is explicitly out of scope, not open.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-21">21 Jul 2026</time><span>Initial draft. Child of 001-portfolio-analytics: incremental net quantity (FR-001), VWAP cost basis with sign-flip reset (FR-002), per-tick mark-to-market (FR-003), consistent cross-instrument snapshot (FR-004), correction-as-fold (FR-005). Envelope: update latency (NFR-001), revalue latency (NFR-002), reconcile-to-replay (NFR-003).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  003-position-engine · Real-time position engine · authored 21 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

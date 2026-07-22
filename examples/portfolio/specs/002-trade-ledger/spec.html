@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Append-only trade ledger · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 002-trade-ledger</p>
+  <h1>Append-only trade ledger</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    The single source of truth: an immutable, gap-free log of every trade, unlimited in history, fast to append and complete to replay.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>002-trade-ledger</span>
+    <b>Parent</b>      <span><spec-parent specid="001-portfolio-analytics"><a href="../001-portfolio-analytics/spec.html">001-portfolio-analytics</a></spec-parent></span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Append a trade, get a monotonic sequence number back; replay the log and get the exact same events in order.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="9" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>The ledger is the foundation the whole platform folds over (<a href="../001-portfolio-analytics/spec.html">001</a>).
+    It appends immutable <code>TradeEvent</code>s under a monotonic, gap-free sequence, never mutating or deleting history —
+    corrections are compensating events. History is <strong>unlimited</strong>: no retention cap, cold events tiered to
+    secondary storage while replay stays complete. It offers full and ranged replay, and periodic fold snapshots so
+    consumers bound cold-start. The hot path is a single-writer append measured in microseconds; durability, gap-freedom,
+    and bounded hot memory are the reliability envelope.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends only on the umbrella's <code>TradeEvent</code> model. Knows nothing about positions, weights, or lots.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (immutable, gap-free, unlimited, replayable, snapshottable), not a named storage engine or log library.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — a durable, replayable source of truth every analytic can trust.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Append + sequence + replay + snapshot are well-understood log primitives; the perf targets are measurable up front.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One entity, one writer, five functional requirements; tiering-engine choice is deferred.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Gap-freedom, replay equality, and append latency are all mechanically checkable.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>Per the umbrella, every analytic is a deterministic fold over one ledger. That makes the ledger's guarantees the
+platform's guarantees: if the log can lose an event, reorder one, or let a stale read tear across a snapshot boundary,
+every downstream number inherits the flaw. HFT ingest rates and unlimited retention put those guarantees under pressure
+that a naive append-to-a-list would not survive.</p>
+<p>This slice owns the log and nothing else: sequencing, replay, snapshotting, unlimited retention with cold-tiering, and
+idempotent append. The math that reads the log lives in the sibling slices.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Append and sequence <spec-pill>P1</spec-pill></h3>
+<p>As an <strong>order-management producer</strong>, I want each accepted fill appended and stamped with the next sequence
+number, so downstream folds have a total order to replay.</p>
+<p><em>Acceptance:</em> appending N events yields sequence numbers <code>1..N</code> with no gaps and no reordering; a prior
+event is never mutated or removed.</p>
+
+<h3 id="US2">US2 · Complete replay under unlimited history <spec-pill>P2</spec-pill></h3>
+<p>As an <strong>analytic bootstrapping from zero</strong>, I want to replay the entire ledger — including events long since
+tiered to cold storage — in append order, so a from-zero fold is always possible.</p>
+<p><em>Acceptance:</em> a full replay returns every event ever appended, in sequence order, whether hot or cold-tiered; a
+ranged replay <code>[a, b]</code> returns exactly that window.</p>
+
+<h3 id="US3">US3 · Snapshot to bound cold-start <spec-pill>P3</spec-pill></h3>
+<p>As an <strong>operator</strong>, I want to checkpoint a fold and restore from it, so restart time does not grow with
+lifetime trade count.</p>
+<p><em>Acceptance:</em> restoring from a snapshot at sequence <code>N</code> then replaying <code>N+1..</code> equals a full
+replay from zero.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Duplicate delivery.</strong> An at-least-once producer re-sends an event with the same client key; the ledger appends it once (FR-005), not twice.</li>
+  <li><strong>Cold read during hot append.</strong> A replay reaching into tiered storage must not block or tear against concurrent appends to the hot tail.</li>
+  <li><strong>Crash between append and ack.</strong> An event acknowledged as durable is never lost; an un-acked append may be absent, but never leaves a sequence gap.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>The ledger <spec-rule>MUST</spec-rule> be <strong>append-only and immutable</strong>: each <code>TradeEvent</code> receives
+the next value of a monotonic, gap-free sequence, and a persisted event <spec-rule>MUST NOT</spec-rule> be mutated or
+deleted. A correction <spec-rule>MUST</spec-rule> be expressed as a new compensating event.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>History <spec-rule>MUST</spec-rule> be <strong>unlimited</strong>: the ledger <spec-rule>MUST NOT</spec-rule> impose a
+fixed retention cap. Cold events <spec-rule>MAY</spec-rule> be tiered to secondary storage, but replay
+<spec-rule>MUST</spec-rule> remain complete across hot and cold tiers.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="must">
+<p>The ledger <spec-rule>MUST</spec-rule> support <strong>deterministic replay</strong> — full and ranged
+<code>[seqA, seqB]</code> — returning events in append (sequence) order.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="must">
+<p>The ledger <spec-rule>MUST</spec-rule> support <strong>fold snapshots and restore</strong> at a sequence number, such that
+restore-then-replay equals full replay from zero (the umbrella's FR-003, realized here).</p>
+</spec-requirement>
+
+<spec-requirement id="FR-005" priority="should">
+<p>Append <spec-rule level="should">SHOULD</spec-rule> be <strong>idempotent</strong> by an optional client event key, so an
+at-least-once producer that re-delivers does not double-book.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="must">
+<p>Single-writer append on the hot path <spec-rule>MUST</spec-rule> meet <a href="#SLO-append">SLO-append</a>.</p>
+<spec-slo id="SLO-append" target="NFR-001" signal="latency" objective="p99 &lt; 5 &micro;s" window="28d" budgeting="occurrences">
+  in-process wall-clock to assign a sequence and append to the hot tail, pre-durability-ack (good ÷ valid appends)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-002" priority="must">
+<p>Sustained ingest throughput <spec-rule>MUST</spec-rule> meet <a href="#SLO-ingest">SLO-ingest</a> so the ledger keeps up
+with a full HFT fill stream.</p>
+<spec-slo id="SLO-ingest" target="NFR-002" signal="traffic" objective="&ge; 1,000,000 appends/s sustained" window="28d" budgeting="occurrences">
+  sustained single-writer append rate as a fraction of the 1e6/s floor (achieved ÷ floor), sampled per minute
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-003" priority="must">
+<p>Durability and integrity <spec-rule>MUST</spec-rule> meet <a href="#SLO-integrity">SLO-integrity</a>: no acknowledged
+event is lost and no sequence gap is introduced.</p>
+<spec-slo id="SLO-integrity" target="NFR-003" signal="errors" objective="0 loss-or-gap events" window="28d" budgeting="occurrences">
+  count of acknowledged-append losses or detected sequence gaps (defects ÷ 28d window; target zero)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-004" priority="must">
+<p>Under unlimited history, hot-tier memory <spec-rule>MUST</spec-rule> stay bounded per
+<a href="#SLO-hotset">SLO-hotset</a>, independent of lifetime trade count.</p>
+<spec-slo id="SLO-hotset" target="NFR-004" signal="saturation" objective="hot-tier bytes &lt; 2 GB at 1e9 lifetime trades" window="28d" budgeting="occurrences">
+  resident hot-tier bytes as a fraction of the 2 GB ceiling, sampled at peak (hot bytes ÷ ceiling)
+</spec-slo>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="003-position-engine">Deriving net position or cost basis from the log — the ledger stores events, it does not fold them.</li>
+    <li defer-to="005-tax-lots">Lot construction and FIFO/LIFO relief over the event stream.</li>
+    <li defer-to="TBD-storage-engine">The concrete durable-storage and cold-tiering engine (mmap segment files, an embedded LSM, or a log service) — an implementation choice for the plan.</li>
+    <li defer-to="TBD-cross-region-replication">Geo-replication and multi-writer sequencing — a later reliability slice; this spec assumes a single writer.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>The ledger persists the umbrella's <code>TradeEvent</code> and adds only the machinery to sequence, tier, and checkpoint it.</p>
+<dl>
+  <dt><code>TradeEvent</code></dt><dd>As defined by 001; persisted verbatim, immutable, under an assigned <code>seq</code>.</dd>
+  <dt><code>Snapshot</code></dt><dd><code>{ seq, foldId, opaqueState }</code> — a checkpoint of one analytic's fold at a sequence, restorable to a state bit-identical to replaying <code>[0, seq]</code>.</dd>
+  <dt>Tier boundary</dt><dd>The hot-tail / cold-store split. Transparent to replay: a ranged replay spanning the boundary returns a single ordered stream.</dd>
+</dl>
+<spec-note>
+<p>Invariant: sequence numbers are dense and monotonic. A gap is not an anomaly to log; it is a correctness fault under
+NFR-003.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+<p>Appending <code>N</code> events then replaying returns exactly those <code>N</code> events, in order, with sequence
+<code>1..N</code> and no gaps — including after some events have been cold-tiered.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="must">
+<p>Restoring a fold from a snapshot at sequence <code>N</code> and replaying <code>N+1..M</code> yields state
+bit-identical to a full replay of <code>[0, M]</code>.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>A single logical writer owns the append path; multi-writer sequencing is deferred to <code>TBD-cross-region-replication</code>.</p>
+</spec-assumption>
+<spec-assumption>
+<p>Secondary (cold) storage is durable and available; the ledger owns tiering policy, not the storage medium's own durability.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the append-only, unlimited-retention, snapshot-and-replay contract is fixed here; the concrete storage
+engine is explicitly deferred to the plan (<code>TBD-storage-engine</code>) rather than left open.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-21">21 Jul 2026</time><span>Initial draft. Child of 001-portfolio-analytics: the append-only, immutable, gap-free ledger (FR-001) with unlimited history and cold-tiering (FR-002), deterministic full/ranged replay (FR-003), fold snapshot/restore (FR-004), and idempotent append (FR-005). Reliability envelope: append latency (NFR-001), ingest throughput (NFR-002), durability/gap-freedom (NFR-003), bounded hot memory (NFR-004).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  002-trade-ledger · Append-only trade ledger · authored 21 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

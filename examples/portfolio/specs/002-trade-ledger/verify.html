@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Append-only trade ledger · Verify</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Verify · 002-trade-ledger</p>
+  <h1>Append-only trade ledger</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How to run, demo, and verify this feature — aggregated from the spec and tasks, with a Run/Demo block grounded in the run that actually happened.
+  </p>
+
+  <spec-meta>
+    <b>Generated from</b> <span><a href="./spec.html">spec.html</a> · <a href="./tasks.html">tasks.html</a></span>
+    <b>Derived status</b> <span>accepted <small>(from spec.html — this view carries no status of its own)</small></span>
+    <b>Read time</b>      <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-note>
+    <p>A <strong>derived view</strong> — regenerate with <code>spectastic verify 002-trade-ledger</code>; do not hand-edit. The trace links are aggregated from the bundle; only the Run/Demo block is authored, from the real run.</p>
+  </spec-note>
+</header>
+
+
+<section id="run">
+<h2>1 · Run / Demo</h2>
+<spec-runblock>
+  <spec-run></spec-run>
+  <spec-toggle>none — the ledger is always-on infrastructure; the REST surface above it ships dark</spec-toggle>
+  <spec-tests cites="T-100 T-200 T-300">export JAVA_HOME="$(asdf where java temurin-21.0.9+10.0.LTS)" &amp;&amp; mvn test -Dtest=LedgerTest,ReconcileToReplayTest</spec-tests>
+  <spec-demo cites="SC-001 SC-002">Append N events; <code>LedgerTest</code> shows sequence 1..N with no gaps and idempotent re-delivery by client key; <code>ReconcileToReplayTest</code> shows a snapshot at N plus a tail replay equals a full from-zero replay.</spec-demo>
+</spec-runblock>
+</section>
+
+
+<section id="trace">
+<h2>2 · Verification trace</h2>
+<p>Every success criterion, traced to its acceptance scenario and the test task that closes it. (The snapshot/restore test T-200 runs in the same suite — see the Run block — but is tied to the reliability NFRs, not an SC.)</p>
+<table>
+  <thead><tr><th>Success criterion</th><th>Acceptance</th><th>Proof (tests)</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./spec.html#SC-001">SC-001</a></td><td><a href="./spec.html#US1">US1</a></td><td><a href="./tasks.html#T-100">T-100</a></td></tr>
+    <tr><td><a href="./spec.html#SC-002">SC-002</a></td><td><a href="./spec.html#US3">US3</a></td><td><a href="./tasks.html#T-300">T-300</a></td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="observables">
+<h2>3 · Observables trace</h2>
+<p>Every reliability NFR, traced to its SLO — objective, SLI, and golden signal.</p>
+<table>
+  <thead><tr><th>NFR</th><th>Objective</th><th>SLI</th><th>Signal</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./spec.html#NFR-001">NFR-001</a></td><td>p99 &lt; 5 &micro;s</td><td>assign a sequence and append to the hot tail, pre-durability-ack</td><td>latency</td></tr>
+    <tr><td><a href="./spec.html#NFR-002">NFR-002</a></td><td>&ge; 1,000,000 appends/s sustained</td><td>sustained single-writer append rate ÷ the 1e6/s floor</td><td>traffic</td></tr>
+    <tr><td><a href="./spec.html#NFR-003">NFR-003</a></td><td>0 loss-or-gap events</td><td>acknowledged-append losses or detected sequence gaps</td><td>errors</td></tr>
+    <tr><td><a href="./spec.html#NFR-004">NFR-004</a></td><td>hot-tier bytes &lt; 2 GB at 1e9 lifetime trades</td><td>resident hot-tier bytes ÷ the 2 GB ceiling, at peak</td><td>saturation</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Verify · 002-trade-ledger · derived view ·
+  <button data-theme-toggle style="background:none;border:none;color:var(--c-link);cursor:pointer;font:inherit;padding:0;border-bottom:1px solid currentColor;">light/dark</button>
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

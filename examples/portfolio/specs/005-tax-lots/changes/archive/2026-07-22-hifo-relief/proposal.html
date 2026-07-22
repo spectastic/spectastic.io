@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Add HIFO relief policy · Change proposal</title>
+<link rel="stylesheet" href="../../../../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../../../../assets/favicon.svg">
+<script src="../../../../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Change proposal · 005-tax-lots</p>
+  <h1>Add HIFO relief policy</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    A third lot-relief policy — Highest In, First Out — for tax-loss harvesting, promoted from deferred scope.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="applied">Applied</spec-status></span>
+    <b>Change ID</b>  <span>2026-07-22-hifo-relief</span>
+    <b>Spec</b>       <span><a href="../../../spec.html">005-tax-lots</a></span>
+    <b>Author</b>     <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>    <span><time datetime="2026-07-22">22 Jul 2026</time></span>
+    <b>Targets</b>    <span>3 requirements</span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Add <strong>HIFO</strong> (Highest In, First Out) as a third relief policy alongside FIFO and LIFO — it relieves the
+    highest-cost-basis lot first, minimising realised gain for tax-loss harvesting. HIFO was parked at
+    <code>TBD-hifo-specific-lot</code>; this change promotes it in and narrows the deferral to specific-lot and
+    average-cost. It touches FR-002 and FR-003 (the policy set) and SC-001 (the worked example), and it carries one real
+    design consequence: HIFO is not a deque-end pop like FIFO/LIFO, so lot selection generalises.</p>
+  </spec-tldr>
+</header>
+
+
+<spec-change id="2026-07-22-hifo-relief" status="applied">
+
+<header>
+  <h3>Add HIFO relief policy</h3>
+  <span class="meta"><spec-status value="applied">Applied</spec-status></span>
+</header>
+
+
+<section id="intent">
+<h2>1 · Intent</h2>
+<p>FIFO and LIFO answer "which shares did I sell" by acquisition order; <strong>HIFO answers it by cost</strong> — relieve
+the most expensive lots first, so a sale realises the smallest gain (or the largest loss). It is the standard tax-loss-harvesting
+policy, and desks expect it next to FIFO/LIFO. The spec already anticipated it: it sits in the out-of-scope register as
+<code>TBD-hifo-specific-lot</code>. This change pulls HIFO in now while leaving specific-lot and average-cost deferred.</p>
+</section>
+
+
+<section id="scope">
+<h2>2 · Scope</h2>
+
+<spec-goals>
+  <h3>In scope</h3>
+  <ul>
+    <li>HIFO as a selectable relief policy (per account), fixed at relief time and recorded on each realised-gain record.</li>
+    <li>Generalising lot selection so relief picks the policy-preferred lot — oldest (FIFO), newest (LIFO), or highest-basis (HIFO).</li>
+    <li>A distinguishing worked example in SC-001 where HIFO differs from both FIFO and LIFO.</li>
+  </ul>
+</spec-goals>
+
+<spec-non-goals>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Specific-lot and average-cost relief — they stay deferred under <code>TBD-hifo-specific-lot</code>.</li>
+    <li>Any change to the latency, reconciliation, or bounded-lot SLOs (NFR-001…003) — HIFO reuses the same envelope.</li>
+  </ul>
+</spec-non-goals>
+</section>
+
+
+<section id="approach">
+<h2>3 · Approach</h2>
+<p>FIFO and LIFO are pop-from-an-end operations on the acquisition-ordered <code>ArrayDeque</code> (plan D-001). HIFO is not:
+it must find the lot with the greatest <code>basisPerUnit</code>, which can sit anywhere in the deque. So relief generalises
+from "peek/poll the head or tail" to "<strong>select the policy-preferred lot</strong>, then relieve and possibly split it".
+FIFO/LIFO stay O(1) end operations; HIFO becomes an O(open-lots) scan — bounded by the same ≤&nbsp;1000-open-lots envelope
+NFR-001 already assumes, so the relief-latency SLO is unaffected. The deque still holds lots in acquisition order (the
+audit record's holding period depends on it); HIFO simply removes an interior element. The plan gains a decision (D-004)
+recording this generalisation.</p>
+<spec-note>
+<p>Everything downstream is unchanged: partial-lot split, exact integer realised gain (<code>qty·(sellPrice − basis)</code>),
+the immutable audit record, and reconcile-to-replay all apply to HIFO verbatim — only the <em>selection</em> of which lot to
+relieve is new.</p>
+</spec-note>
+</section>
+
+
+<section id="deltas">
+<h2>4 · Deltas</h2>
+<p>Three requirements touched — the policy set (FR-002, FR-003) and the worked example (SC-001). Each
+<code>&lt;spec-delta&gt;</code> embeds its full post-state.</p>
+
+<spec-delta op="modified" target="FR-002">
+  <p><strong>What changes:</strong> HIFO joins FIFO and LIFO in the relief-policy set, selected by highest cost basis.</p>
+  <spec-requirement id="FR-002" priority="must">
+    <p>On a sell the slice <spec-rule>MUST</spec-rule> relieve open lots by the configured policy — <strong>FIFO</strong> (oldest
+    acquired first), <strong>LIFO</strong> (newest first), or <strong>HIFO</strong> (highest cost basis first) — <spec-rule>MUST</spec-rule>
+    split the boundary lot on partial consumption, and <spec-rule>MUST</spec-rule> compute <strong>realized gain</strong> as
+    proceeds minus relieved basis.</p>
+  </spec-requirement>
+</spec-delta>
+
+<spec-delta op="modified" target="FR-003">
+  <p><strong>What changes:</strong> policy selection extends to three values.</p>
+  <spec-requirement id="FR-003" priority="must">
+    <p>Relief <strong>policy</strong> (FIFO, LIFO, or HIFO) <spec-rule>MUST</spec-rule> be selectable per account (or per
+    instrument), <spec-rule>MUST</spec-rule> be fixed at relief time, and <spec-rule>MUST</spec-rule> be recorded on the
+    realized-gain record for auditability.</p>
+  </spec-requirement>
+</spec-delta>
+
+<spec-delta op="modified" target="SC-001">
+  <p><strong>What changes:</strong> the worked example gains a three-lot case that distinguishes HIFO from FIFO and LIFO.</p>
+  <spec-requirement id="SC-001" priority="must">
+    <p>Buy 100 @ 10 then 100 @ 12 and sell 150: under FIFO realized gain relieves the first lot fully and 50 of the second
+    (basis 100·10 + 50·12), leaving a 50-share open lot @ 12; under LIFO it relieves the second fully and 50 of the first.
+    And for a non-monotonic book — buy 100 @ 10, 100 @ 14, 100 @ 12, sell 150 — <strong>HIFO</strong> relieves the two
+    costliest lots first: 100 @ 14 fully and 50 @ 12 (relieved basis 100·14 + 50·12 = 2000), leaving 50 @ 12 and 100 @ 10 open
+    and realizing the smallest gain of the three policies. Each is computed to the cent and matches a full replay.</p>
+  </spec-requirement>
+</spec-delta>
+</section>
+
+
+<section id="risks">
+<h2>5 · Risk register</h2>
+<p>The change touches a <code>must</code>-tier requirement, so an adversarial risk pass ran. Each finding is dispositioned.</p>
+
+<spec-risk-log>
+<spec-risk target="FR-002" status="mitigated" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">HIFO's highest-basis lookup is an O(open-lots) scan, unlike FIFO/LIFO's O(1) deque-end pop — it could threaten the relief-latency SLO (NFR-001, p99 &lt; 40&nbsp;µs at ≤ 1000 open lots).</p>
+  <p class="citation">"or HIFO (highest cost basis first)"</p>
+  <div class="response">Mitigated: the scan is bounded by the same ≤ 1000-open-lots envelope NFR-001 already assumes; ~1000 integer comparisons sit well inside the 40&nbsp;µs budget. No SLO change; the reconcile and latency tests cover HIFO on the same envelope.</div>
+</spec-risk>
+<spec-risk target="FR-002" status="mitigated" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">The live spec's out-of-scope register defers HIFO (<code>TBD-hifo-specific-lot</code>); adding it here contradicts that deferral.</p>
+  <p class="citation">out-of-scope: "Additional relief policies (HIFO, specific-lot, average-cost) beyond FIFO/LIFO."</p>
+  <div class="response">Mitigated: the deferral is deliberately narrowed, not violated — HIFO is promoted in; specific-lot and average-cost remain deferred under the same marker (see §2 non-goals).</div>
+</spec-risk>
+<spec-risk target="§2" status="mitigated" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">Scope risk: pulling in HIFO could drag along the rest of the deferred policy family (specific-lot, average-cost).</p>
+  <p class="citation">§2 In scope — "HIFO as a selectable relief policy"</p>
+  <div class="response">Mitigated: scope is held to HIFO only. The other two policies stay explicitly out of scope; HIFO is the one desks ask for by name.</div>
+</spec-risk>
+</spec-risk-log>
+</section>
+
+
+<section id="tasks">
+<h2>6 · Tasks</h2>
+<p>Scoped to this change. On apply these fold into <code>tasks.html</code> as a new provenance-linked phase that
+<code>/spectastic.implement</code> drains.</p>
+
+<ul style="list-style:none;padding-left:0;">
+  <li><input type="checkbox"> <strong>Add a HIFO worked-example test</strong> — buy 100@10, 100@14, 100@12; sell 150 → relieved basis 2000, leaving 50@12 and 100@10; assert HIFO differs from FIFO and LIFO, to the cent <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></li>
+  <li><input type="checkbox"> <strong>Add HIFO to the policy enum</strong> <span class="path">src/main/java/io/spectastic/portfolio/tax/ReliefPolicy.java</span></li>
+  <li><input type="checkbox"> <strong>Generalise lot selection</strong> — relief picks the policy-preferred lot (FIFO first, LIFO last, HIFO highest basis) and relieves/splits it in place <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></li>
+</ul>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the policy semantics (highest basis first), the per-account selection reusing the existing mechanism,
+and the scan-based selection bounded by the current lot envelope were all settled; specific-lot and average-cost are
+explicitly deferred, not open.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>8 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Proposal authored — HIFO relief policy, promoted from <code>TBD-hifo-specific-lot</code>; three modified requirements (FR-002, FR-003, SC-001); adversarial risk pass dispositioned.</span></li>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Applied on 22 Jul 2026 — Applied 2026-07-22-hifo-relief: added HIFO (highest-basis-first) relief policy alongside FIFO/LIFO — FR-002/FR-003 extended, SC-001 gains a distinguishing three-lot example; HIFO promoted from TBD-hifo-specific-lot..</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+</spec-change>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  2026-07-22-hifo-relief · Add HIFO relief policy · authored 22 Jul 2026
+</footer>
+
+</main>
+<script src="../../../../../assets/spec.js"></script>
+</body>
+</html>

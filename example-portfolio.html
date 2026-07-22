@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A portfolio engine in Java — a multi-spec worked example with spectastic</title>
+<meta name="description" content="A build-along worked example: a real-time position, portfolio-weight, and FIFO/LIFO tax-lot engine in Java + Quarkus, decomposed into five specs and driven through the full spectastic lifecycle to a verified, terminal state.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --green:#3f6a37;--deny:#c0432f;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --green:#8fb56a;--deny:#f08a79;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.lnk-tinted{color:var(--ink-soft);text-decoration:none;padding:5px 0;display:block;transition:color .2s}
+.lnk-tinted:hover{color:var(--crimson)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--bg);background:var(--ink);padding:12px 22px;border-radius:999px;text-decoration:none;border:none;cursor:pointer;transition:transform .2s}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--ink);border:1px solid var(--rule-strong);padding:12px 22px;border-radius:999px;text-decoration:none;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--ink-soft)}
+.step{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
+.step-num{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--bg);background:var(--crimson);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.artifact-link{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--sea) 40%,transparent);transition:border-color .2s}
+.artifact-link:hover{border-color:var(--sea)}
+.term{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:.79rem;color:var(--ink-soft);line-height:1.75;overflow-x:auto}
+.code{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:15px 18px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink);line-height:1.7;overflow-x:auto;white-space:pre;tab-size:2}
+.code .c{color:var(--ink-faint);font-style:italic}
+.code .k{color:var(--purple)}
+.code .s{color:var(--green)}
+.code .t{color:var(--sea)}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 38%,transparent);padding:2px 8px;border-radius:999px}
+.seg{font-family:'Lato',sans-serif;font-size:.8rem;font-weight:700;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink-soft);padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .18s}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--rule-strong);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--crimson);cursor:pointer;border:2px solid var(--bg-raised)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--crimson);cursor:pointer;border:2px solid var(--bg-raised)}
+@media (max-width: 820px){
+  .doc-layout{grid-template-columns:1fr !important}
+  .sidenav-wrap{position:static !important;display:none !important}
+  .card-grid{grid-template-columns:1fr !important}
+  .calc-grid{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="examples.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:18px">
+      <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
+      <a href="ex.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Extended</a>
+      <a href="#play" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">Try the calculator</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="doc-layout" style="max-width:1080px;margin:0 auto;padding:56px 32px 96px;display:grid;grid-template-columns:200px 1fr;gap:56px;align-items:start">
+
+  <nav class="sidenav-wrap" style="position:sticky;top:84px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">On this page</div>
+    <a href="#overview" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">What we built</a>
+    <a href="#decompose" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Five specs, one ledger</a>
+    <a href="#lifecycle" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The lifecycle, to verified</a>
+    <a href="#coach" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Understand it with the coach</a>
+    <a href="#play" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Play · read · trust</a>
+    <a href="#artifacts" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The artifacts</a>
+  </nav>
+
+  <main style="min-width:0">
+    <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · multi-spec · Java</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Five specs, one ledger, proven to the cent</h1>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">A real-time position, portfolio-weight, and FIFO/LIFO tax-lot engine — the kind of thing a trading desk runs — built in <strong style="color:var(--ink)">Java&nbsp;21 + Quarkus</strong>. It's too big for one spec, so spectastic <strong style="color:var(--ink)">decomposes it</strong>: an umbrella and four child slices, driven all the way from principles to a <em>verified</em> terminal state. The proof isn't a toy you poke — it's a passing test suite you can re-run.</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">
+      <span class="pill">Multi-spec</span>
+      <span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 38%,transparent)">Java + Quarkus</span>
+      <span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Enterprise</span>
+      <span class="pill" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent)">Verified</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
+      <a href="#play" class="btn-primary">▶ &nbsp;Try the calculator</a>
+      <a href="#lifecycle" class="btn-secondary">Read the build →</a>
+    </div>
+
+    <!-- overview -->
+    <div id="overview" style="scroll-margin-top:80px;margin-top:40px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:24px 26px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)">The product</div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">One <strong style="color:var(--ink)">append-only trade ledger</strong> is the single source of truth; every analytic — net position, portfolio weight, tax lots — is a <strong style="color:var(--ink)">deterministic pure fold</strong> over it, in <strong style="color:var(--ink)">exact integer money</strong>. That one architectural choice is why the live fast-path and a from-zero replay are the same function, and reconcile to the cent. Where the other examples run in your browser, this one is a real backend: the proof is <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">mvn&nbsp;verify</span> — <strong style="color:var(--green)">22 tests, green</strong>.</p>
+    </div>
+
+    <!-- decompose -->
+    <h2 id="decompose" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Five specs, one ledger</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The other examples are single specs. This one is the first that shows spectastic <em>slicing</em> a problem too big to hold in one artifact — an <strong style="color:var(--ink)">umbrella</strong> that owns the shared model and the reliability envelope, and four children that each own one hard thing. The links are reciprocal and validated: a child names its <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--sea)">&lt;spec-parent&gt;</span>, and the umbrella carves it out with a matching <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--sea)">defer-to</span> — or <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">validate</span> fails.</p>
+
+    <div style="margin-top:24px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:22px 20px 12px">
+      <svg viewBox="0 0 720 250" role="img" aria-label="An umbrella spec fanning into four child slices over a shared ledger" style="width:100%;height:auto;font-family:'Lato',sans-serif">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)"/></marker></defs>
+        <rect x="250" y="12" width="220" height="52" rx="8" fill="none" stroke="var(--crimson)" stroke-width="1.6"/>
+        <text x="360" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="var(--crimson)">001 · portfolio-analytics</text>
+        <text x="360" y="52" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">umbrella — shared model + reliability envelope</text>
+        <path d="M300 64 L120 120" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#ar)"/>
+        <path d="M340 64 L305 120" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#ar)"/>
+        <path d="M380 64 L470 120" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#ar)"/>
+        <path d="M420 64 L640 120" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#ar)"/>
+        <g font-size="11" font-weight="700">
+          <rect x="24" y="122" width="176" height="48" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
+          <text x="112" y="142" text-anchor="middle" fill="var(--ink)">002 · trade-ledger</text>
+          <text x="112" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">append-only · replay</text>
+          <rect x="216" y="122" width="176" height="48" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
+          <text x="304" y="142" text-anchor="middle" fill="var(--ink)">003 · position-engine</text>
+          <text x="304" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">net qty · VWAP · MTM</text>
+          <rect x="408" y="122" width="176" height="48" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
+          <text x="496" y="142" text-anchor="middle" fill="var(--ink)">004 · portfolio-weights</text>
+          <text x="496" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">gross/net · concentration</text>
+          <rect x="600" y="122" width="96" height="48" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
+          <text x="648" y="142" text-anchor="middle" fill="var(--ink)">005 · tax-lots</text>
+          <text x="648" y="159" text-anchor="middle" font-size="9.5" font-weight="400" fill="var(--ink-soft)">FIFO/LIFO</text>
+        </g>
+        <path d="M24 200 H696" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M112 170 L112 200 M304 170 L304 200 M496 170 L496 200 M648 170 L648 200" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2 3"/>
+        <text x="360" y="220" text-anchor="middle" font-size="11" font-weight="700" fill="var(--sea)">the append-only trade ledger — one source of truth every slice folds</text>
+        <text x="360" y="238" text-anchor="middle" font-size="10" fill="var(--ink-faint)">20 lifecycle artifacts + an applied change · all validate at the enterprise gate</text>
+      </svg>
+    </div>
+
+    <!-- lifecycle -->
+    <h2 id="lifecycle" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The lifecycle, to verified</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Same eight-verb lifecycle as the <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">rate-limiter build</a> — but this one runs it to the <strong style="color:var(--ink)">terminal state</strong>: every slice ends <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--green)">accepted</span> with a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--sea)">verify.html</span> that ties each success criterion to the test that closes it.</p>
+
+    <div style="margin-top:28px;display:flex;flex-direction:column;gap:0">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div style="padding-bottom:26px">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Principles → spec</h3></div>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">init --profile enterprise</span> seeds 20 principles; then the problem is <strong style="color:var(--ink)">sliced</strong>. The umbrella owns the shared <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">TradeEvent</span> model and a latency ladder that rungs up to <em>tick-to-analytic p99 &lt; 1&nbsp;ms</em>; each child owns one hard problem. Every NFR across the five specs carries a <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--sea)">&lt;spec-slo&gt;</span> — the enterprise gate refuses a "fast".</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div style="padding-bottom:26px">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Plan → tasks</h3></div>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The umbrella plan carries the load-bearing, grounded decisions the whole build inherits: <strong style="color:var(--ink)">event-sourced folds</strong> (D-001), <strong style="color:var(--ink)">exact integer money</strong> at scale 1e-4 (D-002), and the <strong style="color:var(--ink)">Java&nbsp;21&nbsp;+&nbsp;Quarkus</strong> stack (D-003) — chosen against a scored matrix, grounded in a real toolchain probe. Then tests-first tasks per slice.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div style="padding-bottom:26px">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Implement</h3></div>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">~1,300 lines of framework-free Java for the domain, with Quarkus touching only the REST edge and the wiring bean (library-first, P-12). The read surface <strong style="color:var(--ink)">ships dark</strong> behind a config flag (P-8); Micrometer times every fold — the SLO instrument, made real (P-15). Read the code <a href="#read" class="lnk-crimson" style="font-family:inherit;font-size:.98em">below</a>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Verify — the terminal step</h3></div>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">Each slice moves to <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--green)">accepted</span> and grows a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--sea)">verify.html</span> — a derived view tracing every success criterion to its closing test and every NFR to its SLO. Authoring it wasn't ceremony: the cross-file rules <strong style="color:var(--ink)">caught a real traceability bug</strong> (a task over-citing a criterion it didn't close) that a hand-wave would have shipped. "Done means verified" (P-7), enforced. See it <a href="#trust" class="lnk-crimson" style="font-family:inherit;font-size:.98em">below</a>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- coach: spectastic.explain -->
+    <h2 id="coach" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Understand it with the coach</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Five specs and a Java service is a lot to land on a new teammate. This is exactly what the extended verb <a href="ex.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">spectastic.explain</a> is for — a <strong style="color:var(--ink)">grounded coach</strong> that explains a real spec, requirement, or decision on demand, <em>from the source</em>. It writes nothing, and it refuses to invent: ask for something that isn't there and it reports the miss instead of hallucinating an answer.</p>
+
+    <div class="term" style="margin-top:20px">
+      <div><span style="color:var(--green)">$</span> <span style="color:var(--ink)">spectastic.explain</span> 005-tax-lots FR-002 <span style="color:var(--sea)">--proficiency=wheels</span></div>
+      <div style="color:var(--ink-faint)">&nbsp;</div>
+      <div style="color:var(--ink)">FR-002 — a sell <b>MUST</b> relieve open lots by the configured policy:</div>
+      <div style="color:var(--ink)">FIFO (oldest), LIFO (newest), or HIFO (highest basis), split the boundary</div>
+      <div style="color:var(--ink)">lot on a partial sell, and realize gain = proceeds − relieved basis.</div>
+      <div style="color:var(--ink-faint)">&nbsp;</div>
+      <div><span style="color:var(--ink-faint)">grounded in</span> &nbsp;specs/005-tax-lots/spec.html#FR-002 · plan D-004</div>
+      <div><span style="color:var(--ink-faint)">history</span> &nbsp;&nbsp;&nbsp;&nbsp;HIFO landed via change 2026-07-22-hifo-relief (applied)</div>
+      <div><span style="color:var(--ink-faint)">try it</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the calculator below <em>is</em> this rule — flip FIFO / LIFO / HIFO</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px" class="card-grid">
+      <div class="term">
+        <div style="color:var(--ink-faint)"># it won't invent what isn't there</div>
+        <div><span style="color:var(--green)">$</span> <span style="color:var(--ink)">spectastic.explain</span> 005-tax-lots FR-099</div>
+        <div><span style="color:var(--deny)">✗</span> no requirement <b style="color:var(--ink)">FR-099</b> in 005-tax-lots.</div>
+        <div style="color:var(--ink-soft)">&nbsp;&nbsp;the coach reports the miss — it does</div>
+        <div style="color:var(--ink-soft)">&nbsp;&nbsp;not fabricate a reference. (FR-001…005)</div>
+      </div>
+      <div class="term">
+        <div style="color:var(--ink-faint)"># onboard onto the whole umbrella</div>
+        <div><span style="color:var(--green)">$</span> <span style="color:var(--ink)">spectastic.explain</span> 001-portfolio-\</div>
+        <div>&nbsp;&nbsp;&nbsp;analytics <span style="color:var(--sea)">--course</span></div>
+        <div><span style="color:var(--sea)">→</span> wrote .spectastic/courses/… <span style="color:var(--ink-faint)">(git-ignored)</span></div>
+        <div style="color:var(--ink-soft)">&nbsp;&nbsp;a grounded walkthrough of all five slices.</div>
+      </div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.92rem;font-style:italic;line-height:1.55;color:var(--ink-faint);margin:12px 0 0">explain is read-only and ephemeral — it teaches an artifact that already exists, authors nothing, and (with <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em">--course</span>) can leave behind a git-ignored study guide. More in <a href="ex.html" class="lnk-crimson" style="font-family:inherit;font-size:.96em">the extended commands</a>.</p>
+
+    <!-- play / read / trust -->
+    <h2 id="play" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Play · read · trust</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The payoff, three ways. <strong style="color:var(--ink)">Play</strong> the tax-lot rule in your browser; <strong style="color:var(--ink)">read</strong> the Java that implements it; <strong style="color:var(--ink)">trust</strong> the passing suite that proves it.</p>
+
+    <!-- PLAY -->
+    <div style="margin-top:22px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:10px"><span class="pill" style="color:var(--crimson);border-color:color-mix(in srgb,var(--crimson) 40%,transparent)">Play</span><span style="font-family:'Lato',sans-serif;font-size:.86rem;font-weight:700;color:var(--ink)">FIFO vs LIFO vs HIFO — realize a gain</span></div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">You hold three lots — <b style="color:var(--ink)">100 @ $10</b>, then <b style="color:var(--ink)">100 @ $14</b>, then <b style="color:var(--ink)">100 @ $12</b> (deliberately out of order, so all three policies differ). Sell some shares and choose which lots to relieve. Same trades, different policy, different realized gain — that's the whole point of tax-lot tracking, and why <b style="color:var(--ink)">HIFO</b> harvests the most.</p>
+
+      <div class="calc-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:18px;align-items:start">
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button class="seg" id="pf-fifo" aria-pressed="true">FIFO</button>
+            <button class="seg" id="pf-lifo" aria-pressed="false">LIFO</button>
+            <button class="seg" id="pf-hifo" aria-pressed="false">HIFO</button>
+          </div>
+          <label style="display:block;font-family:'Lato',sans-serif;font-size:.76rem;font-weight:700;color:var(--ink-soft);margin-bottom:6px">Sell quantity — <span id="pf-sellqty-v" style="color:var(--crimson)">150</span> shares</label>
+          <input type="range" id="pf-sellqty" min="0" max="200" value="150" step="10" style="width:100%">
+          <label style="display:block;font-family:'Lato',sans-serif;font-size:.76rem;font-weight:700;color:var(--ink-soft);margin:16px 0 6px">Sell price — <span id="pf-sellprice-v" style="color:var(--crimson)">$16</span></label>
+          <input type="range" id="pf-sellprice" min="8" max="20" value="16" step="1" style="width:100%">
+        </div>
+        <div style="background:var(--bg-sunken);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;min-height:180px">
+          <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Lot relief</div>
+          <div id="pf-relief" style="margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--ink-soft);line-height:1.9"></div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);display:flex;align-items:baseline;justify-content:space-between">
+            <span style="font-family:'Lato',sans-serif;font-size:.78rem;font-weight:700;color:var(--ink-soft)">Realized gain</span>
+            <span id="pf-realized" style="font-family:'Fraunces',serif;font-weight:600;font-size:1.5rem;color:var(--green)">$700.00</span>
+          </div>
+          <div id="pf-remaining" style="margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)"></div>
+        </div>
+      </div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">A browser re-creation of the Java fold, for illustration. The real thing is <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">TaxLotBook</span> — proven by the tests below, not by this widget.</p>
+    </div>
+
+    <!-- READ -->
+    <div id="read" style="scroll-margin-top:80px;margin-top:16px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:10px"><span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 40%,transparent)">Read</span><span style="font-family:'Lato',sans-serif;font-size:.86rem;font-weight:700;color:var(--ink)">Three excerpts, each pinned to the decision it implements</span></div>
+
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:18px 0 6px">Exact money — no <span style="font-family:'IBM Plex Mono',monospace">double</span> on the money path</div>
+      <div class="code"><span class="k">public final class</span> <span class="t">Money</span> {
+  <span class="c">// 1 currency unit == 10_000 scaled units (four decimal places)</span>
+  <span class="k">public static final long</span> SCALE = <span class="s">10_000L</span>;
+
+  <span class="c">// scale a decimal exactly, rejecting anything finer than 1e-4</span>
+  <span class="k">public static long</span> of(<span class="t">BigDecimal</span> amount) {
+    <span class="k">return</span> amount.multiply(<span class="t">BigDecimal</span>.valueOf(SCALE)).longValueExact();
+  }
+}</div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ integer folds are bit-identical on the fast path and on replay. <span style="color:var(--ink-soft)">plan 001 · D-002</span></div>
+
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">The sign-flip fold — where average cost gets subtle</div>
+      <div class="code"><span class="k">long</span> newNet = net + fill;
+<span class="k">if</span> (net == 0 || sameSign(net, fill)) {
+  basis += fill * price;                       <span class="c">// adding to exposure</span>
+} <span class="k">else if</span> (Math.abs(fill) &lt;= Math.abs(net)) {
+  basis -= basis * Math.abs(fill) / Math.abs(net);  <span class="c">// reduce, keep avg cost</span>
+} <span class="k">else</span> {
+  basis = newNet * price;                      <span class="c">// cross zero → reset to crossing fill</span>
+}</div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ a position flipping long↔short doesn't bleed its old basis into the new side. <span style="color:var(--ink-soft)">spec 003 · FR-002</span></div>
+
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">FIFO/LIFO relief — the rule the calculator plays</div>
+      <div class="code"><span class="k">while</span> (remaining &gt; 0 &amp;&amp; !lots.isEmpty()) {
+  <span class="t">Lot</span> lot = policy == <span class="t">FIFO</span> ? lots.peekFirst() : lots.peekLast();
+  <span class="k">long</span> take = Math.min(remaining, lot.qtyOpen);
+  <span class="k">long</span> gain = take * (sellPrice - lot.basisPerUnit);  <span class="c">// exact: basis IS the fill price</span>
+  records.add(<span class="k">new</span> <span class="t">RealizedGainRecord</span>(lot.openSeq, take, gain, …));
+  lot.qtyOpen -= take;
+  remaining   -= take;
+  <span class="k">if</span> (lot.qtyOpen == 0) poll(lots, policy);         <span class="c">// full lot consumed</span>
+}</div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ FIFO relieves the head, LIFO the tail; a partial sell splits the boundary lot. <span style="color:var(--ink-soft)">spec 005 · FR-002</span></div>
+    </div>
+
+    <!-- TRUST -->
+    <div id="trust" style="scroll-margin-top:80px;margin-top:16px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:10px"><span class="pill" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 42%,transparent)">Trust</span><span style="font-family:'Lato',sans-serif;font-size:.86rem;font-weight:700;color:var(--ink)">The animation illustrates. This passes in CI.</span></div>
+      <div class="term" style="margin-top:14px">
+        <div><span style="color:var(--green)">$</span> export JAVA_HOME=…/temurin-21 &nbsp;<span style="color:var(--ink-faint)"># any JDK 21</span></div>
+        <div><span style="color:var(--green)">$</span> mvn verify</div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;AnalyticsResourceTest &nbsp;<span style="color:var(--green)">1/1 ✓</span> &nbsp;<span style="color:var(--ink-faint)">(Quarkus 3.37.3 on JVM, up in 3.0s)</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;AnalyticsPlatformTest &nbsp;<span style="color:var(--green)">1/1 ✓</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;LedgerTest &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green)">3/3 ✓</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;PortfolioWeightsTest &nbsp;&nbsp;<span style="color:var(--green)">4/4 ✓</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;PositionEngineTest &nbsp;&nbsp;&nbsp;<span style="color:var(--green)">5/5 ✓</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;ReconcileToReplayTest &nbsp;<span style="color:var(--green)">3/3 ✓</span> &nbsp;<span style="color:var(--ink-faint)"># incremental == full replay</span></div>
+        <div style="color:var(--ink-faint)">&nbsp;&nbsp;TaxLotBookTest &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green)">5/5 ✓</span> &nbsp;<span style="color:var(--ink-faint)"># FIFO 700 · LIFO 500 · HIFO 400</span></div>
+        <div style="color:var(--ink-soft)">&nbsp;&nbsp;──────────────────────────────</div>
+        <div>&nbsp;&nbsp;Tests run: <b style="color:var(--ink)">22</b> &nbsp; Failures: 0 &nbsp; Errors: 0 &nbsp;&nbsp;<span style="color:var(--green);font-weight:600">BUILD SUCCESS</span></div>
+      </div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:14px 0 0">And that suite is wired back to the specs. Each <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--sea)">verify.html</span> is a derived trace — a few rows:</p>
+      <div style="margin-top:12px;border:1px solid var(--rule);border-radius:10px;overflow:hidden;font-family:'IBM Plex Mono',monospace;font-size:.76rem">
+        <div style="display:flex;gap:12px;padding:9px 14px;background:var(--bg-sunken);color:var(--ink-faint);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase">
+          <span style="flex:0 0 8.5rem">criterion / NFR</span><span style="flex:1">proof</span>
+        </div>
+        <div style="display:flex;gap:12px;padding:9px 14px;border-top:1px solid var(--rule);color:var(--ink-soft)"><span style="flex:0 0 8.5rem;color:var(--crimson)">005 · SC-001</span><span style="flex:1">TaxLotBookTest — FIFO·LIFO·HIFO relief, exact (700·500·400)</span></div>
+        <div style="display:flex;gap:12px;padding:9px 14px;border-top:1px solid var(--rule);color:var(--ink-soft)"><span style="flex:0 0 8.5rem;color:var(--crimson)">001 · SC-001</span><span style="flex:1">ReconcileToReplayTest — incremental == replay</span></div>
+        <div style="display:flex;gap:12px;padding:9px 14px;border-top:1px solid var(--rule);color:var(--ink-soft)"><span style="flex:0 0 8.5rem;color:var(--sea)">001 · NFR-001</span><span style="flex:1">SLO latency · p99 &lt; 1&nbsp;ms · Micrometer timer</span></div>
+      </div>
+    </div>
+
+    <!-- artifacts -->
+    <h2 id="artifacts" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The artifacts</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Twenty artifacts — the five slices, each a full <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">spec · plan · tasks · verify</span> bundle — plus the applied HIFO change and the Java project. Every one is <strong style="color:var(--ink)">live and clickable</strong> below, and every one passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span> on the enterprise gate.</p>
+    <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/001-portfolio-analytics/spec.html" style="color:var(--crimson);text-decoration:none">001-portfolio-analytics</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Umbrella — shared model, reliability envelope, the three grounded decisions</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/001-portfolio-analytics/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/001-portfolio-analytics/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/001-portfolio-analytics/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/001-portfolio-analytics/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/002-trade-ledger/spec.html" style="color:var(--crimson);text-decoration:none">002-trade-ledger</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Append-only, gap-free seq, replay, snapshot</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/002-trade-ledger/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/002-trade-ledger/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/002-trade-ledger/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/002-trade-ledger/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/003-position-engine/spec.html" style="color:var(--crimson);text-decoration:none">003-position-engine</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Net qty, VWAP basis, sign-flip, mark-to-market</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/003-position-engine/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/003-position-engine/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/003-position-engine/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/003-position-engine/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/004-portfolio-weights/spec.html" style="color:var(--crimson);text-decoration:none">004-portfolio-weights</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Gross/net denominator, sum-to-one, concentration</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/004-portfolio-weights/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/004-portfolio-weights/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/004-portfolio-weights/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/004-portfolio-weights/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/005-tax-lots/spec.html" style="color:var(--crimson);text-decoration:none">005-tax-lots</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">FIFO/LIFO/HIFO relief, partial split, realized/unrealized P&amp;L</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/portfolio/specs/005-tax-lots/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/portfolio/specs/005-tax-lots/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/portfolio/specs/005-tax-lots/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a> · <a href="examples/portfolio/specs/005-tax-lots/verify.html" style="color:var(--sea);text-decoration:none">verify</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/portfolio/specs/005-tax-lots/changes/archive/2026-07-22-hifo-relief/proposal.html" style="color:var(--purple);text-decoration:none">↳ hifo-relief</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The <strong style="color:var(--ink)">applied change</strong> that added HIFO — three deltas, an adversarial risk pass, tasks folded and drained. <a href="examples/portfolio/specs/005-tax-lots/changes/archive/2026-07-22-hifo-relief/proposal.html" style="color:var(--purple);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--purple) 40%,transparent)">Read the proposal →</a></span></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 11rem">▶ mvn verify</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The Java + Quarkus project — 22 tests, green</span></div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:14px 0 0">These are the real, rendered artifacts — the same files <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em">spectastic validate</span> checks; the excerpts above are drawn from them verbatim.</p>
+
+    <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">
+      <a href="#play" class="btn-primary">▶ &nbsp;Try the calculator</a>
+      <a href="examples.html" class="btn-secondary">← All examples</a>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+
+// FIFO/LIFO/HIFO tax-lot calculator — a browser re-creation of TaxLotBook.relieve().
+(function(){
+  const BUYS = [{n:1, qty:100, priceC:1000}, {n:2, qty:100, priceC:1400}, {n:3, qty:100, priceC:1200}]; // cents
+  const qtyEl = document.getElementById('pf-sellqty');
+  const priceEl = document.getElementById('pf-sellprice');
+  const btns = {FIFO: document.getElementById('pf-fifo'), LIFO: document.getElementById('pf-lifo'), HIFO: document.getElementById('pf-hifo')};
+  let policy = 'FIFO';
+  const money = c => '$' + (c/100).toFixed(2);
+
+  // The lot this policy relieves next: FIFO earliest open, LIFO latest, HIFO highest basis (ties earliest).
+  function pick(lots){
+    let best = -1;
+    for (let i = 0; i < lots.length; i++){
+      if (lots[i].qty <= 0) continue;
+      if (best < 0){ best = i; continue; }
+      if (policy === 'LIFO') best = i;
+      else if (policy === 'HIFO' && lots[i].priceC > lots[best].priceC) best = i;
+      // FIFO: keep the first open lot
+    }
+    return best;
+  }
+
+  function compute(){
+    const sellQty = +qtyEl.value;
+    const sellC = (+priceEl.value) * 100;
+    document.getElementById('pf-sellqty-v').textContent = sellQty;
+    document.getElementById('pf-sellprice-v').textContent = '$' + (+priceEl.value);
+
+    const lots = BUYS.map(b => ({n:b.n, qty:b.qty, priceC:b.priceC}));
+    let remaining = sellQty, realizedC = 0;
+    const steps = [];
+    while (remaining > 0){
+      const i = pick(lots);
+      if (i < 0) break;
+      const lot = lots[i];
+      const take = Math.min(remaining, lot.qty);
+      realizedC += take * (sellC - lot.priceC);
+      steps.push({n:lot.n, take, priceC:lot.priceC, full: take === lot.qty});
+      lot.qty -= take; remaining -= take;
+    }
+
+    const reliefEl = document.getElementById('pf-relief');
+    if (!steps.length){
+      reliefEl.innerHTML = '<span style="color:var(--ink-faint)">— nothing sold —</span>';
+    } else {
+      reliefEl.innerHTML = steps.map(s =>
+        'lot ' + s.n + ' &nbsp;<b style="color:var(--ink)">' + s.take + '</b> @ ' + money(s.priceC) +
+        ' &nbsp;<span style="color:' + (s.full ? 'var(--ink-faint)' : 'var(--salmon)') + '">' +
+        (s.full ? '✓ closed' : '✂ split') + '</span>'
+      ).join('<br>');
+    }
+    const realizedEl = document.getElementById('pf-realized');
+    realizedEl.textContent = money(realizedC);
+    realizedEl.style.color = realizedC >= 0 ? 'var(--green)' : 'var(--deny)';
+
+    const openLots = lots.filter(l => l.qty > 0).map(l => l.qty + ' @ ' + money(l.priceC));
+    const remEl = document.getElementById('pf-remaining');
+    let rem = openLots.length ? 'open: ' + openLots.join(', ') : 'position flat';
+    if (remaining > 0) rem = 'open: ' + remaining + ' short @ ' + money(sellC) + ' (oversold)';
+    remEl.textContent = rem;
+  }
+
+  function setPolicy(p){
+    policy = p;
+    Object.keys(btns).forEach(k => btns[k].setAttribute('aria-pressed', k === p));
+    compute();
+  }
+  Object.keys(btns).forEach(k => btns[k].addEventListener('click', () => setPolicy(k)));
+  qtyEl.addEventListener('input', compute);
+  priceEl.addEventListener('input', compute);
+  compute();
+})();
+</script>
+</body>
+</html>

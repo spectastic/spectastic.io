@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>FIFO/LIFO tax lot tracking · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 005-tax-lots</p>
+  <h1>FIFO/LIFO tax lot tracking</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">005-tax-lots</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>005-tax-lots</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-22">22 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Fold the <a href="../002-trade-ledger/spec.html">ledger</a> into an acquisition-ordered
+    <code>ArrayDeque&lt;Lot&gt;</code> per <code>(account, instrument)</code>: a buy pushes a lot, a sell relieves lots
+    from the head (FIFO) or the tail (LIFO), splitting the boundary lot in place on partial consumption and recording
+    realized gain as <code>qty·(sellPrice − lotBasis)</code> in exact long arithmetic. Because a lot's basis-per-unit
+    <em>is</em> its integer fill price, that gain needs no division and is exact to the cent by construction. The
+    single biggest risk is a relief-order or split-boundary error silently diverging realized gain from a full replay —
+    mitigated by making the spec's SC-001 worked example the headline test and gating on reconcile-to-replay.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verify this plan respects every principle in
+<a href="../../principles.html">v0.1.0</a>. Any violation requires either a
+principles amendment or a deliberate exception logged below.</p>
+
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>One new <code>tax</code> module and its test; partial consumption is an in-place <code>qtyOpen</code> split, not a structural rewrite.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Relief policy is selected per account and fixed at relief time; the applied policy is stamped on every <code>RealizedGainRecord</code>.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>D-001…D-003 in §6 carry the deque choice, exact-integer gain, and short-lot symmetry, each grounded in §3.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td>TDD per story: tests written failing first (T-100/T-200/T-300) before their implementation tasks.</td></tr>
+    <tr><td>P-7 · Done means verified</td><td><spec-pill>OK</spec-pill></td><td>Realized and unrealized gain reconcile to a full replay (NFR-002); snapshot-restore-then-replay-tail equals full replay.</td></tr>
+    <tr><td>P-8 · Ship dark by default</td><td><spec-pill>OK</spec-pill></td><td>Behind <code>portfolio.analytics.enabled</code>, default <code>false</code>; no relief runs until the toggle is on.</td></tr>
+    <tr><td>P-9 · Decisions are grounded</td><td><spec-pill>OK</spec-pill></td><td>Every §6 decision rests on a <code>verified</code> §3 source (spec FR-001/FR-002, the exact-arithmetic contract, JDK <code>ArrayDeque</code>).</td></tr>
+    <tr><td>P-15 · Structured observability</td><td><spec-pill>OK</spec-pill></td><td>Micrometer relief timer exported at <code>/q/metrics</code>; OpenAPI at <code>/q/openapi</code>.</td></tr>
+    <tr><td>P-16 · Service level objectives</td><td><spec-pill>OK</spec-pill></td><td>SLO-relief (p99 &lt; 40 µs ≤ 1000 lots), SLO-pnl-reconcile (99.999%), SLO-lotset (0 when flat) are the spec's, enforced here.</td></tr>
+  </tbody>
+</table>
+<p><em>Load-bearing principles only.</em> Platform-wide conformance across all twenty principles is tracked in the
+umbrella plan (<a href="../001-portfolio-analytics/spec.html">001</a>); this table records where this slice carries
+weight of its own.</p>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 (Temurin 21.0.9).</dd>
+  <dt>Frameworks</dt>       <dd>Quarkus 3.37.3, Maven; extensions <code>quarkus-rest</code>, <code>quarkus-rest-jackson</code>, <code>quarkus-arc</code>, <code>quarkus-micrometer-registry-prometheus</code>, <code>quarkus-smallrye-openapi</code>.</dd>
+  <dt>Architecture</dt>     <dd>Vertical slice inside a modular monolith — a <code>tax</code> module under <code>io.spectastic.portfolio</code> that folds the umbrella's event stream; no new service boundary.</dd>
+  <dt>Storage</dt>          <dd>In-memory event-sourced projection over the <code>TradeLedger</code> log; snapshot = deep copy, restore-then-replay-tail equals full replay. No database.</dd>
+  <dt>Testing</dt>          <dd>JUnit5 unit tests plus one <code>@QuarkusTest</code> with rest-assured; the SC-001 worked example is the headline relief test.</dd>
+  <dt>Coverage</dt>         <dd>Jacoco, diff-aware: a patch target on changed lines and the rule that a change never lowers coverage of the code it touches — no single universal %.</dd>
+  <dt>Perf targets</dt>     <dd>Relief p99 &lt; 40 µs at ≤ 1000 open lots (<a href="./spec.html#NFR-001">NFR-001</a>); daily P&amp;L reconcile bit-matches replay 99.999% (<a href="./spec.html#NFR-002">NFR-002</a>); open lots ≤ open buys, 0 when flat (<a href="./spec.html#NFR-003">NFR-003</a>).</dd>
+  <dt>Constraints</dt>      <dd>No floating point on the money path — exact integer fixed-point at scale 1e-4 (<code>PRICE_SCALE = 10_000</code>), whole-long quantities.</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>3 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed — read this before the
+approach: it separates what the plan <em>knows</em> from what it <em>assumes</em> (per
+<code>REQ-LIFECYCLE-006</code>). Status is <code>verified</code> (opened the source
+this turn), <code>spike</code> (decidable only by a time-boxed investigation — run it, record the
+finding), or <code>assumed</code> (taken as true without verification). A <code>must</code>-tier decision
+may not rest on an <code>assumed</code>/unresolved-<code>spike</code> fact unless accepted as a
+<code>&lt;spec-risk&gt;</code> (see §8).</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>FIFO relieves oldest-first, LIFO newest-first, with a boundary-lot split on partial consumption.</td>
+        <td><code>specs/005-tax-lots/spec.html#FR-002</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>FR-002 mandates policy-ordered relief, split on partial consumption, gain = proceeds − relieved basis.</td></tr>
+    <tr><td>A lot's basis-per-unit is the exact integer fill price, so realized gain needs no division.</td>
+        <td><code>specs/001-portfolio-analytics/spec.html</code> · money-exactness contract</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Prices are fixed-point at <code>PRICE_SCALE = 10_000</code>; <code>qty·(sellPrice − lotBasis)</code> is pure long arithmetic — exact to the cent.</td></tr>
+    <tr><td><code>ArrayDeque</code> gives O(1) push, O(1) head poll (FIFO), O(1) tail poll (LIFO).</td>
+        <td><code>java.util.ArrayDeque</code> (JDK 21)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Amortised O(1) at both ends; a single array backing means no per-lot node allocation.</td></tr>
+    <tr><td><code>TradeEvent</code>, <code>PriceTick</code>, and <code>PRICE_SCALE</code> are the umbrella's, owned by 001.</td>
+        <td><code>io.spectastic.portfolio.model</code> (owned by <a href="../001-portfolio-analytics/spec.html">001</a>)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>This slice consumes the shared model; it defines only <code>tax</code>-local types.</td></tr>
+    <tr><td>Relief of one sell over ≤ 1000 lots meets p99 &lt; 40 µs.</td>
+        <td>JMH microbenchmark of match-split-record at 1000 lots (T-901)</td>
+        <td><spec-status value="review">spike</spec-status></td>
+        <td>Pending — deque head/tail poll plus one in-place split is O(k) in lots relieved, not lot count; benchmark confirms the envelope in Polish.</td></tr>
+    <tr><td>Holding period derives purely from the recorded trade-event timestamps.</td>
+        <td>—</td>
+        <td><spec-status value="blocked">assumed</spec-status></td>
+        <td>Wash-sale and corporate-action adjustments are out of scope (spec §6), so no basis/holding-period overlay applies here.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>4 · Approach</h2>
+
+<p>A <code>TaxLotBook</code> (one per <code>(account, instrument)</code>) folds the ledger's event stream. A buy pushes a
+<code>Lot</code> — quantity, integer basis-per-unit, acquisition timestamp, open sequence — onto the tail of an
+acquisition-ordered <code>ArrayDeque&lt;Lot&gt;</code>. A sell reads the account's elected policy, relieves lots from the
+<em>head</em> under FIFO or the <em>tail</em> under LIFO, and when the sell is smaller than the boundary lot it reduces
+that lot's <code>qtyOpen</code> in place — a split that leaves an open remainder carrying the original basis and
+acquisition time. Each relief computes realized gain as <code>qtyRelieved·(sellPrice − lotBasis)</code> in long
+arithmetic and emits an immutable <code>RealizedGainRecord</code>; cumulative realized gain is the sum of the records.
+Price ticks fold into per-lot unrealized gain. A sell exceeding all open long lots closes them and opens a SHORT lot for
+the residual, with symmetric relief on a later buy-to-cover.</p>
+
+<p><strong>Worked example (spec SC-001).</strong> Buy 100 @ 10, then 100 @ 12, then sell 150. Under FIFO the relieved
+basis is 100·10 + 50·12 = 1600, leaving a 50-share lot @ 12; under LIFO it is 100·12 + 50·10 = 1700, leaving 50 @ 10.
+Prices are scaled ×10 000 internally, so both figures are exact longs and both reconcile to a full replay to the
+cent.</p>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="Tax lot book folds ledger events into ordered lots and emits realized-gain records">
+  <style>
+    .box { fill:#fcfbf7; stroke:#c4c1bb; stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill:#4a4a46; letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill:#353534; }
+    .arr { stroke:#73706d; stroke-width:1.2; fill:none; }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">TradeLedger</text>
+  <text class="body"  x="56" y="122">events + ticks</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">TaxLotBook</text>
+  <text class="body"  x="286" y="122">ordered lots · relieve</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">RealizedGain</text>
+  <text class="body"  x="516" y="122">audit + P&amp;L</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#73706d"/></marker></defs>
+</svg>
+<figcaption>The book folds ledger events into an acquisition-ordered lot set and emits an immutable record per relieved lot.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>5 · Alternatives considered</h2>
+
+<spec-matrix>
+<table>
+  <thead>
+    <tr><th>Option</th><th>Relief-order correctness</th><th>Partial-split simplicity</th><th>Latency fit</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Two priority queues (one per policy)</td><td>4</td><td>2</td><td>3</td><td class="score">9</td></tr>
+    <tr><td>Re-derive lots from a replay on each sell</td><td>5</td><td>4</td><td>1</td><td class="score">10</td></tr>
+    <tr data-winner><td>Single acquisition-ordered <code>ArrayDeque</code> — chosen</td><td>5</td><td>5</td><td>5</td><td class="score">15</td></tr>
+  </tbody>
+</table>
+</spec-matrix>
+<p>Acquisition order is the one order both policies need — FIFO reads it from the head, LIFO from the tail — so a single
+deque serves both with O(1) ends and an in-place split, where priority queues duplicate state and re-deriving from replay
+cannot meet the relief latency envelope.</p>
+</section>
+
+
+<section id="decisions">
+<h2>6 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Acquisition-ordered ArrayDeque of open lots</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>FR-001/FR-002 require open lots held in acquisition order and relieved oldest- or newest-first (§3, <code>spec.html#FR-002</code>, <code>verified</code>).</dd>
+    <dt>Decision</dt>     <dd>Hold open lots per <code>(account, instrument)</code> in an <code>ArrayDeque&lt;Lot&gt;</code> in acquisition order. FIFO relieves the HEAD (oldest), LIFO the TAIL (newest); partial consumption reduces the boundary lot's <code>qtyOpen</code> in place — a split.</dd>
+    <dt>Consequences</dt> <dd>+ One structure serves both policies with O(1) ends and no duplicated state. + The split is a single field mutation. − Neither end supports HIFO/specific-lot relief, which are deferred anyway.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Exact realized gain by integer long arithmetic</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The money-exactness contract fixes prices at <code>PRICE_SCALE = 10_000</code> with no floating point on the money path (§3, umbrella spec, <code>verified</code>).</dd>
+    <dt>Decision</dt>     <dd>Store each lot's basis-per-unit as the exact integer fill price. Realized gain per relief is <code>qtyRelieved·(sellPrice − lotBasis)</code> — pure long arithmetic, no division — and cumulative realized gain is the sum of the <code>RealizedGainRecord</code>s. Worked example: sell 150 over 100@10 then 100@12 gives relieved basis 1600 (FIFO) or 1700 (LIFO), exact.</dd>
+    <dt>Consequences</dt> <dd>+ Gain is exact to the cent by construction and reconciles bit-for-bit to a full replay. + No rounding policy to defend. − Callers must present scaled integers; a display layer divides by <code>PRICE_SCALE</code> only at the edge.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · Per-account policy fixed at relief time; oversell opens a short lot</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>FR-003 requires the relief policy selectable per account, fixed at relief time, and recorded for audit; the spec's oversell edge case opens a short position (§3, <code>spec.html#FR-003</code>, <code>verified</code>).</dd>
+    <dt>Decision</dt>     <dd>Select the relief policy (FIFO or LIFO) per account, read and fix it at relief time, and stamp it on each immutable <code>RealizedGainRecord</code>. A sell exceeding all open long lots closes them and opens a SHORT lot for the residual; a later buy-to-cover relieves symmetrically.</dd>
+    <dt>Consequences</dt> <dd>+ Every realized figure carries the method it was computed under. + Shorts reuse the same relief path. − A policy change applies only to future reliefs, never retroactively.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-004" grounding="verified">
+  <h4>D-004 · Relief selection generalises beyond the deque ends for HIFO</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The applied change <a href="./changes/archive/2026-07-22-hifo-relief/proposal.html">2026-07-22-hifo-relief</a> adds HIFO (FR-002/FR-003). FIFO/LIFO are O(1) deque-end pops, but the highest-cost-basis lot can sit anywhere in the deque (<code>spec.html#FR-002</code>, <code>verified</code>).</dd>
+    <dt>Decision</dt>     <dd>Relief selects the policy-preferred lot each step — FIFO the head, LIFO the tail, HIFO a scan for the greatest <code>basisPerUnit</code> (ties to the earliest acquired) — then relieves it and, if emptied, removes that specific lot. The <code>ArrayDeque</code> still holds acquisition order for the holding-period audit.</dd>
+    <dt>Consequences</dt> <dd>+ One relief path serves all three policies. + FIFO/LIFO stay O(1). − HIFO is an O(open-lots) scan, bounded by the same ≤ 1000-open-lots envelope as NFR-001, so the relief-latency SLO holds unchanged.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>7 · Project structure</h2>
+
+<p>Only the new or changed paths, grouped by the <code>tax</code> module boundary the §6 decisions draw.</p>
+
+<pre><code>src/main/java/io/spectastic/portfolio/
+  tax/
+    TaxLotBook.java          fold ledger → ordered lots, relieve by policy
+    Lot.java                 { account, instrument, openSeq, acquiredTs, qtyOpen, basisPerUnit, side }
+    ReliefPolicy.java        FIFO | LIFO | HIFO
+    RealizedGainRecord.java  immutable audit record per relieved lot
+src/test/java/io/spectastic/portfolio/
+    TaxLotBookTest.java       acquisition order, FIFO/LIFO relief, split, reconcile-to-replay
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>8 · Risks &amp; mitigations</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Boundary-lot split off by the relieved quantity, silently corrupting basis and realized gain.</td><td>M</td><td>H</td><td>SC-001 worked example is the headline test (T-200); reconcile realized + unrealized to a full replay (NFR-002).</td></tr>
+    <tr><td>Aggregate lot quantities drift from the position engine's (003) net quantity.</td><td>L</td><td>M</td><td>Assert Σ open-lot qty equals the position engine's net long quantity at each sequence (spec §4 invariant).</td></tr>
+    <tr><td>Relief latency exceeds the p99 &lt; 40 µs envelope at 1000 lots.</td><td>L</td><td>M</td><td>Deque O(1) ends and a single in-place split keep relief O(lots relieved); JMH benchmark in Polish (T-901) confirms.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="complexity">
+<h2>9 · Complexity tracking</h2>
+<p>Anywhere this plan introduces complexity not strictly required by the spec, justify it here.
+A reviewer should be able to point at any non-trivial choice and find its rationale in this section.</p>
+
+<spec-assumption>
+<p>The short-lot path (oversell into a short position) adds a second lot side beyond the plain long-only relief the
+worked example exercises. It is carried now, not deferred, because the spec names oversell-into-short as an edge case
+(§2) and the symmetric relief reuses the same head/tail split path — omitting it would leave a known-reachable state
+unhandled rather than genuinely simplifying the book.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>10 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — relief semantics, the partial-lot split, per-account policy fixed at relief time, and the immutable
+audit record were all settled in the interview and recorded as D-001…D-003; HIFO and specific-lot relief are deferred
+(spec §3 out-of-scope), not open.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>11 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial plan. Acquisition-ordered <code>ArrayDeque</code> lot book (D-001), exact integer-long realized gain (D-002), per-account policy fixed at relief time with short-lot symmetry (D-003). Alternatives weighed the deque against twin priority queues and re-derive-from-replay; the SC-001 worked example anchors the relief test and reconcile-to-replay gates correctness.</span></li>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Applied <a href="./changes/archive/2026-07-22-hifo-relief/proposal.html">2026-07-22-hifo-relief</a>: added HIFO relief. New decision D-004 generalises lot selection beyond the deque ends — FIFO head, LIFO tail, HIFO a highest-basis scan bounded by the NFR-001 lot envelope.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 005-tax-lots · FIFO/LIFO tax lot tracking · authored 22 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Portfolio weight calculation · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 004-portfolio-weights</p>
+  <h1>Portfolio weight calculation</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Every holding as a fraction of the book, recomputed the instant a position or price moves — well-defined with shorts, and always summing to one.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>004-portfolio-weights</span>
+    <b>Parent</b>      <span><spec-parent specid="001-portfolio-analytics"><a href="../001-portfolio-analytics/spec.html">001-portfolio-analytics</a></spec-parent></span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Two held instruments show weights that sum to 100%; a price tick on one reweights the book live.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="8" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>Portfolio weight is each holding's market value as a fraction of the whole book. This slice computes it live from the
+    <a href="../003-position-engine/spec.html">position engine</a>'s mark-to-market values, recomputing incrementally as
+    positions and prices move rather than rescanning the book on every tick. It pins down the definition that naive weight
+    code gets wrong — the <strong>denominator</strong> — supporting both a <strong>gross</strong> basis (Σ|MV|, weights sum
+    to 100%) and a <strong>net</strong> basis (ΣMV), so weights stay well-defined when the book holds shorts. It also bounds
+    <strong>staleness</strong> and offers concentration rollups.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends on the umbrella and the position engine (003) for market values; tax lots are unrelated.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (correct, normalized, fresh weights under a stated denominator), not a named numeric library.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — live concentration the desk and risk can act on.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>A running denominator plus per-instrument shares; the shorts/denominator choice is enumerable.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One derived view over positions, four functional requirements; benchmark-relative weights deferred.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>The sum-to-one invariant and staleness bound are directly checkable; latency is measurable.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>"How concentrated am I" drives risk limits, rebalancing, and the desk's intuition — but a portfolio weight is only as
+meaningful as its denominator, and that is precisely what breaks when a book holds shorts. A short position has negative
+market value; divide by a naive ΣMV and weights can exceed 100%, go negative in confusing ways, or blow up when the net
+value nears zero. This slice makes the denominator an explicit, tested choice and keeps the recompute cheap enough to run on
+every tick.</p>
+<p>It owns weights, normalization, staleness, and concentration rollups. It reads market values from
+<a href="../003-position-engine/spec.html">003</a> and knows nothing about tax lots.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Weights that sum to one <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>risk viewer</strong>, I want each holding's weight as a fraction of the book under a stated denominator, so
+concentration is unambiguous.</p>
+<p><em>Acceptance:</em> under the gross basis, per-instrument weights are <code>|MV| / Σ|MV|</code> and sum to 1.0 within
+tolerance; the chosen basis (gross or net) is explicit in the output.</p>
+
+<h3 id="US2">US2 · Reweight on a tick <spec-pill>P2</spec-pill></h3>
+<p>As a <strong>desk engineer</strong>, I want a price tick to update the affected weights and the denominator without a full
+O(N) rescan, so the book stays fresh at tick rates.</p>
+<p><em>Acceptance:</em> a tick updates the moved instrument's share and the running denominator incrementally; other weights
+follow from the new denominator without re-reading every position.</p>
+
+<h3 id="US3">US3 · Shorts stay well-defined <spec-pill>P3</spec-pill></h3>
+<p>As a <strong>risk manager on a long/short book</strong>, I want weights that behave sensibly with short positions, so a
+mixed book doesn't produce weights over 100% or a denominator near zero.</p>
+<p><em>Acceptance:</em> with shorts present, the gross basis yields weights in <code>[0, 1]</code> summing to one; the net
+basis is offered with its sign semantics documented and guarded against a near-zero denominator.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Empty book.</strong> With no positions the denominator is zero; weights are defined as empty, not a divide-by-zero.</li>
+  <li><strong>Net basis near zero.</strong> A balanced long/short book drives ΣMV toward zero; the net basis flags the instability rather than emitting exploding weights.</li>
+  <li><strong>Stale price.</strong> A weight whose underlying price is older than the freshness bound is marked stale, not silently trusted.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>The slice <spec-rule>MUST</spec-rule> compute per-instrument <strong>portfolio weight</strong> as position market value over
+total portfolio market value, recomputed <strong>incrementally</strong> as positions and price ticks change.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>The <strong>denominator</strong> <spec-rule>MUST</spec-rule> be explicit and selectable: a <strong>gross</strong> basis
+(<code>Σ|MV|</code>, under which weights sum to 100%) and a <strong>net</strong> basis (<code>ΣMV</code>, with documented sign
+semantics). Under the gross basis weights <spec-rule>MUST</spec-rule> sum to one within tolerance.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="must">
+<p>Weights <spec-rule>MUST</spec-rule> be <strong>staleness-bounded</strong>: a weight reflects prices no older than the
+freshness bound, and a weight past that bound <spec-rule>MUST</spec-rule> be marked stale rather than silently served.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="should">
+<p>The slice <spec-rule level="should">SHOULD</spec-rule> expose <strong>concentration rollups</strong> — top-N holdings and a
+single Herfindahl-style concentration index — derived from the same weights.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="must">
+<p>Reweighting <spec-rule>MUST</spec-rule> meet <a href="#SLO-reweight">SLO-reweight</a> for both a single-instrument update
+and a full-book recompute.</p>
+<spec-slo id="SLO-reweight" target="NFR-001" signal="latency" objective="p99 &lt; 500 &micro;s full-book (N=5000)" window="28d" budgeting="occurrences">
+  in-process wall-clock to reweight the book on a denominator-moving tick, at 5,000 instruments (good ÷ valid ticks)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-002" priority="must">
+<p>Weights <spec-rule>MUST</spec-rule> be numerically well-formed per <a href="#SLO-normalization">SLO-normalization</a>:
+under the gross basis they sum to one, and they reconcile to a full replay.</p>
+<spec-slo id="SLO-normalization" target="NFR-002" signal="errors" objective="|&Sigma;weights &minus; 1| &le; 1e-9 on 100% of recomputes" window="28d" budgeting="occurrences">
+  fraction of gross-basis recomputes whose weights sum to one within 1e-9 (conforming ÷ total recomputes)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-003" priority="must">
+<p>Weight <strong>freshness</strong> <spec-rule>MUST</spec-rule> meet <a href="#SLO-freshness">SLO-freshness</a> so a served
+weight is never staler than the bound without being flagged.</p>
+<spec-slo id="SLO-freshness" target="NFR-003" signal="latency" objective="p99 staleness &lt; 2 ms from originating tick" window="28d" budgeting="occurrences">
+  wall-clock from a price tick to the dependent weights reflecting it (good ÷ valid ticks)
+</spec-slo>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="003-position-engine">Producing the market values weights divide — the position engine owns MTM.</li>
+    <li defer-to="005-tax-lots">Any tax or realized-gain view; weights are a market-value concept only.</li>
+    <li defer-to="TBD-benchmark-relative-weights">Active weights relative to a benchmark index (over/underweight) — a later analytic.</li>
+    <li defer-to="TBD-multi-currency-base">Translating mixed-currency market values to a common base before weighting — depends on the deferred FX slice.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>The slice holds a running denominator and a share per instrument; market values are read from 003.</p>
+<dl>
+  <dt><code>WeightBook</code></dt><dd><code>{ basis (gross|net), denominator, asOfSeq }</code> plus, per instrument, <code>{ mtmValue, weight, stale (bool) }</code>.</dd>
+  <dt>Concentration rollup</dt><dd><code>{ topN: [(instrument, weight)…], herfindahl: &Sigma; weight² }</code> — derived, not stored authoritatively.</dd>
+</dl>
+<spec-note>
+<p>Invariant: under the gross basis, <code>Σ weight = 1</code> whenever the book is non-empty and the denominator is
+above the near-zero guard. Violations are correctness faults (NFR-002), not display rounding.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+<p>For any book including at least one short, gross-basis weights lie in <code>[0, 1]</code> and sum to one within
+<code>1e-9</code>, and a price tick reweights the affected holdings within <a href="#SLO-reweight">SLO-reweight</a>.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="should">
+<p>A weight whose price is older than the freshness bound is reported stale, and a live tick clears the stale flag within
+<a href="#SLO-freshness">SLO-freshness</a>.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>The position engine (003) exposes a consistent market-value snapshot at a ledger sequence; weights inherit that
+read-consistency rather than reconstructing it.</p>
+</spec-assumption>
+<spec-assumption>
+<p>All market values are in a single base currency for this slice; multi-currency translation is deferred to
+<code>TBD-multi-currency-base</code>.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the gross-vs-net denominator choice (offer both, gross as default, net guarded near zero) and the
+staleness-flag contract were settled in the interview.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-21">21 Jul 2026</time><span>Initial draft. Child of 001-portfolio-analytics: incremental weights (FR-001), explicit gross/net denominator with sum-to-one under gross (FR-002), staleness bound (FR-003), concentration rollups (FR-004). Envelope: reweight latency (NFR-001), normalization/reconcile (NFR-002), freshness (NFR-003). Consumes market values from 003-position-engine.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  004-portfolio-weights · Portfolio weight calculation · authored 21 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

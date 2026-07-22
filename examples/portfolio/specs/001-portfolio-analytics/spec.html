@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Real-time portfolio analytics · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 001-portfolio-analytics</p>
+  <h1>Real-time portfolio analytics</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    One append-only trade ledger; every number a deterministic fold over it. Positions, weights, and tax lots stay live at HFT tick rates and always reconcile to a full replay.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>001-portfolio-analytics</span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>A trade and a price tick flow in; live position, portfolio weight, and open tax lot all update, and a full replay reconciles to the cent.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="9" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>This is the <strong>umbrella</strong> for a real-time position, portfolio-weight, and tax-lot platform sized for
+    high-frequency trading: unlimited trade history, sub-millisecond tick-to-analytic latency, and answers that must
+    always agree with a from-zero replay. The architecture is one decision — an <strong>append-only trade ledger as the
+    single source of truth, with every analytic a pure deterministic fold over it</strong> — and everything domain-specific
+    is carved out to four child slices: the <a href="../002-trade-ledger/spec.html">ledger</a> itself,
+    the <a href="../003-position-engine/spec.html">position engine</a>, <a href="../004-portfolio-weights/spec.html">portfolio
+    weights</a>, and <a href="../005-tax-lots/spec.html">FIFO/LIFO tax lots</a>. This spec owns only the shared event model
+    and the cross-cutting reliability envelope that binds them.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends only on the principles. Its children depend on it; it depends on none of them — it defines the shared model and defers all math downstream.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (one ledger, deterministic folds, a bounded latency envelope), not a named database, language, or in-memory structure.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — a single trade produces coherent, reconcilable position, weight, and lot analytics in real time.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>The umbrella is a model + envelope; each child is independently estimable from its own slice.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>Nine requirements, no algorithms — the domain weight lives in the four children, each under its own budget.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Every requirement is observable; the reconcile-to-replay criterion (<a href="#SC-001">SC-001</a>) is a single mechanical check.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>A trading desk needs three answers continuously and correctly: <em>what do I hold</em> (position), <em>how concentrated am
+I</em> (portfolio weight), and <em>what is my realized and unrealized gain</em> (tax lots). At HFT rates these must be
+maintained incrementally — recomputing from scratch on every fill is not an option — yet an incremental number that has
+silently drifted from the truth is worse than no number at all.</p>
+<p>The failure mode this platform exists to prevent is <strong>divergence between the fast path and the truth</strong>. We
+close it structurally: a single append-only ledger of trades and price ticks is the only source of truth, and every
+analytic is a pure fold (reducer) over that ledger. The fast, incremental path and the slow, from-zero replay are the
+<em>same function</em> applied two ways, so they can always be reconciled. Stakeholders: the trading desk (consumers of
+the live numbers), risk (concentration and exposure), and finance (realized-gain tax reporting).</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable: implementing only US1 still yields a viable MVP.</p>
+
+<h3 id="US1">US1 · One trade, three coherent analytics <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>desk engineer</strong>, I want a single filled trade to update my live position, portfolio weight, and open
+tax lot together, so the three views never contradict one another.</p>
+<p><em>Acceptance:</em> appending one <code>TradeEvent</code> updates the position engine, the weight book, and the tax-lot
+book; a full replay of the ledger to the same sequence number reproduces all three to the cent.</p>
+
+<h3 id="US2">US2 · Resume from a checkpoint <spec-pill>P2</spec-pill></h3>
+<p>As an <strong>operator restarting a service</strong>, I want to restore analytics from a snapshot rather than replaying
+years of history, so recovery is bounded regardless of ledger size.</p>
+<p><em>Acceptance:</em> restoring from a snapshot at sequence <code>N</code> yields analytics bit-identical to a full replay
+through <code>N</code>; appending event <code>N+1</code> proceeds normally.</p>
+
+<h3 id="US3">US3 · Add an analytic without touching the ledger <spec-pill>P3</spec-pill></h3>
+<p>As a <strong>platform owner</strong>, I want a new analytic to be a new fold over the existing ledger, so adding one never
+changes the source of truth or the other analytics.</p>
+<p><em>Acceptance:</em> a fourth analytic is introduced consuming only the ledger (and price ticks); no ledger contract
+change and no edit to the position, weight, or lot slices is required.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Correction after the fact.</strong> A booking error is fixed by appending a compensating event, never by editing history — the folds absorb it like any trade.</li>
+  <li><strong>Tick before any trade.</strong> A price tick for an instrument with no position is a no-op for positions and weights, not an error.</li>
+  <li><strong>Replay divergence.</strong> If the incremental analytic and a full replay ever disagree, that is a hard correctness fault (NFR-002), not a rounding footnote.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>An <strong>append-only trade ledger</strong> <spec-rule>MUST</spec-rule> be the single source of truth for all analytics.
+Every analytic (position, weight, tax lot) <spec-rule>MUST</spec-rule> be a <strong>deterministic pure fold</strong> over the
+ledger and the price-tick stream — same input sequence, same output, no hidden state — so any analytic is reproducible by
+replay.</p>
+<details><summary>Rationale</summary><p>Making the fast path and the replay path the same function is what makes NFR-002 (reconcile-to-replay) checkable rather than aspirational.</p></details>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>The platform <spec-rule>MUST</spec-rule> maintain position, portfolio-weight, and tax-lot analytics
+<strong>incrementally</strong> as trades and price ticks arrive — no full recompute on the hot path — while preserving the
+fold semantics of FR-001.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="must">
+<p>The platform <spec-rule>MUST</spec-rule> support <strong>snapshot and restore</strong>: a fold checkpoint at a ledger
+sequence number that, on restore, is bit-identical to a full replay through that sequence, so consumers bound cold-start
+without replaying all history.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="should">
+<p>Each analytic <spec-rule level="should">SHOULD</spec-rule> be an <strong>independently versioned contract</strong> so a
+consumer can adopt positions without weights, or weights without tax lots, and each child slice can evolve on its own
+cadence.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="must">
+<p>End-to-end <strong>tick-to-analytic</strong> latency <spec-rule>MUST</spec-rule> stay within the real-time envelope
+defined by <a href="#SLO-latency">SLO-latency</a> so downstream consumers see a fresh, coherent view at HFT rates.</p>
+<spec-slo id="SLO-latency" target="NFR-001" signal="latency" objective="p99 &lt; 1 ms" window="28d" budgeting="occurrences">
+  wall-clock from a trade or price tick entering the platform to all affected analytics being updated, in-process (good ÷ valid events)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-002" priority="must">
+<p>Every incremental analytic <spec-rule>MUST</spec-rule> equal a from-zero replay of the same ledger; divergence is a
+correctness fault governed by <a href="#SLO-reconcile">SLO-reconcile</a>, not a tolerance to be tuned.</p>
+<spec-slo id="SLO-reconcile" target="NFR-002" signal="errors" objective="99.999% of daily reconciliations bit-match replay" window="28d" budgeting="occurrences">
+  daily incremental-vs-replay reconciliations that match to the cent (matching ÷ total reconciliations)
+</spec-slo>
+</spec-requirement>
+
+<spec-requirement id="NFR-003" priority="must">
+<p>Given <strong>unlimited</strong> trade history, steady-state memory <spec-rule>MUST</spec-rule> stay bounded via
+snapshot and cold-tiering rather than growing with lifetime trade count, per <a href="#SLO-memory">SLO-memory</a>.</p>
+<spec-slo id="SLO-memory" target="NFR-003" signal="saturation" objective="hot-set RSS &lt; 4 GB at 1e9 lifetime trades" window="28d" budgeting="occurrences">
+  resident hot-set bytes as a fraction of the 4 GB ceiling, sampled at peak (hot bytes ÷ ceiling)
+</spec-slo>
+</spec-requirement>
+
+<h3>Out of scope (deferred to child slices)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="002-trade-ledger">The durable append-only log itself — sequencing, replay, snapshotting, and unlimited retention live in the ledger slice.</li>
+    <li defer-to="003-position-engine">Net position, average cost basis, and mark-to-market math live in the position engine.</li>
+    <li defer-to="004-portfolio-weights">Mark-to-market portfolio weights, the gross/net denominator, and concentration rollups live in the weights slice.</li>
+    <li defer-to="005-tax-lots">FIFO/LIFO lot relief and realized/unrealized gain live in the tax-lot slice.</li>
+    <li defer-to="TBD-market-data-feed">Ingestion and normalization of the raw price-tick feed (venue quirks, dedup, gap-fill) — assumed upstream here.</li>
+    <li defer-to="TBD-multi-account-netting">Cross-account and cross-strategy netting of exposure — a later platform slice.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>This umbrella owns only the shared events every analytic folds over. Analytic-specific state (lots, weight books,
+position rows) belongs to the children.</p>
+<dl>
+  <dt><code>TradeEvent</code></dt><dd>The atomic append: <code>{ seq, ts, account, instrument, side (buy|sell), qty, price, fees }</code>. Immutable; <code>seq</code> is monotonic and gap-free. A correction is a new compensating <code>TradeEvent</code>, never an edit.</dd>
+  <dt><code>PriceTick</code></dt><dd><code>{ ts, instrument, price }</code>. Drives mark-to-market revaluation for positions and weights; never changes a position's quantity.</dd>
+  <dt><code>Instrument</code></dt><dd>The traded symbol and its metadata (multiplier, currency). Reference data, assumed stable within a session.</dd>
+</dl>
+<spec-note>
+<p>Invariant: the state of every analytic at sequence <code>N</code> is a pure function of the ledger prefix <code>[0, N]</code>
+and the price ticks up to <code>N</code>. Nothing an analytic exposes may depend on wall-clock time or arrival order beyond
+the ledger sequence.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+<p>An end-to-end run where one <code>TradeEvent</code> plus one <code>PriceTick</code> update position, weight, and tax-lot
+analytics within <a href="#SLO-latency">SLO-latency</a>, and a full replay to the same sequence reconciles all three
+<strong>to the cent</strong>.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="should">
+<p>A new analytic is added as a fold over the existing ledger with <strong>zero</strong> changes to the ledger contract and
+zero edits to the position, weight, or tax-lot slices.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>A normalized price-tick feed is available upstream (deferred to <code>TBD-market-data-feed</code>); this platform consumes
+ticks, it does not clean them.</p>
+</spec-assumption>
+<spec-assumption>
+<p>Analytics run in-process, co-located with the ledger's hot tail; the sub-millisecond envelope (NFR-001) is an in-process
+target, not a network round-trip budget.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the single architectural decision (append-only ledger, analytics as pure folds) and the split into
+four child slices were settled up front; each child resolves its own domain questions.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-21">21 Jul 2026</time><span>Initial umbrella draft. Establishes the append-only trade ledger as the single source of truth, analytics as deterministic folds (FR-001/FR-002), snapshot/restore (FR-003), and the cross-cutting reliability envelope (NFR-001 latency, NFR-002 reconcile-to-replay, NFR-003 bounded memory under unlimited history). Carves the domain into 002-trade-ledger, 003-position-engine, 004-portfolio-weights, and 005-tax-lots.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  001-portfolio-analytics · Real-time portfolio analytics · authored 21 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

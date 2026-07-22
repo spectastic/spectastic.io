@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>pa · Principles</title>
+<link rel="stylesheet" href="assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script src="assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <!-- Default version: v0.1.0 per FR-008 of specs/008-core-principles/spec.html — Draft artifacts MUST stay below 1.0.0.
+       Graduate to v1.0.0 at the Draft → Accepted bundled-flip prompt (REQ-LIFECYCLE-005), not here. -->
+  <p class="small-caps">Principles · v0.1.0</p>
+  <h1>pa</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    A enterprise project — principles seeded by `spectastic init --profile enterprise`.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Version</b>     <span>0.1.0</span>
+    <b>Ratified</b>    <span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Last amended</b><span><time datetime="2026-07-21">21 Jul 2026</time></span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Starter principles for this project, seeded from the chosen profile. Refine them with /spectastic.principles, then ratify.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="core-principles">
+<h2>Core principles</h2>
+<p>These bind every spec, plan, and task in this project. Deviations require an amendment to this document and a version bump.</p>
+
+<!-- spectastic:principles-start -->
+<h3 id="P-1">P-1 · Clarity over cleverness</h3>
+<p>Prefer the simplest code the next reader — human or agent — can follow. Clever indirection is a cost, not a flex.</p>
+
+<h3 id="P-2">P-2 · Small, reversible changes</h3>
+<p>Ship in slices. Every change SHOULD be easy to revert; a large irreversible batch is a design smell.</p>
+
+<h3 id="P-3">P-3 · Explicit over implicit</h3>
+<p>Name things. No hidden magic, no action-at-a-distance an agent can't see from the code in front of it.</p>
+
+<h3 id="P-4">P-4 · One set of conventions, enforced</h3>
+<p>A single formatter and lint config, applied automatically. Style is decided once and enforced by the toolchain, not debated per PR.</p>
+
+<h3 id="P-5">P-5 · Record the why</h3>
+<p>Decisions carry their rationale. Code says what; a decision log or comment says why it had to be this way.</p>
+
+<h3 id="P-6">P-6 · Tests accompany behavior</h3>
+<p>Code that ships carries a test for the behavior it adds. The demoable path is covered before it merges.</p>
+
+<h3 id="P-7">P-7 · Done means verified</h3>
+<p>Every level of testing is produced — unit, integration, and a behavioral check that exercises the running code. Where no framework exists, build a minimal tool to self-verify. Presence is never accepted as proof.</p>
+
+<h3 id="P-8">P-8 · Ship dark by default</h3>
+<p>A change to a working system ships behind a toggle, off by default — it reaches users by a deliberate, reversible flip. Standing the system up the first time is not a change to gate.</p>
+
+<h3 id="P-9">P-9 · Decisions are grounded</h3>
+<p>A claim without a cited source is not yet a decision. Every design-bearing choice records the evidence it rests on.</p>
+
+<h3 id="P-10">P-10 · The enforcement floor holds</h3>
+<p>When a gate tool fails — a version incompatibility, a new toolchain, a false positive — fix the gate (bump the tool, adjust its config, pin a known-good version) before removing it. Disabling or loosening a gate is a last resort that is explicit and recorded, never a silent convenience.</p>
+
+<h3 id="P-11">P-11 · Contract-first interfaces</h3>
+<p>A component that exposes an interface ships a checked-in contract (OpenAPI, JSON Schema, or a typed signature) before the code behind it. The contract is the agent's target and the consumer's guarantee.</p>
+
+<h3 id="P-12">P-12 · Library-first boundaries</h3>
+<p>Keep the reusable core separate from its entry point. Logic lives in a testable, importable library; the CLI, endpoint, or UI is a thin adapter over it.</p>
+
+<h3 id="P-13">P-13 · Secure by default</h3>
+<p>Safe defaults are the floor: no hardcoded credentials, secrets from the environment, authorization on by default. Every insecurity is an explicit, reviewed exception, never an accident.</p>
+
+<h3 id="P-14">P-14 · Least privilege</h3>
+<p>Grant the narrowest capability that does the job — to a service, a token, and an autonomous agent alike. Bound the blast radius before you widen the access.</p>
+
+<h3 id="P-15">P-15 · Structured observability</h3>
+<p>The running system emits the golden signals (latency, traffic, errors, saturation) through a standard metrics registry or exporter, so its health is observed in production, not guessed at from logs.</p>
+
+<h3 id="P-16">P-16 · Service level objectives</h3>
+<p>Each production-facing reliability target is written as an SLO with an explicit SLI and error budget. The remaining budget, not opinion, sets the pace of change.</p>
+
+<h3 id="P-17">P-17 · Semantic versioning</h3>
+<p>Release versions are MAJOR.MINOR.PATCH, a compatibility contract: a breaking change bumps MAJOR, a backward-compatible feature MINOR, a fix PATCH. Dependents and agents then reason mechanically about whether an upgrade is safe.</p>
+
+<h3 id="P-18">P-18 · Supply-chain hygiene</h3>
+<p>Pin, audit, and prune dependencies; adding one is a reviewed decision, not a reflex. Agents pull transitive forests, so bound the blast radius at the manifest.</p>
+
+<h3 id="P-19">P-19 · Supply-chain provenance</h3>
+<p>Publish an SBOM and a build attestation for every release, so a consumer can verify what went into an artifact and where it came from.</p>
+
+<h3 id="P-20">P-20 · Accessibility conformance</h3>
+<p>A user-facing product meets formal, audited WCAG 2.x AA — for such a product a regulated obligation, not a finishing touch. A service or CLI with no user-facing surface satisfies this trivially.</p>
+<!-- spectastic:principles-end -->
+</section>
+
+
+<section id="scope">
+<h2>Scope</h2>
+
+<spec-goals>
+  <h3>This project does</h3>
+  <ul>
+    <li>What this project builds — fill in.</li>
+    <li>A second in-scope area.</li>
+    <li>A third in-scope area.</li>
+  </ul>
+</spec-goals>
+
+<spec-non-goals>
+  <h3>This project does not</h3>
+  <ul>
+    <li>What this project deliberately does not do.</li>
+    <li>A second non-goal.</li>
+  </ul>
+</spec-non-goals>
+</section>
+
+
+<section id="governance">
+<h2>Governance</h2>
+
+<dl>
+  <dt>Owners</dt>           <dd>Project owner — fill in.</dd>
+  <dt>Decision style</dt>   <dd>Owner decides; propose changes by PR.</dd>
+  <dt>Amendment process</dt><dd>PR to this file with a version bump and a Sync Impact Report.</dd>
+  <dt>Versioning</dt>       <dd>Semver. MAJOR = principle removed/redefined. MINOR = principle added. PATCH = wording.</dd>
+</dl>
+
+<spec-assumption>
+<p>Assumes the enterprise profile's level of rigor fits this project.</p>
+</spec-assumption>
+</section>
+
+
+<section id="changelog">
+<h2>Change log</h2>
+<spec-changelog>
+<ol>
+  <li><span class="rev"><b>v0.1.0</b> · <time datetime="2026-07-21">21 Jul 2026</time></span><span>Ratified.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Principles v0.1.0 · ratified 2026-07-21
+</footer>
+
+</main>
+<script src="assets/spec.js"></script>
+</body>
+</html>

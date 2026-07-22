@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>FIFO/LIFO tax lot tracking · Tasks</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Tasks · 005-tax-lots</p>
+  <h1>FIFO/LIFO tax lot tracking</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Ordered, parallelizable work. Tests precede implementation. Drive through with
+    <code>/spectastic.implement</code> — one task per invocation.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">005-tax-lots</a></span>
+    <b>Plan</b>       <span><a href="./plan.html">plan</a></span>
+    <b>Branch</b>     <span><code>005-tax-lots</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-22">22 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>16 tasks across five phases. Setup → Foundational → User stories (US1·US2·US3) → Polish.
+    Tasks marked <span class="par">[P]</span> can run in parallel — different files, no
+    dependency. Tests for a story <strong>MUST</strong> be written and failing before its
+    implementation tasks start.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="strategy">
+<h2>1 · Execution strategy</h2>
+
+<spec-tabs>
+  <spec-tab label="MVP-first">
+    <p>Implement US1 end-to-end. Ship. Iterate to US2 and US3 only after US1 is verified.</p>
+  </spec-tab>
+  <spec-tab label="Incremental">
+    <p>Setup → Foundational → US1 → US2 → US3 → Polish. Each story closes its conformance
+    before the next opens.</p>
+  </spec-tab>
+  <spec-tab label="Parallel teams">
+    <p>One team on each user story after Foundational. Coordinate at shared seams (data model,
+    API contracts) via the spec, not Slack.</p>
+  </spec-tab>
+</spec-tabs>
+</section>
+
+
+<section id="phase-setup" class="phase">
+<h2>2 · Phase 1 — Setup</h2>
+
+<spec-task id="T-001" parallel>
+  <input type="checkbox">
+  <div><strong>Create the tax module skeleton</strong> <span class="path">src/main/java/io/spectastic/portfolio/tax/</span></div>
+</spec-task>
+<spec-task id="T-002">
+  <input type="checkbox">
+  <div><strong>Confirm Quarkus extensions and jacoco</strong> — verify <code>quarkus-micrometer-registry-prometheus</code>, <code>quarkus-smallrye-openapi</code>, and the jacoco plugin are already wired by 001. <span class="path">pom.xml</span></div>
+</spec-task>
+</section>
+
+
+<section id="phase-foundation" class="phase">
+<h2>3 · Phase 2 — Foundational</h2>
+<p>Shared infrastructure no story can ship without. Sequential where order matters.</p>
+
+<spec-task id="T-010">
+  <input type="checkbox">
+  <div><strong>Reference the shared model owned by 001</strong> — consume <code>TradeEvent</code>, <code>PriceTick</code>, and <code>PRICE_SCALE</code>; define no umbrella types here. <span class="path">src/main/java/io/spectastic/portfolio/model/</span></div>
+</spec-task>
+<spec-task id="T-011" parallel>
+  <input type="checkbox">
+  <div><strong>Define Lot and ReliefPolicy</strong> — the immutable lot record and the FIFO|LIFO enum. <span class="path">src/main/java/io/spectastic/portfolio/tax/Lot.java</span></div>
+</spec-task>
+</section>
+
+
+<section id="phase-us1" class="phase">
+<h2>4 · Phase 3a — US1 · Open lots on buys</h2>
+
+<h3>Tests (write &amp; fail first)</h3>
+<spec-task id="T-100" parallel>
+  <input type="checkbox">
+  <div><strong>Test: buys open acquisition-ordered lots</strong> — one lot per buy, quantities sum to the long position. <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+
+<h3>Implementation</h3>
+<spec-task id="T-110">
+  <input type="checkbox">
+  <div><strong>Push a lot per buy onto the deque</strong> — <code>ArrayDeque&lt;Lot&gt;</code> per <code>(account, instrument)</code> in acquisition order. <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#FR-001">FR-001</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="phase-us2" class="phase">
+<h2>5 · Phase 3b — US2 · Relieve by FIFO or LIFO on a sell</h2>
+
+<h3>Tests (write &amp; fail first)</h3>
+<spec-task id="T-200" parallel>
+  <input type="checkbox">
+  <div><strong>Test: the SC-001 worked example</strong> — buy 100@10 then 100@12, sell 150; FIFO relieved basis 1600 leaving 50@12, LIFO 1700 leaving 50@10, each exact. <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+
+<h3>Implementation</h3>
+<spec-task id="T-210">
+  <input type="checkbox">
+  <div><strong>Relieve by policy with an in-place split</strong> — FIFO from the head, LIFO from the tail; reduce the boundary lot's <code>qtyOpen</code>; realized gain <code>qty·(sellPrice − lotBasis)</code> in long arithmetic. <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+<spec-task id="T-211" parallel>
+  <input type="checkbox">
+  <div><strong>Open a short lot on oversell</strong> — a sell exceeding open long lots closes them and opens a SHORT lot for the residual. <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#FR-002">FR-002</a>, <a href="./spec.html#FR-003">FR-003</a>, <a href="./spec.html#SC-001">SC-001</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="phase-us3" class="phase">
+<h2>6 · Phase 3c — US3 · Auditable realized gain</h2>
+
+<h3>Tests (write &amp; fail first)</h3>
+<spec-task id="T-300" parallel>
+  <input type="checkbox">
+  <div><strong>Test: a record per relief sums to cumulative gain</strong> — each <code>RealizedGainRecord</code> names lot, policy, proceeds, basis, gain; summing reproduces cumulative realized gain. <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+<spec-task id="T-301" parallel>
+  <input type="checkbox">
+  <div><strong>Test: unrealized on tick reconciles to replay</strong> — per-lot unrealized gain folds on <code>PriceTick</code>; incremental equals a full replay to the cent. <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+
+<h3>Implementation</h3>
+<spec-task id="T-310">
+  <input type="checkbox">
+  <div><strong>Emit an immutable RealizedGainRecord</strong> — lot sequence, applied policy, proceeds, relieved basis, gain, holding period. <span class="path">src/main/java/io/spectastic/portfolio/tax/RealizedGainRecord.java</span></div>
+</spec-task>
+<spec-task id="T-311">
+  <input type="checkbox">
+  <div><strong>Fold unrealized gain and reconcile</strong> — per-lot unrealized on ticks; snapshot deep-copy, restore-then-replay-tail equals full replay. <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#FR-004">FR-004</a>, <a href="./spec.html#FR-005">FR-005</a>, <a href="./spec.html#SC-002">SC-002</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="phase-polish" class="phase">
+<h2>7 · Phase 4 — Polish</h2>
+<spec-task id="T-900" parallel>
+  <input type="checkbox">
+  <div><strong>Assert the bounded open-lot set</strong> — 0 lots when flat, open lots ≤ open buys. <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+<spec-task id="T-901" parallel>
+  <input type="checkbox">
+  <div><strong>Add the Micrometer relief timer and JMH check</strong> — fold timer at <code>/q/metrics</code>; JMH microbench confirms relief p99 &lt; 40 µs at 1000 lots. <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+<spec-task id="T-902" parallel>
+  <input type="checkbox">
+  <div><strong>Wire diff-aware jacoco coverage</strong> — patch target on changed lines; a change never lowers coverage of what it touches. <span class="path">pom.xml</span></div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#NFR-001">NFR-001</a>, <a href="./spec.html#NFR-002">NFR-002</a>, <a href="./spec.html#NFR-003">NFR-003</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="dependencies">
+<h2>8 · Dependencies</h2>
+<pre><code>Setup           → Foundational
+Foundational    → US1, US2, US3   (independent after this point)
+US1, US2, US3   → Polish
+</code></pre>
+</section>
+
+
+<section id="phase-2026-07-22-hifo-relief" class="phase">
+<h2>7 · Add HIFO relief policy <span class="par">(applied change <a href="./changes/archive/2026-07-22-hifo-relief/proposal.html">2026-07-22-hifo-relief</a>)</span></h2>
+<p>Folded from the applied proposal's §6 (the archive is frozen).</p>
+<spec-task id="T-1000">
+  <input type="checkbox" checked>
+  <div><strong>Add a HIFO worked-example test</strong> — buy 100@10, 100@14, 100@12; sell 150 → relieved basis 2000, leaving 50@12 and 100@10; assert HIFO differs from FIFO and LIFO, to the cent <span class="path">src/test/java/io/spectastic/portfolio/TaxLotBookTest.java</span></div>
+</spec-task>
+<spec-task id="T-1001">
+  <input type="checkbox" checked>
+  <div><strong>Add HIFO to the policy enum</strong> <span class="path">src/main/java/io/spectastic/portfolio/tax/ReliefPolicy.java</span></div>
+</spec-task>
+<spec-task id="T-1002">
+  <input type="checkbox" checked>
+  <div><strong>Generalise lot selection</strong> — relief picks the policy-preferred lot (FIFO first, LIFO last, HIFO highest basis) and relieves/splits it in place <span class="path">src/main/java/io/spectastic/portfolio/tax/TaxLotBook.java</span></div>
+</spec-task>
+</section>
+
+
+<section id="changelog">
+<h2>10 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial task breakdown. TDD per story: US1 acquisition-ordered lot opens (T-100/T-110), US2 FIFO/LIFO relief with the SC-001 worked example as the headline test plus short-lot oversell (T-200/T-210/T-211), US3 immutable audit records and unrealized-on-tick reconcile-to-replay (T-300/T-301/T-310/T-311). Polish: bounded-lot assertion, Micrometer relief timer with JMH envelope check, diff-aware jacoco.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Tasks for 005-tax-lots · FIFO/LIFO tax lot tracking · authored 22 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

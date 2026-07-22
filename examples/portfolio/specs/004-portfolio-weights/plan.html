@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Portfolio weight calculation · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 004-portfolio-weights</p>
+  <h1>Portfolio weight calculation</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">004-portfolio-weights</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>004-portfolio-weights</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-22">22 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Compute each holding's weight as its market value over the book total, reading exact-integer
+    mark-to-market values from the <a href="../003-position-engine/spec.html">position engine (003)</a>
+    and dividing only once — the final ratio is the one place <code>double</code> appears on the money path.
+    The denominator is an explicit, selectable basis (gross <code>Σ|MV|</code> default, net <code>ΣMV</code>
+    guarded near zero) so weights stay well-defined with shorts. The single biggest risk is latency:
+    whether O(N)-on-read meets the reweight SLO (p99 &lt; 500&nbsp;&micro;s at N=5000) is a spike, with a
+    running-denominator incremental maintainer as the ready fallback.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verify this plan respects every principle in
+<a href="../../principles.html">v0.1.0</a>. Any violation requires either a
+principles amendment or a deliberate exception logged below.</p>
+
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>One derived read-view over positions; O(N)-on-read first, incremental maintainer deferred (D-003).</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>The denominator basis is an explicit <code>WeightBasis</code> enum, never inferred (D-001, FR-002).</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td>TDD per story: tests written and failing before implementation (T-100/T-200/T-300).</td></tr>
+    <tr><td>P-7 · Done means verified</td><td><spec-pill>OK</spec-pill></td><td>Sum-to-one invariant, staleness flag, and reweight latency are all directly checked (§8 risks, SLOs).</td></tr>
+    <tr><td>P-8 · Ship dark by default</td><td><spec-pill>OK</spec-pill></td><td><code>portfolio.analytics.enabled</code> defaults false; the slice is off until switched on (T-901).</td></tr>
+    <tr><td>P-9 · Decisions are grounded</td><td><spec-pill>OK</spec-pill></td><td>D-001/D-002 verified against the spec; D-003 rests on a spike accepted as a §8 risk.</td></tr>
+    <tr><td>P-15 · Structured observability</td><td><spec-pill>OK</spec-pill></td><td>Micrometer reweight timer on <code>/q/metrics</code>; OpenAPI at <code>/q/openapi</code> (T-901).</td></tr>
+    <tr><td>P-16 · Service level objectives</td><td><spec-pill>OK</spec-pill></td><td>Reweight, normalization, and freshness SLOs are inherited from the spec and tracked here (§2).</td></tr>
+  </tbody>
+</table>
+<p><spec-note><p>These are the load-bearing principles this slice turns on. The full
+<a href="../../principles.html">P-1…P-20</a> register applies unchanged; platform-wide conformance is
+tracked in the umbrella plan (001).</p></spec-note></p>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 (Temurin 21.0.9).</dd>
+  <dt>Frameworks</dt>       <dd>Quarkus 3.37.3, Maven. Extensions: quarkus-rest, quarkus-rest-jackson, quarkus-arc, quarkus-micrometer-registry-prometheus, quarkus-smallrye-openapi; test quarkus-junit5, rest-assured.</dd>
+  <dt>Architecture</dt>     <dd>Vertical-slice module <code>io.spectastic.portfolio.weights</code> — a derived read view over the event-sourced position snapshot (fold TradeEvent + PriceTick) owned by 003; this slice owns weights only.</dd>
+  <dt>Storage</dt>          <dd>None of its own. Reads the in-memory position snapshot from 003 at a ledger sequence; the <code>TradeLedger</code> log is owned upstream.</dd>
+  <dt>Testing</dt>          <dd>JUnit5 unit tests plus one <code>@QuarkusTest</code> (rest-assured over <code>/q/openapi</code>); jacoco.</dd>
+  <dt>Coverage</dt>         <dd>Diff-aware: a patch target on changed lines, and a change never lowers coverage of what it touches. No universal project percentage.</dd>
+  <dt>Perf targets</dt>     <dd>Reweight p99 &lt; 500&nbsp;&micro;s full-book at N=5000 (<a href="./spec.html#SLO-reweight">SLO-reweight</a>); <code>|Σweights − 1| ≤ 1e-9</code> on every gross recompute (<a href="./spec.html#SLO-normalization">SLO-normalization</a>); freshness p99 &lt; 2&nbsp;ms from originating tick (<a href="./spec.html#SLO-freshness">SLO-freshness</a>).</dd>
+  <dt>Constraints</dt>      <dd>Exact integer fixed-point on the money path (<code>PRICE_SCALE=10_000</code>, whole-long quantities). <code>double</code> appears in exactly one place — the final display ratio <code>mtm/denominator</code>; the market values it divides are exact integers. Ship dark: <code>portfolio.analytics.enabled</code> default false.</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>3 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed — read this before the
+approach: it separates what the plan <em>knows</em> from what it <em>assumes</em> (per
+<code>REQ-LIFECYCLE-006</code>). Status is <code>verified</code> (opened the source
+this turn), <code>spike</code> (decidable only by a time-boxed investigation — run it, record the
+finding), or <code>assumed</code> (taken as true without verification). A <code>must</code>-tier decision
+may not rest on an <code>assumed</code>/unresolved-<code>spike</code> fact unless accepted as a
+<code>&lt;spec-risk&gt;</code> (see §8).</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>003 exposes a read-consistent market-value snapshot at a ledger sequence; weights read it and never recompute MTM.</td>
+        <td><code>specs/003-position-engine/spec.html</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Position engine owns mark-to-market; this slice consumes it (spec §6 assumption, out-of-scope defer-to 003).</td></tr>
+    <tr><td>The denominator must be an explicit, selectable gross/net basis, gross summing to one within tolerance.</td>
+        <td><code>specs/004-portfolio-weights/spec.html#FR-002</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>FR-002 mandates gross <code>Σ|MV|</code> (default) and net <code>ΣMV</code> with documented sign semantics.</td></tr>
+    <tr><td>The reweight envelope is p99 &lt; 500&nbsp;&micro;s full-book at N=5000.</td>
+        <td><code>specs/004-portfolio-weights/spec.html#SLO-reweight</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>SLO-reweight, 28-day window, occurrence budgeting; drives the compute-strategy choice.</td></tr>
+    <tr><td>O(N)-on-read reweight meets SLO-reweight at N=5000, or a running-denominator maintainer is required.</td>
+        <td>Benchmark the fold at N=5000</td>
+        <td><spec-status value="review">spike</spec-status></td>
+        <td>Pending — O(N)-on-read is the spike baseline; the incremental maintainer (D-003) is the fallback if it misses.</td></tr>
+    <tr><td>All market values are in a single base currency for this slice.</td>
+        <td>—</td>
+        <td><spec-status value="blocked">assumed</spec-status></td>
+        <td>Multi-currency translation is deferred to <code>TBD-multi-currency-base</code> (spec §6); not worth verifying now.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>4 · Approach</h2>
+
+<p>The slice is a single derived view. On read it folds the current 003 position snapshot into a
+<code>WeightBook</code>: it accumulates the denominator under the selected <code>WeightBasis</code>
+(gross <code>Σ|MV|</code> or net <code>ΣMV</code>), then emits each instrument's weight as the exact
+integer market value divided by that denominator. The division is the sole floating-point step; every
+value feeding it stays an exact integer, and the gross invariant <code>|Σweights − 1| ≤ 1e-9</code> is
+asserted on each recompute. Empty books yield empty weights (no divide-by-zero), and the net basis
+carries a near-zero-denominator guard that flags instability instead of emitting exploding weights.</p>
+
+<p>For the spike we compute O(N) on read, which is trivially reconcilable against a full replay; the
+running-denominator incremental maintainer that lands the p99 SLO at N=5000 is noted and deferred
+(§9). Concentration rollups — top-N holdings and a Herfindahl index <code>Σ weight²</code> — derive
+from the same weights. A weight whose underlying price is older than the freshness bound is marked
+stale rather than silently served.</p>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="System architecture sketch">
+  <style>
+    .box { fill:#fcfbf7; stroke:#c4c1bb; stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill:#4a4a46; letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill:#353534; }
+    .arr { stroke:#73706d; stroke-width:1.2; fill:none; }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">POSITION SNAPSHOT</text>
+  <text class="body"  x="56" y="122">003 · exact-int MTM</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">PORTFOLIOWEIGHTS</text>
+  <text class="body"  x="286" y="122">fold → WeightBook</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">WEIGHTS + ROLLUPS</text>
+  <text class="body"  x="516" y="122">ratios, Herfindahl</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#73706d"/></marker></defs>
+</svg>
+<figcaption>Exact-integer market values flow from 003 into the weights fold, which emits floating-point ratios and concentration rollups. The one division is the only floating-point step.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>5 · Alternatives considered</h2>
+
+<spec-matrix>
+<table>
+  <thead>
+    <tr><th>Option</th><th>Well-defined with shorts</th><th>Sum-to-one</th><th>Latency-fit</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Net ΣMV denominator</td><td>2</td><td>1</td><td>4</td><td class="score">7</td></tr>
+    <tr><td>Long-only denominator (drop shorts)</td><td>1</td><td>3</td><td>3</td><td class="score">7</td></tr>
+    <tr data-winner><td>Gross Σ|MV| denominator — chosen default</td><td>5</td><td>5</td><td>4</td><td class="score">14</td></tr>
+  </tbody>
+</table>
+</spec-matrix>
+
+<p>Gross <code>Σ|MV|</code> is the default because it is the only basis that is well-defined with shorts
+<em>and</em> sums to one; net <code>ΣMV</code> is still offered (guarded near zero) for the desk that
+wants signed exposure. Orthogonally, on compute strategy we weighed O(N)-on-read against a
+running-denominator maintainer on the same latency-fit criterion: O(N)-on-read is chosen for the spike
+for its simplicity and reversibility (P-2), and the running-denominator maintainer is the noted
+optimization that lands p99 &lt; 500&nbsp;&micro;s at N=5000, deferred within the slice (D-003, §9).</p>
+</section>
+
+
+<section id="decisions">
+<h2>6 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Explicit, selectable denominator — gross default, net guarded</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>A naive <code>ΣMV</code> denominator breaks with shorts — weights exceed 100% or blow up near a zero net (spec §1). FR-002 requires the denominator to be explicit and selectable (<code>specs/004-portfolio-weights/spec.html#FR-002</code>).</dd>
+    <dt>Decision</dt>     <dd>A <code>WeightBasis</code> enum: <code>GROSS = Σ|MV|</code> (default; weights in <code>[0,1]</code> summing to 1) and <code>NET = ΣMV</code> (offered, with documented sign semantics and a near-zero-denominator guard).</dd>
+    <dt>Consequences</dt> <dd>+ Unambiguous concentration with shorts; + the sum-to-one invariant is directly testable. − Two code paths plus a guard to maintain.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Weights are double ratios over exact-integer market values</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The money path is exact integer fixed-point (<code>PRICE_SCALE=10_000</code>, whole-long quantities); a fraction of the book cannot be represented exactly as an integer. NFR-002 bounds the normalization error (<code>specs/004-portfolio-weights/spec.html#SLO-normalization</code>).</dd>
+    <dt>Decision</dt>     <dd>Weight = <code>(double) mtm / denominator</code>. Market values stay exact integers; only the final ratio is floating. The invariant <code>|Σweights − 1| ≤ 1e-9</code> under gross is asserted on every recompute.</dd>
+    <dt>Consequences</dt> <dd>+ A single, contained use of <code>double</code> on the money path — everything upstream stays exact. − Requires the 1e-9 tolerance contract and care that <code>double</code> never leaks back into market-value arithmetic.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="spike">
+  <h4>D-003 · O(N)-on-read for the spike; running-denominator maintainer deferred</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>SLO-reweight is p99 &lt; 500&nbsp;&micro;s at N=5000 (<code>specs/004-portfolio-weights/spec.html#SLO-reweight</code>); whether O(N)-on-read meets it at that N is unmeasured — the §3 spike. Accepted as a §8 risk.</dd>
+    <dt>Decision</dt>     <dd>Compute weights O(N) on read from the current 003 position snapshot for the spike. Note the running-denominator incremental maintainer as the optimization that lands the SLO, deferred within the slice (§9).</dd>
+    <dt>Consequences</dt> <dd>+ Simplest, most reversible first cut (P-2), correctness before speed, and trivially reconcilable against a full replay. − May miss p99 at N=5000 until the incremental maintainer lands.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>7 · Project structure</h2>
+
+<p>Only the new or changed paths, grouped by the vertical-slice boundary the §6 decisions draw.</p>
+
+<pre><code>src/
+  main/java/io/spectastic/portfolio/weights/
+    PortfolioWeights.java   # fold snapshot → WeightBook; ratios, guard, staleness, Herfindahl
+    WeightBasis.java        # GROSS (default) | NET enum
+  test/java/io/spectastic/portfolio/
+    PortfolioWeightsTest.java   # sum-to-one, reweight-on-tick, shorts + guard + staleness
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>8 · Risks &amp; mitigations</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>O(N)-on-read misses p99 &lt; 500&nbsp;&micro;s at N=5000 (accepts the D-003 spike).</td><td>M</td><td>M</td><td>Benchmark the fold at N=5000 (the §3 spike); the running-denominator incremental maintainer (D-003) is the ready fallback that meets the SLO.</td></tr>
+    <tr><td>Net-basis denominator nears zero on a balanced long/short book.</td><td>M</td><td>H</td><td>Near-zero guard flags instability instead of emitting exploding weights (US3, FR-002); gross is the default.</td></tr>
+    <tr><td>The <code>double</code> ratio leaks back into exact market-value arithmetic.</td><td>L</td><td>H</td><td><code>double</code> confined to the final <code>mtm/denominator</code> ratio; market values stay integer; <code>|Σweights − 1| ≤ 1e-9</code> asserted every recompute (NFR-002).</td></tr>
+    <tr><td>A stale price is served without a flag.</td><td>L</td><td>M</td><td>The freshness bound marks weights stale past the bound (FR-003, SLO-freshness); covered by SC-002.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="complexity">
+<h2>9 · Complexity tracking</h2>
+<p>Anywhere this plan introduces complexity not strictly required by the spec, justify it here.
+A reviewer should be able to point at any non-trivial choice and find its rationale in this section.</p>
+
+<spec-assumption>
+<p>The running-denominator incremental maintainer is deferred within the slice. For the spike, weights are
+computed O(N) on read from the current position snapshot — the simplest correct cut and trivially
+reconcilable against a full replay (P-2). The incremental maintainer is the optimization that lands
+p99 &lt; 500&nbsp;&micro;s at N=5000, but it adds mutable running state and tick-ordering care that
+correctness and the sum-to-one invariant should precede. It is tracked as the §3 spike and the §8
+latency risk, and will land only if the N=5000 benchmark shows O(N)-on-read misses SLO-reweight.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>10 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the denominator choice (offer both, gross default, net guarded near zero), the
+single contained use of <code>double</code>, and the O(N)-on-read-for-now compute strategy were all
+settled against the spec and the shared design contract.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>11 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial plan. Gross/net denominator (D-001), contained <code>double</code> display ratio over exact-integer market values (D-002), O(N)-on-read for the spike with running-denominator maintainer deferred (D-003). Consumes the 003 position snapshot; SLOs inherited from the spec.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 004-portfolio-weights · Portfolio weight calculation · authored 22 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>
