@@ -41,6 +41,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 @keyframes scPop{0%{opacity:0;transform:scale(.4)}55%{opacity:1;transform:scale(1.22)}100%{opacity:1;transform:scale(1)}}
 @keyframes scFade{from{opacity:0}to{opacity:1}}
 @keyframes scFloat{0%,100%{transform:translateY(0) rotate(-1.4deg)}50%{transform:translateY(-7px) rotate(-1.4deg)}}
+@keyframes scLogoPop{0%{opacity:0;transform:scale(.3) rotate(-135deg)}70%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes scLogoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes scLogoWord{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:none}}
+/* scroll-driven spectrum: header mark = page-progress dial, hero mark = send-off spin */
+.navMark{transform:rotate(calc(var(--sp,0) * 360deg))}
+.heroMark{transform:rotate(calc(var(--hp,0) * 360deg)) scale(calc(1 - var(--hp,0) * .12));transform-origin:center;will-change:transform}
+@media (prefers-reduced-motion: reduce){.navMark,.heroMark{transform:none!important}}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important}}
 
 /* hover utilities */
@@ -114,7 +121,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   <div style="max-width:1160px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px">
     <a href="#top" style="display:flex;align-items:baseline;gap:1px;text-decoration:none;color:var(--ink)">
       <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.34rem;letter-spacing:-.01em">spectastic</span>
-      <svg width="16" height="16" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:3px;margin-top:2px"><use href="#spec-logo"/></svg>
+      <svg class="navMark" width="16" height="16" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:3px;margin-top:2px"><use href="#spec-logo"/></svg>
     </a>
     <nav class="topnav" style="display:flex;align-items:center;gap:30px">
       <a href="#why" class="lnk nav-anchor" style="font-family:'Lato',sans-serif;font-size:.82rem;letter-spacing:.04em">Why</a>
@@ -141,8 +148,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 <section id="top" style="max-width:1160px;margin:0 auto;padding:0 32px;scroll-margin-top:84px">
 
   <div style="min-height:84vh;display:flex;flex-direction:column;justify-content:center;padding:64px 0 56px;text-align:center;align-items:center">
-    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);animation:scFade .8s both">Spec-driven development · single-file HTML</div>
-    <h1 style="font-family:'Fraunces',serif;font-weight:480;font-size:clamp(2.7rem,7.2vw,6rem);line-height:1.02;letter-spacing:-.025em;margin:24px 0 0;color:var(--ink)">
+    <a href="#top" aria-label="spectastic" style="display:inline-flex;align-items:flex-start;text-decoration:none;color:var(--ink);font-family:'Fraunces',serif;font-weight:600;font-size:clamp(3rem,8vw,5.4rem);letter-spacing:-.02em;line-height:1"><span style="display:inline-block;animation:scLogoWord .8s .1s cubic-bezier(.2,.75,.25,1) both">spectastic</span><span class="heroMark" style="flex:0 0 auto;margin-left:.04em;margin-top:.05em;display:inline-flex"><svg width="0.52em" height="0.52em" aria-hidden="true" style="overflow:visible;filter:drop-shadow(0 0 13px color-mix(in srgb,var(--crimson) 24%,transparent));animation:scLogoPop .6s .62s cubic-bezier(.2,.75,.25,1) both,scLogoFloat 5.5s 1.3s ease-in-out infinite"><use href="#spec-logo"/></svg></span></a>
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);margin-top:30px;animation:scFade .8s .35s both">Spec-driven development · single-file HTML</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:480;font-size:clamp(2rem,5.2vw,4rem);line-height:1.04;letter-spacing:-.02em;margin:22px 0 0;color:var(--ink)">
       <span style="display:inline-block;animation:scWordUp .7s .15s both">Think&nbsp;It?</span>
       <span style="display:inline-block;white-space:nowrap;animation:scWordUp .7s .42s both">Build&nbsp;It!<sup style="display:inline-block;vertical-align:1.75em;font-size:.4em;font-style:italic;font-weight:500;color:var(--crimson);margin-left:.02em;transform-origin:center bottom;animation:scPop .55s 1.08s both"><svg width="0.95em" height="0.95em" aria-hidden="true" style="display:inline-block;vertical-align:-.12em;overflow:visible;margin-right:-.04em"><use href="#spec-logo"/></svg><span style="font-style:italic">Right</span></sup></span>
     </h1>
@@ -520,6 +528,29 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => copyBtn.classList.remove('is-copied'), 1800);
   });
+  // ---------- scroll-driven spectrum ----------
+  // sp: whole-page progress (0→1) turns the header mark one full rotation — a spectrum
+  // progress dial. hp: hero-local progress (0→1 over the first ~viewport) spins the hero
+  // mark off as it leaves. Both write CSS vars; the transforms live in the stylesheet.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY || 0;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const sp = max > 0 ? Math.min(y / max, 1) : 0;
+        const hp = Math.min(y / (window.innerHeight * 0.85), 1);
+        root.style.setProperty('--sp', sp.toFixed(4));
+        root.style.setProperty('--hp', hp.toFixed(4));
+        ticking = false;
+      });
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', onScroll, { passive: true });
+    onScroll();
+  }
 })();
 </script>
 </body>
