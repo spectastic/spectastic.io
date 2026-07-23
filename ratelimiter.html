@@ -61,6 +61,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border:0;border-radiu
 .token{width:100%;border-radius:4px;background:var(--sea);transition:height .18s ease}
 @media (max-width:720px){ .viz{grid-template-columns:1fr !important} .tiles{grid-template-columns:1fr 1fr !important} }
 </style>
+<style>/* scroll-driven spectrum header mark */.navMark{transform:rotate(calc(var(--sp,0) * 360deg));transform-origin:center}@media (prefers-reduced-motion:reduce){.navMark{transform:none}}</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -82,7 +83,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border:0;border-radiu
       <span style="font-size:1rem">←</span>
       <span style="display:flex;align-items:baseline;gap:1px">
         <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
-        <svg width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+        <svg class="navMark" width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
       </span>
       <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Rate limiter</span>
     </a>
@@ -274,6 +275,24 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border:0;border-radiu
   toggle.addEventListener('click',()=>{const n=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=n;try{localStorage.setItem('spectastic-theme',n);}catch(e){}syncIcons();});
 
   reset();
+})();
+</script>
+<script>
+/* scroll-driven spectrum: header mark rotates with page progress */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root=document.documentElement, ticking=false;
+  function onScroll(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=window.scrollY||0, max=root.scrollHeight-window.innerHeight;
+      root.style.setProperty('--sp', (max>0?Math.min(y/max,1):0).toFixed(4));
+      ticking=false;
+    });
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll, {passive:true});
+  onScroll();
 })();
 </script>
 </body>
