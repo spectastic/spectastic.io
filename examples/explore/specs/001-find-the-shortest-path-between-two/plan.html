@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Least-weight shortest path · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 001-find-the-shortest-path-between-two</p>
+  <h1>Least-weight shortest path</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it — by hardening a build that already exists.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">001-find-the-shortest-path-between-two</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>001-find-the-shortest-path-between-two</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-23">23 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>This is a <strong>tracer-bullet</strong> graduation: the Dijkstra build proven in the exploration is kept
+    and hardened in place — moved into <code>src/pathfinding/</code>, given a real test suite, and brought under the
+    project gates. The one live risk is Dijkstra's unsoundness on negative weights, which we fence with an explicit
+    non-negative-weight assumption rather than absorb.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verify this plan respects every principle in
+<a href="../principles.html">v0.1.0</a>. Any violation requires either a principles amendment or a deliberate
+exception logged below.</p>
+
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-1 · Clarity over cleverness</td><td><spec-pill>OK</spec-pill></td><td>A plain linear-scan Dijkstra reads directly; the heap optimisation is deferred rather than smuggled in.</td></tr>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>One module, one capability; the graduation itself came in as a small reversible step from a quarantined spike.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>The hops-vs-weight decision is grounded in §3 by the archived exploration run, not asserted.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td>The tracer-bullet's first hardening task is a failing test suite before the code is moved to comply.</td></tr>
+    <tr><td>P-8 · Library-first boundaries</td><td><spec-pill>OK</spec-pill></td><td>The finder is a framework-free module with no I/O; tests use the zero-dependency <code>node:test</code> runner.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>TypeScript, run directly on Node 25 (native type stripping — no build step).</dd>
+  <dt>Frameworks</dt>       <dd>None. The domain is deliberately framework-free.</dd>
+  <dt>Architecture</dt>     <dd>n/a — a single pure module (<code>src/pathfinding/</code>), no layering needed.</dd>
+  <dt>Storage</dt>          <dd>None — operates on an in-memory graph passed by the caller.</dd>
+  <dt>Testing</dt>          <dd><code>node:test</code> + <code>node:assert</code>, table-style cases over fixed graphs.</dd>
+  <dt>Coverage</dt>         <dd>Diff-aware: every path through the finder is exercised by a case; a change never lowers coverage of what it touches.</dd>
+  <dt>Perf targets</dt>     <dd>Not a target at this stage; the linear-scan frontier is O(V²). The heap path is deferred (<code>TBD-heap-frontier</code>).</dd>
+  <dt>Constraints</dt>      <dd>Non-negative edge weights (licenses Dijkstra over Bellman-Ford).</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>3 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed. Because this slice graduated from an
+exploration, the headline facts are <code>verified</code> — they were <em>run</em> in the archived spike, and the run
+record is preserved (per <code>REQ-LIFECYCLE-006</code> / 023 FR-004).</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>&ldquo;Shortest&rdquo; means least weight, not fewest hops — the two diverge on a weighted graph.</td>
+        <td><code>explorations/archive/001-find-the-shortest-path-between-two/explore.html</code> §3 run block</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Probe: BFS returned <code>A→C→E</code> (2 hops, cost 25); Dijkstra returned <code>A→B→C→D→E</code> (cost 6). They disagree by 19.</td></tr>
+    <tr><td>Dijkstra returns the genuine least-weight path on the sample.</td>
+        <td><code>explorations/archive/001-find-the-shortest-path-between-two/dijkstra.ts</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>The kept build; its output on <code>SAMPLE</code> is <code>A→B→C→D→E</code>, cost 6 — the minimum over all A→E paths.</td></tr>
+    <tr><td>A linear-scan frontier is sufficient at the sizes in scope.</td>
+        <td><code>explorations/archive/001-find-the-shortest-path-between-two/dijkstra.ts</code></td>
+        <td><spec-status value="blocked">assumed</spec-status></td>
+        <td>Correct but O(V²); no large-graph benchmark run. Accepted as a deferred hardening, not a must-tier dependency.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>4 · Approach</h2>
+
+<p>Bring the kept build under the gates without rewriting it. Move <code>graph.ts</code> and <code>dijkstra.ts</code>
+out of the archive into <code>src/pathfinding/</code> unchanged in behaviour; drop the probe's inline assertion in favour
+of a real <code>node:test</code> suite that pins the exact path and cost (SC-001) and the unreachable case (SC-002). The
+discarded BFS arm is not shipped as a code path — it survives only as a <em>test witness</em> that proves fewest-hops and
+least-weight genuinely diverge (NFR-001), so the criterion can't silently pass on a graph where any traversal agrees.</p>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="System architecture sketch">
+  <style>
+    .box { fill:#fcfbf7; stroke:#c4c1bb; stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill:#4a4a46; letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill:#353534; }
+    .arr { stroke:#73706d; stroke-width:1.2; fill:none; }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">Graph</text>
+  <text class="body"  x="56" y="122">weighted adjacency map</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">dijkstraPath</text>
+  <text class="body"  x="286" y="122">least-weight solver</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">Path</text>
+  <text class="body"  x="516" y="122">nodes, or null</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#73706d"/></marker></defs>
+</svg>
+<figcaption>One pure function: a weighted graph and two nodes in, a least-weight path (or null) out.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>5 · Alternatives considered</h2>
+
+<spec-matrix>
+<table>
+  <thead>
+    <tr><th>Option</th><th>Answers &ldquo;least weight&rdquo;</th><th>Handles neg. weights</th><th>Simplicity</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>BFS (fewest hops)</td><td>0</td><td>0</td><td>3</td><td class="score">3</td></tr>
+    <tr><td>Bellman-Ford</td><td>3</td><td>3</td><td>1</td><td class="score">7</td></tr>
+    <tr data-winner><td>Dijkstra (chosen)</td><td>3</td><td>0</td><td>3</td><td class="score">9</td></tr>
+  </tbody>
+</table>
+</spec-matrix>
+<p>BFS is disqualified on the one criterion that matters (it answers hops, not weight — proven in §3). Bellman-Ford
+buys negative-weight support the domain doesn't need, at a real simplicity cost; it's the right slice only if
+<code>TBD-negative-weights</code> ever lands.</p>
+</section>
+
+
+<section id="decisions">
+<h2>6 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Dijkstra, not BFS</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The spec's SC-001 demands least weight. The §3 grounding row (archived probe) shows BFS returning a path costing 25 where the true minimum is 6 — a wrong answer, not a slower one.</dd>
+    <dt>Decision</dt>     <dd>Ship Dijkstra as the finder. Do not offer BFS as a code path.</dd>
+    <dt>Consequences</dt> <dd>+ Correct on every non-negative graph. + Kept build, no rewrite. − Unsound on negative weights (fenced by assumption + <code>TBD-negative-weights</code>).</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Linear-scan frontier now, heap later</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The kept build uses a linear scan over the frontier — correct, O(V²). No large-graph workload is in scope (§3, assumed row).</dd>
+    <dt>Decision</dt>     <dd>Keep the linear scan. Defer the binary-heap frontier to <code>TBD-heap-frontier</code>.</dd>
+    <dt>Consequences</dt> <dd>+ Simplest correct thing (P-1). − Not asymptotically optimal; revisit when a real graph size arrives.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · node:test, not a test framework</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>A pure, dependency-free module (P-8). The spike already ran on bare Node with no toolchain.</dd>
+    <dt>Decision</dt>     <dd>Harden with the built-in <code>node:test</code> runner and <code>node:assert</code>; add no test dependency.</dd>
+    <dt>Consequences</dt> <dd>+ Zero supply-chain surface. − Fewer matchers than a full framework; not needed here.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>7 · Project structure</h2>
+
+<p>Only the new or changed paths.</p>
+
+<pre><code>src/
+  pathfinding/
+    graph.ts        # Graph, Edge, cost() — moved from the archive, unchanged
+    dijkstra.ts     # dijkstraPath() — the kept build
+tests/
+  pathfinding.test.ts   # node:test — SC-001 exact path/cost, SC-002 unreachable, NFR-001 divergence witness
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>8 · Risks &amp; mitigations</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>A caller passes a negative edge weight; Dijkstra returns a wrong path silently.</td><td>L</td><td>H</td><td>Documented non-negative-weight assumption; <code>TBD-negative-weights</code> tracks a guard/Bellman-Ford slice.</td></tr>
+    <tr><td>Linear-scan frontier degrades on a large graph.</td><td>M</td><td>L</td><td>O(V²) is acceptable in scope; <code>TBD-heap-frontier</code> holds the optimisation.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="complexity">
+<h2>9 · Complexity tracking</h2>
+<p>One non-obvious choice worth defending.</p>
+
+<spec-assumption>
+<p>Keeping the discarded BFS as a test-only witness is deliberate extra code. It is justified: NFR-001 requires proving
+the two notions of &ldquo;shortest&rdquo; diverge, and the cheapest way to keep that honest is to compute the hop-count path in
+the test and assert it is <em>more expensive</em> than Dijkstra's — a guard that would catch a graph accidentally simplified until any traversal agrees.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>10 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the design rests on a run, not an interview, and the deferred work is named in §5 and §8.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>11 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-23">23 Jul 2026</time><span>Initial plan, extracted at graduation from exploration 001 (tracer-bullet). §3 seeded with the archived run's verified facts.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 001-find-the-shortest-path-between-two · Least-weight shortest path · authored 2026-07-23
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

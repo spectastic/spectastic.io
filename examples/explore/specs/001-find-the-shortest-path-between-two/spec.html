@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Least-weight shortest path · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 001-find-the-shortest-path-between-two</p>
+  <h1>Least-weight shortest path</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Given a weighted graph and two nodes, return the path of least total weight — which is not, in general, the path of fewest hops.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec ID</b>     <span>001-find-the-shortest-path-between-two</span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>—</span>
+    <b>Created</b>     <span><time datetime="2026-07-23">23 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Call <code>dijkstraPath(graph, start, goal)</code> and get back the least-total-weight node path, or <code>null</code> when the goal is unreachable.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="20" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>A small pathfinding library that returns the <strong>least-total-weight</strong> path between two nodes
+    of a weighted graph. Graduated from an exploration whose one job was to settle an ambiguity: on a weighted
+    graph, &ldquo;shortest&rdquo; can mean fewest hops or least weight, and the two diverge. The spike proved they
+    diverge sharply — so this spec commits to weight, and to a build (Dijkstra) that was kept, not rebuilt.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends only on the project principles. No upstream specs; the graph type is owned here.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcomes only — &ldquo;least total weight, unreachability reported distinctly.&rdquo; The algorithm choice (Dijkstra) and the frontier structure are the plan's to defend.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — a caller gets the genuinely cheapest route, not a hop-count lookalike.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>The build already exists (tracer-bullet); the plan back-fills and hardens it. No open interview blocks estimation.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One capability, four functional requirements, one module. Well under the budget.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Every requirement is observable on a fixed graph; the headline criterion is an exact path and cost.</dd>
+  </dl>
+
+  <spec-audience-map>
+    <dl>
+      <dt>Exec / PM</dt>   <dd>§<a href="#context">Context</a>, §<a href="#scenarios">User scenarios</a>, §<a href="#success">Success criteria</a>.</dd>
+      <dt>Reviewer</dt>    <dd>§<a href="#requirements">Requirements</a>, §<a href="#assumptions">Assumptions</a>, §<a href="#questions">Open questions</a>.</dd>
+      <dt>Implementer</dt> <dd>§<a href="#requirements">Requirements</a>, §<a href="#data">Data model</a>, §<a href="#conformance">Conformance index</a>.</dd>
+    </dl>
+  </spec-audience-map>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>&ldquo;Find the shortest path between two nodes&rdquo; is under-specified the moment edges carry weight. Breadth-first
+search answers <em>fewest hops</em>; Dijkstra answers <em>least total weight</em>. On an unweighted graph they
+coincide, so the ambiguity hides — until a weighted graph pulls them apart.</p>
+<p>This spec was not written up-front. It was graduated from an exploration
+(<code>explorations/archive/001-find-the-shortest-path-between-two/</code>) that built both algorithms loosely and ran
+them head-to-head to find out which one the phrase actually means. The build answered it, so the answer is grounded
+in a run, not an argument. The consumer is any caller that needs the cheapest route through a weighted graph.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable: if you implemented only US1, you would still have
+a viable MVP.</p>
+
+<h3 id="US1">US1 · The cheapest route, not the shortest-looking one <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>caller with a weighted graph</strong>, I want to <strong>get the path of least total weight between
+two nodes</strong> so that <strong>I follow the genuinely cheapest route, even when it takes more hops</strong>.</p>
+<p><em>Acceptance:</em> on a graph where the fewest-hops path and the least-weight path differ, the function returns
+the least-weight one, and its summed weight is no greater than any other path's.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Unreachable goal</strong> — no path exists from start to goal; the function reports that distinctly rather than returning a partial or empty path that reads as cost 0.</li>
+  <li><strong>Start equals goal</strong> — the path is the single node, total weight 0.</li>
+  <li><strong>Ties</strong> — two paths share the minimum weight; returning either is correct (no stable-tie guarantee is promised).</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>Given a weighted graph, a start node, and a goal node, the finder <spec-rule>MUST</spec-rule> return a path that
+<strong>minimises the total edge weight</strong> from start to goal.</p>
+<details><summary>Rationale</summary><p>This is the whole point the exploration settled: &ldquo;shortest&rdquo; means least weight. A fewest-hops answer is a defect, not an alternative.</p></details>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>When no path exists between start and goal, the finder <spec-rule>MUST</spec-rule> report unreachability distinctly
+(a <code>null</code> result), never a wrong or empty path.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="should">
+<p>When start equals goal, the finder <spec-rule level="should">SHOULD</spec-rule> return the single-node path with total weight 0.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="should">
+<p>The finder <spec-rule level="should">SHOULD</spec-rule> expose a <code>cost()</code> helper that sums a path's weight, so a
+caller can independently confirm the returned path's total.</p>
+</spec-requirement>
+
+<h3>Non-functional</h3>
+
+<spec-requirement id="NFR-001" priority="should">
+<p>Correctness <spec-rule level="should">SHOULD</spec-rule> be demonstrated against a graph on which fewest-hops and least-weight
+<strong>diverge</strong> — a graph where returning the hop-count path would visibly fail — not merely one where any traversal happens to agree.</p>
+</spec-requirement>
+
+<h3>Out of scope (deferred to other slices)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="TBD-negative-weights">Negative edge weights — Dijkstra is unsound with them; that case needs Bellman-Ford and its own slice.</li>
+    <li defer-to="TBD-heap-frontier">A priority-queue (binary-heap) frontier — a performance hardening for large graphs; the linear-scan frontier is correct but not asymptotically optimal.</li>
+    <li defer-to="TBD-k-shortest-paths">Enumerating the k shortest paths, or all minimum-weight paths under a tie.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+
+<p>Only the entities this feature owns.</p>
+
+<h3>Entities</h3>
+<dl>
+  <dt>Graph</dt><dd>An adjacency map: each node maps to its list of outgoing edges. Undirected graphs are built by linking both directions.</dd>
+  <dt>Edge</dt><dd><code>{ to: Node, weight: number }</code> — a non-negative weight to a neighbouring node.</dd>
+  <dt>Path</dt><dd>An ordered list of nodes from start to goal, or <code>null</code> when unreachable.</dd>
+</dl>
+
+<spec-note>
+<p>Invariant: the returned path's summed <code>cost()</code> is ≤ the cost of any other start→goal path. Weights are assumed non-negative (see Assumptions); a negative weight would break this invariant and is out of scope.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<p>Technology-agnostic, measurable outcomes. These are how we know it worked.</p>
+
+<spec-requirement id="SC-001" priority="must">
+<p>On the sample weighted graph, the shortest path from <code>A</code> to <code>E</code> is
+<code>A → B → C → D → E</code> at total weight <strong>6</strong> — and specifically <em>not</em> the fewest-hops path
+<code>A → C → E</code>, whose weight is <strong>25</strong>.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="should">
+<p>Querying a goal with no connecting path returns <code>null</code> (not an empty or partial path).</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+
+<spec-assumption>
+<p>Edge weights are non-negative — the domain (distances, costs, latencies) makes this safe, and it is what licenses Dijkstra over Bellman-Ford.</p>
+</spec-assumption>
+
+<spec-assumption>
+<p>Graphs are small enough that a linear-scan frontier is acceptable; the heap optimisation is deferred, not forgotten.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the one ambiguity this feature carried (hops vs. weight) was resolved empirically by the exploration before the spec existed.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-23">23 Jul 2026</time><span>Graduated from exploration 001 (tracer-bullet). Initial Draft extracted from the kept build.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  001-find-the-shortest-path-between-two · Least-weight shortest path · authored 2026-07-23
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

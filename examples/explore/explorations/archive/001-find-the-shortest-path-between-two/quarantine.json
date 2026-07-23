@@ -1,0 +1,8 @@
+{
+  "id": "001-find-the-shortest-path-between-two",
+  "intent": "find the shortest path between two nodes in a small weighted graph",
+  "status": "graduated",
+  "created": "2026-07-23",
+  "classify": "tracer-bullet",
+  "graduated": "2026-07-23"
+}

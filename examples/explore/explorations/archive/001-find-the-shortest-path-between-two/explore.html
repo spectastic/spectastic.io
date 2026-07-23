@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>find the shortest path between two nodes in a small weighted graph · Exploration</title>
+<link rel="stylesheet" href="../../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../../assets/favicon.svg">
+<script src="../../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<!--
+  Thin-floor ledger (spec 022-explore, decision D-005). During an exploration only
+  P-1 (single-file, source order) and P-2 (semantic tags) are in force. The SDD
+  ceremony is OFF: no requirement IDs, no INVEST block, no conformance index, no
+  budget gauge. This is a discovery record, not a conformant spec artifact —
+  `spectastic validate` scans the sibling quarantine.json, never this file.
+  Graduate to turn what you learned into a real spec/plan/tasks.
+-->
+
+<header>
+  <p class="small-caps">Exploration · 001-find-the-shortest-path-between-two · <spec-status value="quarantined">Quarantined</spec-status></p>
+  <h1>find the shortest path between two nodes in a small weighted graph</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    A build-to-learn record. Loose by design — graduate or delete; nothing here ships un-graduated.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>   <span><spec-status value="quarantined">Quarantined</spec-status></span>
+    <b>Explore ID</b><span>001-find-the-shortest-path-between-two</span>
+    <b>Intent</b>   <span>find the shortest path between two nodes in a small weighted graph</span>
+    <b>Created</b>  <span><time datetime="2026-07-23">23 Jul 2026</time></span>
+    <b>Exits</b>    <span>graduate (→ spec/plan/tasks) · delete</span>
+  </spec-meta>
+</header>
+
+
+<section id="intent">
+<h2>1 · Intent</h2>
+<p>find the shortest path between two nodes in a small weighted graph</p>
+<p>The one thing I want to know at the end: does <em>&ldquo;shortest&rdquo;</em> here mean the <strong>fewest
+hops</strong> or the <strong>least total weight</strong>? They're the same on an unweighted graph and can
+diverge sharply on a weighted one — and which one it is decides the algorithm. I'll build to find out, not
+argue about it.</p>
+</section>
+
+
+<section id="log">
+<h2>2 · What I built / tried / worked / didn't</h2>
+
+<spec-note>
+<p>Keep it rough. This is the discovery log — the value is the learning, not the prose.</p>
+</spec-note>
+
+<h3>Built</h3>
+<ul>
+  <li><code>graph.ts</code> — an undirected weighted adjacency map + a <code>cost()</code> helper that sums a
+    path's weight. One <code>SAMPLE</code> graph (5 nodes) deliberately rigged so the cheapest route takes the
+    most hops.</li>
+  <li><code>bfs.ts</code> — breadth-first search: shortest path by <em>edge count</em>, weight-blind.</li>
+  <li><code>dijkstra.ts</code> — shortest path by <em>total weight</em>, plain linear-scan frontier.</li>
+  <li><code>probe.ts</code> — runs both on the same graph, prints each path with its real weight, and asserts
+    Dijkstra is strictly cheaper. Run with a bare <code>node probe.ts</code> (Node 25 runs the TS directly).</li>
+</ul>
+
+<h3>Tried</h3>
+<ul>
+  <li>BFS first — my gut said &ldquo;shortest = fewest steps,&rdquo; and BFS is the textbook fewest-edges answer.</li>
+  <li>Then Dijkstra, the moment the probe showed BFS and Dijkstra disagreeing on the real cost.</li>
+  <li>Considered a binary-heap frontier; at 5 nodes a linear scan is plainly enough, so I left it (noted to harden).</li>
+</ul>
+
+<h3>Worked</h3>
+<ul>
+  <li>Dijkstra returns <code>A → B → C → D → E</code> at <strong>cost 6</strong> — the genuine least-weight path.</li>
+  <li>The probe makes the ambiguity concrete instead of theoretical: the two algorithms visibly disagree.</li>
+  <li>No build step — Node's native TS stripping runs the spike as-is, which kept the loop tight.</li>
+</ul>
+
+<h3>Didn't</h3>
+<ul>
+  <li>BFS is <strong>wrong for this problem</strong>: weight-blind, it took the 2-hop route <code>A → C → E</code>
+    at <strong>cost 25</strong> — the most expensive path on the board.</li>
+  <li>No negative-weight handling — out of scope here; that would need Bellman-Ford, not Dijkstra.</li>
+  <li>No priority-queue frontier yet — fine at this size, but the obvious first hardening step for the plan.</li>
+</ul>
+</section>
+
+
+<section id="run">
+<h2>3 · What actually ran</h2>
+<p>The commands you ran and what they proved. Captured in the verify.html Run/Demo shape so a later
+graduation can promote these facts to <code>grounding="verified"</code> with no re-capture.</p>
+<spec-runblock>
+  <spec-run>node probe.ts</spec-run>
+  <spec-toggle>none</spec-toggle>
+  <spec-tests>node probe.ts — exits non-zero unless Dijkstra's path is strictly cheaper than BFS's (one inline assertion; not a suite yet)</spec-tests>
+  <spec-demo>On the weighted sample, shortest A&nbsp;&rarr;&nbsp;E: BFS returns A&nbsp;&rarr;&nbsp;C&nbsp;&rarr;&nbsp;E (2 hops, cost 25) while Dijkstra returns A&nbsp;&rarr;&nbsp;B&nbsp;&rarr;&nbsp;C&nbsp;&rarr;&nbsp;D&nbsp;&rarr;&nbsp;E (cost 6). They disagree by 19 — proving &ldquo;shortest&rdquo; means least weight, not fewest hops. Verdict: keep Dijkstra, graduate as a tracer-bullet.</spec-demo>
+</spec-runblock>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Exploration 001-find-the-shortest-path-between-two · quarantined · graduate or delete — nothing ships un-graduated.
+</footer>
+
+</main>
+<script src="../../../assets/spec.js"></script>
+</body>
+</html>
