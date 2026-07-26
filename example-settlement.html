@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>As of when? — settlement, cash snapshots, and a corpus that remembers · a worked example</title>
+<meta name="description" content="A spectastic worked example: point-in-time cash-account snapshots (IBOR vs ABOR) grounded on a securities-settlement corpus. When US equities moved T+2 to T+1 (28 May 2024), the corpus superseded its edition and a propose to apply change re-grounded the spec. Live: slide the as-of date across the boundary.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --green:#3f6a37;--deny:#c0432f;--amber:#b07d1a;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --green:#8fb56a;--deny:#f08a79;--amber:#d69f4c;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.lnk-tinted{color:var(--ink-soft);text-decoration:none;padding:5px 0;display:block;transition:color .2s}
+.lnk-tinted:hover{color:var(--crimson)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--bg);background:var(--ink);padding:12px 22px;border-radius:999px;text-decoration:none;border:none;cursor:pointer;transition:transform .2s}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--ink);border:1px solid var(--rule-strong);padding:12px 22px;border-radius:999px;text-decoration:none;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--ink-soft)}
+.step{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
+.step-num{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--bg);background:var(--crimson);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.term{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:.79rem;color:var(--ink-soft);line-height:1.75;overflow-x:auto}
+.code{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:15px 18px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink);line-height:1.7;overflow-x:auto;white-space:pre;tab-size:2}
+.code .c{color:var(--ink-faint);font-style:italic}
+.code .k{color:var(--purple)}
+.code .s{color:var(--green)}
+.code .t{color:var(--sea)}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 38%,transparent);padding:2px 8px;border-radius:999px}
+.seg{font-family:'Lato',sans-serif;font-size:.8rem;font-weight:700;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink-soft);padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .18s}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* ---- decision card (faithful spec-decision[grounding] reproduction) ---- */
+.decision{position:relative;background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:20px 22px;box-shadow:0 8px 24px var(--shadow)}
+.decision h4{margin:0;font-family:'Fraunces',serif;font-weight:560;font-size:1.1rem;letter-spacing:-.01em;color:var(--ink)}
+.decision dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;margin:14px 0 0}
+.decision dt{font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);padding-top:.18rem}
+.decision dd{margin:0;font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft)}
+.decision dd strong{color:var(--ink)}
+.decision code{font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)}
+.decision .badge{font-family:'Lato',sans-serif;font-weight:600;font-size:.9rem}
+.decision[data-grounding="verified"] .badge{color:var(--green);font-weight:700}
+.decision[data-grounding="verified"] .badge::after{content:"grounded"}
+.decision[data-grounding="assumed"] .badge{color:#b07d1a;background:#fcf5e9;font-weight:900;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;padding:.12em .55em;border-radius:4px}
+.decision[data-grounding="assumed"] .badge::after{content:"ASSUMED"}
+
+/* ---- typed delta (proposal) ---- */
+.delta{background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--sea);border-radius:12px;padding:16px 18px}
+.delta .op{font-family:'Lato',sans-serif;font-weight:900;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:var(--sea);border-radius:3px;padding:2px 7px}
+.delta .whatp{font-family:'Source Serif 4',serif;font-size:.95rem;color:var(--ink-soft);margin:10px 0 0}
+.delta .req{margin-top:12px;padding:12px 14px;background:var(--bg-sunken);border:1px solid var(--rule);border-radius:8px;font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft)}
+.delta .req .rid{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--sea)}
+.risk{background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:15px 17px}
+.risk .rstat{font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;color:var(--bg);background:var(--green);border-radius:3px;padding:2px 7px}
+.risk .claim{font-family:'Source Serif 4',serif;font-size:.95rem;color:var(--ink);margin:9px 0 0}
+.risk .cite{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink-faint);margin:6px 0 0}
+.risk .resp{font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-soft);margin:7px 0 0}
+
+/* ---- the cash-snapshot timeline widget ---- */
+.asof-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.asof-row input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:var(--rule-strong);flex:1;min-width:180px;outline:none}
+.asof-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--sea);cursor:pointer;border:2px solid var(--bg-raised);box-shadow:0 1px 4px var(--shadow)}
+.asof-row input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--sea);cursor:pointer;border:2px solid var(--bg-raised)}
+.asof-date{font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;color:var(--ink);white-space:nowrap}
+.figs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.fig{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:12px;padding:16px 18px}
+.fig .lbl{font-family:'Lato',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.fig .sub{font-family:'Source Serif 4',serif;font-style:italic;font-size:.8rem;color:var(--ink-faint);margin-top:2px}
+.fig .amt{font-family:'Fraunces',serif;font-weight:600;font-size:1.65rem;margin-top:8px;font-variant-numeric:tabular-nums}
+.fig.ibor .amt{color:var(--sea)}
+.fig.abor .amt{color:var(--green)}
+.tl{position:relative;margin-top:22px;padding:26px 8px 4px;border-top:1px solid var(--rule)}
+.tl .axis{position:relative;height:0;border-top:1px dashed var(--rule-strong);margin:0 0 6px}
+.tl .tick{position:absolute;top:-30px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--ink-faint);white-space:nowrap;text-align:center}
+.tl .tick.hol{color:var(--amber)}
+.tl .boundary{position:absolute;top:-6px;bottom:0;width:0;border-left:2px solid var(--amber)}
+.tl .boundary .cap{position:absolute;top:-22px;left:5px;font-family:'Lato',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+.tl .cursor{position:absolute;top:-6px;bottom:0;width:0;border-left:2px solid var(--sea);transition:left .12s}
+.tl .lane{position:relative;height:26px;margin-top:4px}
+.tl .seg{position:absolute;height:9px;top:8px;border-radius:5px;opacity:.9}
+.tl .seg.t2{background:color-mix(in srgb,var(--amber) 55%,transparent)}
+.tl .seg.t1{background:color-mix(in srgb,var(--green) 55%,transparent)}
+.tl .dot{position:absolute;width:9px;height:9px;border-radius:50%;top:8px;transform:translateX(-50%)}
+.tl .lbl{position:absolute;top:-2px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:600;color:var(--ink)}
+.ttl{width:100%;border-collapse:collapse;margin-top:20px;font-size:.86rem}
+.ttl th{font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:6px 10px;border-bottom:1px solid var(--rule)}
+.ttl td{padding:8px 10px;border-bottom:1px solid var(--rule);font-family:'Source Serif 4',serif;color:var(--ink-soft);vertical-align:middle}
+.ttl td.mono{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cyc{font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.05em;padding:2px 7px;border-radius:3px;color:var(--bg)}
+.cyc.t2{background:var(--amber)}
+.cyc.t1{background:var(--green)}
+.state{font-family:'Lato',sans-serif;font-weight:700;font-size:.64rem;letter-spacing:.04em;text-transform:uppercase}
+.state.settled{color:var(--green)}
+.state.unsettled{color:var(--amber)}
+.state.future{color:var(--ink-faint)}
+.ttl tr.is-future td{opacity:.5}
+
+@media (max-width: 820px){
+  .doc-layout{grid-template-columns:1fr !important}
+  .sidenav-wrap{position:static !important;display:none !important}
+  .card-grid{grid-template-columns:1fr !important}
+  .calc-grid{grid-template-columns:1fr !important}
+}
+@media (max-width: 600px){
+  .topnav{gap:14px;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .topnav::-webkit-scrollbar{display:none}
+  .topnav a,.topnav button{flex:0 0 auto;white-space:nowrap}
+  .nav-eyebrow{display:none}
+  .figs{grid-template-columns:1fr}
+  .ttl .hide-sm{display:none}
+}
+</style>
+<style>/* scroll-driven spectrum header mark */.navMark{transform:rotate(calc(var(--sp,0) * 360deg));transform-origin:center}@media (prefers-reduced-motion:reduce){.navMark{transform:none}}</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="examples.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg class="navMark" width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span class="nav-eyebrow" style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
+    </a>
+    <div class="topnav" style="display:flex;align-items:center;gap:18px">
+      <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
+      <a href="ex.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Extended</a>
+      <a href="#show-me" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">Show me</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="doc-layout" style="max-width:1080px;margin:0 auto;padding:56px 32px 96px;display:grid;grid-template-columns:200px 1fr;gap:56px;align-items:start">
+
+  <nav class="sidenav-wrap" style="position:sticky;top:84px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">On this page</div>
+    <a href="#overview" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">As of when?</a>
+    <a href="#corpus" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The corpus</a>
+    <a href="#show-me" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Show me</a>
+    <a href="#change" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">When the rule moved</a>
+    <a href="#read" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Read the decisions</a>
+    <a href="#trust" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The gates hold</a>
+    <a href="#artifacts" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The artifacts</a>
+  </nav>
+
+  <main style="min-width:0">
+    <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · knowledge corpus · change management</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">As of when?</h1>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">A cash-account balance is a question about time. The same trades give a different <em>settled</em> balance depending on the day you ask — and on the <strong style="color:var(--ink)">settlement rule that was in force then</strong>. When US equities moved from <strong style="color:var(--ink)">T+2 to T+1</strong> on 28 May 2024, the rule changed underneath every spec that had assumed it. This example grounds a cash-snapshot spec on a settlement <a href="docs.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">corpus</a>, then supersedes the edition and re-grounds the spec with a <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--sea)">propose</span> → <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--sea)">apply</span> change.</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">
+      <span class="pill">Knowledge corpus</span>
+      <span class="pill" style="color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)">Rust</span>
+      <span class="pill" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 42%,transparent)">Settlement · T+1</span>
+      <span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 38%,transparent)">Edition-pinned</span>
+      <span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Propose → apply</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
+      <a href="#show-me" class="btn-primary">▷ &nbsp;Show me</a>
+      <a href="#corpus" class="btn-secondary">View the corpus →</a>
+    </div>
+
+    <!-- overview -->
+    <div id="overview" style="scroll-margin-top:80px;margin-top:40px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:24px 26px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)">Why it's a corpus problem</div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">A settlement cycle is a <strong style="color:var(--ink)">domain fact</strong> — external, dated, and changeable by a regulator. Ungrounded, a spec can only <em>assume</em> it (and models happily recall a rule that has since moved). Grounded, the decision cites <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">KB-001@edition</span> — an id pinned to the <strong style="color:var(--ink)">exact edition read</strong>. That pin is not bookkeeping: a cash snapshot taken as-of 24 May 2024 must settle USD equities <strong style="color:var(--ink)">T+2</strong>; one taken 28 May onward, <strong style="color:var(--ink)">T+1</strong>. The corpus keeps <em>both</em> editions, so a point-in-time snapshot can ground each date against the rule that actually applied. <span style="color:var(--ink)">Edition-pinning is point-in-time correctness.</span></p>
+    </div>
+
+    <!-- corpus -->
+    <h2 id="corpus" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The corpus</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">finance-settlement</span> pack — committed markdown, an <a href="https://agentskills.io/home" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Agent Skills</a> folder. It holds more than this one spec needs: four documents ground a decision here; one (corporate actions) is adjacent — in the pack, waiting for a spec that needs it.</p>
+    <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.86rem;min-width:560px">
+        <thead><tr>
+          <th style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:11px 16px;background:var(--bg-sunken)">ID</th>
+          <th style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:11px 16px;background:var(--bg-sunken)">Document</th>
+          <th style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:11px 16px;background:var(--bg-sunken)">Edition</th>
+          <th style="font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:11px 16px;background:var(--bg-sunken)">Grounds</th>
+        </tr></thead>
+        <tbody style="font-family:'Source Serif 4',serif">
+          <tr><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--crimson)">KB-001</td><td style="padding:11px 16px;border-top:1px solid var(--rule);color:var(--ink-soft)">US equities settlement cycle</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink)">@2024-05-28<br><span style="color:var(--ink-faint)">↳ @2017-09-05</span></td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--green)">D-001</td></tr>
+          <tr><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--crimson)">KB-002</td><td style="padding:11px 16px;border-top:1px solid var(--rule);color:var(--ink-soft)">FX settlement risk &amp; PvP</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink)">@2022-07-08</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--green)">D-004</td></tr>
+          <tr><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--crimson)">KB-003</td><td style="padding:11px 16px;border-top:1px solid var(--rule);color:var(--ink-soft)">Books of record — IBOR / ABOR / PBOR</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink)">@2024-01-15</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--green)">D-002</td></tr>
+          <tr><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--crimson)">KB-004</td><td style="padding:11px 16px;border-top:1px solid var(--rule);color:var(--ink-soft)">Cash-account snapshot semantics</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink)">@2024-01-15</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--green)">D-003</td></tr>
+          <tr style="opacity:.6"><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--ink-faint)">KB-005</td><td style="padding:11px 16px;border-top:1px solid var(--rule);color:var(--ink-faint)">Corporate-action cash entitlements</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink-faint)">@2023-06-01</td><td style="padding:11px 16px;border-top:1px solid var(--rule);font-family:'Source Serif 4',serif;font-style:italic;font-size:.82rem;color:var(--ink-faint)">not cited here</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">A corpus is a library, not a checklist. KB-005 sits in the index un-cited — and that's correct: grounding is scoped to the domain facts a decision actually rests on, never a ritual where every requirement manufactures a citation.</p>
+
+    <!-- show me -->
+    <h2 id="show-me" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Show me</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Four USD-equity trades around the 28 May 2024 cutover. Slide the <strong style="color:var(--ink)">as-of date</strong> and watch two books diverge: <span style="color:var(--sea)">IBOR</span> (traded cash — every fill the front office sees) versus <span style="color:var(--green)">ABOR</span> (settled cash — only what has actually changed hands). Each trade settles by the cycle in force <em>on its trade date</em>.</p>
+
+    <div style="margin-top:22px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
+      <div class="asof-row">
+        <span style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">As of</span>
+        <input type="range" id="asof" min="0" max="8" step="1" value="3" aria-label="As-of date">
+        <span class="asof-date" id="asofDate">—</span>
+      </div>
+
+      <div class="figs">
+        <div class="fig ibor"><div class="lbl">IBOR · traded cash</div><div class="sub">every trade executed by the as-of date</div><div class="amt" id="iborAmt">—</div></div>
+        <div class="fig abor"><div class="lbl">ABOR · settled cash</div><div class="sub">only trades whose cash has settled</div><div class="amt" id="aborAmt">—</div></div>
+      </div>
+      <p id="gapNote" style="font-family:'Source Serif 4',serif;font-size:.92rem;line-height:1.5;color:var(--ink-soft);margin:12px 0 0"></p>
+
+      <div class="tl" id="tl" aria-hidden="true">
+        <div class="axis" id="tlAxis"></div>
+        <div class="boundary" id="tlBoundary"><span class="cap">T+1 →</span></div>
+        <div class="cursor" id="tlCursor"></div>
+        <div id="tlLanes"></div>
+      </div>
+
+      <div style="overflow-x:auto">
+      <table class="ttl">
+        <thead><tr><th>Trade</th><th>Cash</th><th class="hide-sm">Traded</th><th>Settles</th><th>Cycle</th><th>As of date</th></tr></thead>
+        <tbody id="ttlBody"></tbody>
+      </table>
+      </div>
+
+      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">A browser illustration of the snapshot engine. The real derivation is the <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">001-cash-snapshot</span> spec — a T+2 trade grounds against <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-001@2017-09-05</span>, a T+1 trade against <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-001@2024-05-28</span>. Business days here skip weekends and Memorial Day (27 May 2024).</p>
+    </div>
+
+    <!-- change -->
+    <h2 id="change" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">When the rule moved</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The spec was authored in the T+2 era — <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">D-001</span> cited <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-001@2017-09-05</span>. On 28 May 2024 the corpus superseded its edition; the old pin didn't rot — it <em>flagged</em>.</p>
+
+    <div style="margin-top:24px;display:flex;flex-direction:column;gap:0">
+      <div class="step">
+        <div class="step-num" style="background:var(--amber)">1</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">The edition supersedes</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">The T+1 rule is committed as <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-001@2024-05-28</span>; the T+2 edition moves to <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">references/superseded/</span> — retained, never deleted, so the old pin still resolves.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--amber)">2</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Validate flags the stale pin</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">D-001 still points at <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">@2017-09-05</span> while the current edition is <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">@2024-05-28</span>. A <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--amber)">corpus-staleness</span> warning — loud, never blocking.</p>
+          <div class="term" style="margin-top:12px">
+            <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># D-001 still pinned to KB-001@2017-09-05</span></div>
+            <div><span style="color:var(--amber)">warning</span> Corpus citation "KB-001@2017-09-05" is pinned to a</div>
+            <div>&nbsp;&nbsp;superseded edition — the current edition is 2024-05-28.</div>
+            <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-staleness</span></div>
+            <div style="color:var(--amber)">0 errors, 1 warning</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--sea)">3</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Propose the change</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">/spectastic.propose</span> writes a change with one typed delta — MODIFY the settlement requirement to T+1, effective 28 May 2024 — and an adversarial risk pass. Because a corpus is present, the critic adds a fourth angle: a live requirement that contradicts a committed domain fact.</p>
+          <div class="delta" style="margin-top:14px">
+            <div style="display:flex;align-items:center;gap:10px"><span class="op">Modify</span><span style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--ink)">FR-001 · settlement-date derivation</span></div>
+            <p class="whatp"><strong style="color:var(--ink)">What changes:</strong> USD equity settlement T+2 → <strong style="color:var(--ink)">T+1</strong>, effective 28 May 2024.</p>
+            <div class="req"><span class="rid">FR-001 · must</span> — The settlement date of a US-equity trade MUST be trade date + <strong>1 business day (T+1)</strong> for trades on or after 28 May 2024; trades before that date settle T+2 per the edition then in force.</div>
+          </div>
+          <div class="risk" style="margin-top:12px;border-left:3px solid var(--green)">
+            <div style="display:flex;align-items:center;gap:10px"><span class="rstat">Mitigated</span><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">target §4 · corpus contradiction</span></div>
+            <p class="claim">A live requirement still asserting T+2 now contradicts the committed domain fact.</p>
+            <p class="cite">KB-001@2024-05-28 — "US equities settlement cycle" (supersedes KB-001@2017-09-05, T+2).</p>
+            <div class="resp">Resolved by this proposal's FR-001 modification.</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">4</div>
+        <div>
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Apply — and the pin catches up</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">spectastic apply</span> patches the delta into the live spec, folds a task, appends a changelog line, flips the proposal <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">approved → applied</span>, and archives it. D-001 re-grounds to <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--green)">@2024-05-28</span>; the staleness warning clears.</p>
+          <div class="term" style="margin-top:12px">
+            <div><span style="color:var(--green)">$</span> spectastic apply <span style="color:var(--sea)">001-cash-snapshot 2024-05-28-usd-t1-settlement</span> --summary <span style="color:var(--sea)">"USD equities T+2 → T+1"</span></div>
+            <div><span style="color:var(--sea)">→</span> FR-001 modified in specs/001-cash-snapshot/spec.html</div>
+            <div>&nbsp;&nbsp;§6 folded → tasks.html (T-1000…T-1002) · changelog appended</div>
+            <div>&nbsp;&nbsp;proposal <span style="color:var(--ink)">approved → applied</span> · moved to changes/archive/2024-05-28-usd-t1-settlement/</div>
+            <div style="color:var(--green)">✓ applied</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- read -->
+    <h2 id="read" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Read the decisions</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The applied plan, rendered by spectastic's own grounding CSS. One decision grounds a domain fact against the corpus; another stays honestly <span style="color:#b07d1a">ASSUMED</span> because it isn't one.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px" class="card-grid">
+      <div class="decision" data-grounding="verified">
+        <h4>D-001 · Settlement date from a business-day calendar</h4>
+        <dl>
+          <dt>Grounding</dt> <dd><span class="badge"></span></dd>
+          <dt>Context</dt>   <dd>US equities settle <strong>T+1</strong> (one business day) under SEC Rule 15c6-1, compliance date 28 May 2024. Grounded against <code>KB-001@2024-05-28</code>.</dd>
+          <dt>Decision</dt>  <dd>Derive the settlement date as trade date + 1 business day, applying the cycle in force on the trade date.</dd>
+        </dl>
+      </div>
+      <div class="decision" data-grounding="assumed">
+        <h4>D-005 · Snapshot refresh interval</h4>
+        <dl>
+          <dt>Grounding</dt> <dd><span class="badge"></span></dd>
+          <dt>Context</dt>   <dd>A cache TTL is a <strong>local product decision</strong>, not a domain fact — no corpus document governs it, and a product choice must not manufacture a citation.</dd>
+          <dt>Decision</dt>  <dd>Refresh snapshots on a 60-second TTL; revisit under load.</dd>
+        </dl>
+      </div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:14px 0 0">Both read as competent English. One points at a committed, hashed document; the other rests on judgment and says so. That honesty is the point — <span style="color:var(--ink-soft)">grounding grades what's grounded, and flags what isn't.</span></p>
+
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:24px 0 6px"><span style="font-family:'IBM Plex Mono',monospace">knowledge/finance-settlement/references/KB-001-us-equities-settlement-cycle.md</span></div>
+    <div class="code"><span class="c">---</span>
+<span class="k">id</span>: KB-001
+<span class="k">origin</span>: U.S. Securities and Exchange Commission — amendments to Rule 15c6-1 shortening the standard settlement cycle for US securities to T+1
+<span class="k">origin-url</span>: https://www.sec.gov/rules/final/2023/34-96930.pdf
+<span class="k">edition</span>: 2024-05-28
+<span class="k">license</span>: CC0-1.0
+<span class="k">converter</span>: hand-authored
+<span class="k">content-hash</span>: sha256:ac35428fc6181045c9b43e4ddc798e52209e97ca7ec03ed41c66583dee117f68
+<span class="k">status</span>: authoritative
+<span class="c">---</span>
+
+<span class="c"># US equities settlement cycle (T+1)</span>
+
+The US standard settlement cycle was shortened **T+2 → T+1** under SEC Rule
+15c6-1, with a **compliance date of 28 May 2024**. A standard US-equity trade
+settles **one business day** after its trade date …
+
+<span class="c">## Editioning</span>
+
+Prior editions are retained under `superseded/`, so `KB-001@2017-09-05` (the T+2
+rule in force before the cutover) still resolves. A trade is settled under the
+cycle in force **on its trade date**, not today's rule applied retroactively.</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ the T+2 edition lives on at <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">references/superseded/…-2017.md</span> (<span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">@2017-09-05</span>), so a snapshot dated before the cutover still grounds cleanly. Content-hash is real (sha256 of the body).</p>
+
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:24px 0 6px">The engine — <span style="font-family:'IBM Plex Mono',monospace">impl/src/lib.rs</span> · Rust, std-only</div>
+    <div class="code"><span class="k">pub fn</span> <span class="t">settlement_date</span>(&amp;<span class="k">self</span>, trade_date: <span class="t">Date</span>) -&gt; <span class="t">Date</span> {
+    <span class="k">self</span>.add_business_days(trade_date, <span class="t">standard_cycle</span>(trade_date))
+}
+
+<span class="c">/// Standard settlement cycle (business days) in force on the trade date.</span>
+<span class="k">pub fn</span> <span class="t">standard_cycle</span>(trade_date: <span class="t">Date</span>) -&gt; <span class="t">u32</span> {
+    <span class="k">if</span> trade_date &lt; <span class="t">T1_EFFECTIVE</span> {
+        <span class="s">2</span> <span class="c">// T+2 — KB-001@2017-09-05</span>
+    } <span class="k">else</span> {
+        <span class="s">1</span> <span class="c">// T+1 — KB-001@2024-05-28</span>
+    }
+}
+
+<span class="c">// A snapshot: IBOR counts every trade executed by the as-of date;</span>
+<span class="c">// ABOR only those whose settlement date has already arrived.</span>
+<span class="k">for</span> t <span class="k">in</span> book {
+    <span class="k">if</span> t.trade_date &lt;= as_of { ibor += t.cash(); }
+    <span class="k">if</span> cal.settlement_date(t.trade_date) &lt;= as_of { abor += t.cash(); }
+}</div>
+    <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ the cycle is read <em>per trade date</em>, so one codebase is correct on both sides of the cutover — the edition pins sit right in the branch. Exact <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">i64</span> cents, a hand-rolled business-day calendar, no dependencies. <span style="color:var(--ink-soft)">spec 001 · FR-001, plan D-001 / D-006</span></div>
+    <div class="term" style="margin-top:14px">
+      <div><span style="color:var(--green)">$</span> cargo test &nbsp;<span style="color:var(--ink-faint)"># Rust 1.94, std-only — no build deps</span></div>
+      <div style="color:var(--ink-faint)">running 5 tests</div>
+      <div>&nbsp;&nbsp;<span style="color:var(--green)">ok</span> cycle_is_edition_correct_around_the_cutover</div>
+      <div>&nbsp;&nbsp;<span style="color:var(--green)">ok</span> settlement_dates_span_the_double_settlement_day</div>
+      <div>&nbsp;&nbsp;<span style="color:var(--green)">ok</span> ibor_and_abor_diverge_then_reconcile</div>
+      <div>&nbsp;&nbsp;<span style="color:var(--green)">ok</span> a_buy_pays_out_and_a_sell_brings_cash_in</div>
+      <div>&nbsp;&nbsp;<span style="color:var(--green)">ok</span> the_t1_effective_constant_is_2024_05_28</div>
+      <div style="color:var(--ink)">test result: <span style="color:var(--green);font-weight:600">ok</span>. 5 passed; 0 failed</div>
+    </div>
+
+    <!-- trust -->
+    <h2 id="trust" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The gates hold</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The applied bundle — corpus, spec, plan, and the archived proposal — is green. Every citation resolves to a committed, hashed document; a fabricated one is structurally impossible.</p>
+    <div class="term" style="margin-top:16px">
+      <div><span style="color:var(--green)">$</span> cd examples/settlement</div>
+      <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">'specs/**/*.html'</span> &nbsp;<span style="color:var(--ink-faint)"># spec · plan · tasks · the archived proposal</span></div>
+      <div style="color:var(--green)">✓ no findings</div>
+      <div style="color:var(--ink-faint)">&nbsp;</div>
+      <div style="color:var(--ink-faint)">&nbsp;&nbsp;corpus present · every KB-NNN@edition resolved · D-001 pinned to the current edition (2024-05-28).</div>
+    </div>
+    <div style="background:var(--bg-raised);border:1px solid color-mix(in srgb,var(--deny) 30%,transparent);border-radius:14px;padding:18px 20px;margin-top:16px">
+      <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--deny)">corpus-provenance · error</div>
+      <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">Typo the pin to an edition no committed document carries, and the build fails — a citation can't dangle.</p>
+      <div class="term" style="font-size:.72rem">
+        <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-001@2020-01-01</span></div>
+        <div><span style="color:var(--deny)">error</span> Corpus citation "KB-001@2020-01-01" resolves to no</div>
+        <div>&nbsp;&nbsp;committed document at that id/edition — a dead reference.</div>
+        <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-provenance</span></div>
+        <div style="color:var(--deny)">1 error, 0 warnings</div>
+      </div>
+    </div>
+
+    <!-- artifacts -->
+    <h2 id="artifacts" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The artifacts</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A self-contained bundle: the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">finance-settlement</span> corpus (five documents, one superseded edition) and the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">001-cash-snapshot</span> spec, plan, and applied change. Every file passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span>.</p>
+    <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/settlement/knowledge/finance-settlement/index.md" style="color:var(--crimson);text-decoration:none">finance-settlement · corpus</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Five KB documents + one superseded edition</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/settlement/knowledge/finance-settlement/references/KB-001-us-equities-settlement-cycle.md" style="color:var(--sea);text-decoration:none">KB-001</a> · <a href="examples/settlement/knowledge/finance-settlement/references/superseded/KB-001-us-equities-settlement-cycle-2017.md" style="color:var(--sea);text-decoration:none">superseded/2017</a> · <a href="examples/settlement/knowledge/finance-settlement/references/KB-003-books-of-record.md" style="color:var(--sea);text-decoration:none">KB-003</a> · <a href="examples/settlement/knowledge/finance-settlement/references/KB-004-cash-snapshot-semantics.md" style="color:var(--sea);text-decoration:none">KB-004</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/settlement/specs/001-cash-snapshot/spec.html" style="color:var(--crimson);text-decoration:none">001 · cash snapshot</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The spec &amp; plan — D-001…D-004 grounded, D-005 assumed</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/settlement/specs/001-cash-snapshot/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/settlement/specs/001-cash-snapshot/plan.html" style="color:var(--sea);text-decoration:none">plan</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/settlement/specs/001-cash-snapshot/changes/archive/2024-05-28-usd-t1-settlement/proposal.html" style="color:var(--purple);text-decoration:none">↳ the applied change</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">T+2 → T+1 — the typed delta, the fourth-angle risk, the apply. <a href="examples/settlement/specs/001-cash-snapshot/changes/archive/2024-05-28-usd-t1-settlement/proposal.html" style="color:var(--purple);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--purple) 40%,transparent)">Read the proposal →</a></span></div></div>
+      <a href="examples/settlement/impl/src/lib.rs" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--amber);flex:0 0 13rem">▷ cargo test</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The Rust engine — 5 tests, green · <span style="color:var(--amber);border-bottom:1px solid color-mix(in srgb,var(--amber) 45%,transparent)">view <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em">impl/src/lib.rs</span></span></span></a>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:14px 0 0">These are the real, rendered artifacts — the same files <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em">spectastic validate</span> checks; the excerpts above are drawn from them.</p>
+
+    <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">
+      <a href="#show-me" class="btn-primary">▷ &nbsp;Show me</a>
+      <a href="docs.html" class="btn-secondary">Read the docs →</a>
+      <a href="examples.html" class="btn-secondary">← All examples</a>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+
+// The cash-snapshot timeline — IBOR (traded) vs ABOR (settled) as-of a date,
+// each trade settling by the cycle in force on its trade date (T+2 before
+// 2024-05-28, T+1 on/after). Illustrative; the real engine is 001-cash-snapshot.
+(function(){
+  const T1 = '2024-05-28';                 // T+1 compliance date (string compare on ISO dates)
+  const HOLIDAYS = new Set(['2024-05-27']); // Memorial Day, within the window
+  const WIN_START = '2024-05-22', WIN_END = '2024-06-04';
+  const OPENING = 100000;
+  const TRADES = [
+    {t:'AMZN', side:'SELL', qty:100, px:180, trade:'2024-05-23'},
+    {t:'AAPL', side:'BUY',  qty:100, px:190, trade:'2024-05-24'},
+    {t:'MSFT', side:'SELL', qty:200, px:430, trade:'2024-05-28'},
+    {t:'NVDA', side:'BUY',  qty:150, px:95,  trade:'2024-05-30'}
+  ];
+  const STOPS = ['2024-05-22','2024-05-23','2024-05-24','2024-05-28','2024-05-29','2024-05-30','2024-05-31','2024-06-03','2024-06-04'];
+
+  const D = s => { const [y,m,d]=s.split('-').map(Number); return Date.UTC(y,m-1,d); };
+  const iso = ms => new Date(ms).toISOString().slice(0,10);
+  const DAY = 86400000;
+  const isBiz = ms => { const g=new Date(ms).getUTCDay(); return g!==0 && g!==6 && !HOLIDAYS.has(iso(ms)); };
+  function addBiz(dateStr, n){ let ms=D(dateStr), added=0; while(added<n){ ms+=DAY; if(isBiz(ms)) added++; } return iso(ms); }
+  const cycle = tr => tr.trade < T1 ? 2 : 1;                 // rule in force on the trade's trade date
+  const cashOf = tr => (tr.side==='SELL'?1:-1) * tr.qty * tr.px;
+  const fmt = n => (n<0?'−$':'$') + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const nice = s => { const [,m,d]=s.split('-'); const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]; return d.replace(/^0/,'')+' '+mon; };
+
+  TRADES.forEach(tr => { tr.settle = addBiz(tr.trade, cycle(tr)); tr.cash = cashOf(tr); });
+
+  const span = D(WIN_END) - D(WIN_START);
+  const pct = s => ((D(s) - D(WIN_START)) / span) * 100;
+
+  // build timeline lanes + axis (once)
+  const lanes = document.getElementById('tlLanes');
+  const axis = document.getElementById('tlAxis');
+  document.getElementById('tlBoundary').style.left = pct(T1) + '%';
+  ['2024-05-24','2024-05-28','2024-05-29','2024-05-31'].forEach(s => {
+    const tk = document.createElement('div'); tk.className = 'tick'; tk.style.left = pct(s)+'%'; tk.textContent = nice(s); axis.appendChild(tk);
+  });
+  TRADES.forEach(tr => {
+    const lane = document.createElement('div'); lane.className='lane';
+    const c = cycle(tr)===2 ? 't2':'t1';
+    const seg = document.createElement('div'); seg.className='seg '+c;
+    const x1 = pct(tr.trade), x2 = pct(tr.settle);
+    seg.style.left = x1+'%'; seg.style.width = Math.max(0.6,(x2-x1))+'%';
+    const dTrade = document.createElement('div'); dTrade.className='dot'; dTrade.style.left=x1+'%'; dTrade.style.background='var(--bg-raised)'; dTrade.style.border='2px solid var(--'+(c==='t2'?'amber':'green')+')';
+    const dSet = document.createElement('div'); dSet.className='dot'; dSet.style.left=x2+'%'; dSet.style.background='var(--'+(c==='t2'?'amber':'green')+')';
+    const lbl = document.createElement('div'); lbl.className='lbl'; lbl.style.left=x1+'%'; lbl.textContent=tr.t;
+    lane.append(seg,dTrade,dSet,lbl); lanes.appendChild(lane);
+  });
+
+  const asof = document.getElementById('asof');
+  const tbody = document.getElementById('ttlBody');
+  const cursor = document.getElementById('tlCursor');
+
+  function render(){
+    const d = STOPS[+asof.value];
+    document.getElementById('asofDate').textContent = new Date(D(d)).toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+    cursor.style.left = pct(d)+'%';
+    let ibor = OPENING, abor = OPENING;
+    tbody.innerHTML = '';
+    TRADES.forEach(tr => {
+      const traded = tr.trade <= d, settled = tr.settle <= d;
+      if (traded) ibor += tr.cash;
+      if (settled) abor += tr.cash;
+      const st = settled ? ['settled','SETTLED'] : traded ? ['unsettled','TRADED · UNSETTLED'] : ['future','NOT YET TRADED'];
+      const cyc = cycle(tr)===2 ? 't2':'t1';
+      const row = document.createElement('tr');
+      if (!traded) row.className='is-future';
+      row.innerHTML =
+        '<td><strong style="color:var(--ink)">'+tr.side+' '+tr.qty+'</strong> '+tr.t+'</td>'+
+        '<td class="mono" style="color:'+(tr.cash<0?'var(--deny)':'var(--green)')+'">'+fmt(tr.cash)+'</td>'+
+        '<td class="mono hide-sm">'+nice(tr.trade)+'</td>'+
+        '<td class="mono">'+nice(tr.settle)+'</td>'+
+        '<td><span class="cyc '+cyc+'">T+'+cycle(tr)+'</span></td>'+
+        '<td><span class="state '+st[0]+'">'+st[1]+'</span></td>';
+      tbody.appendChild(row);
+    });
+    document.getElementById('iborAmt').textContent = fmt(ibor);
+    document.getElementById('aborAmt').textContent = fmt(abor);
+    const gap = ibor - abor;
+    const note = document.getElementById('gapNote');
+    if (Math.abs(gap) < 0.005) note.innerHTML = 'Books agree — every trade executed by this date has also settled. <span style="color:var(--ink-faint)">No cash in flight.</span>';
+    else note.innerHTML = '<strong style="color:var(--ink)">'+fmt(gap)+'</strong> is in flight — traded but not yet settled. The front office (IBOR) sees it; the accounting book (ABOR) will not until it settles.';
+  }
+  asof.addEventListener('input', render);
+  render();
+})();
+</script>
+<script>
+/* scroll-driven spectrum: header mark rotates with page progress */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root=document.documentElement, ticking=false;
+  function onScroll(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=window.scrollY||0, max=root.scrollHeight-window.innerHeight;
+      root.style.setProperty('--sp', (max>0?Math.min(y/max,1):0).toFixed(4));
+      ticking=false;
+    });
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

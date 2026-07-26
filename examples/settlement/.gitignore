@@ -1,0 +1,4 @@
+# >>> spectastic (managed — do not edit inside; put your own rules outside) >>>
+.spectastic/courses/
+explorations/**/explore.html
+# <<< spectastic <<<

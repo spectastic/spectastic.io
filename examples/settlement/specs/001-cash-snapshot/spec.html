@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Point-in-time cash-account snapshots · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 001-cash-snapshot</p>
+  <h1>Point-in-time cash-account snapshots</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    One cash account, two truthful balances: what has traded, and what has actually settled — as of any instant.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>001-cash-snapshot</span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-24">24 Jul 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v0.1.0</a></span>
+    <b>Smallest demoable</b><span>Ask a cash account for its balance as of a date; get back traded cash (IBOR) and settled cash (ABOR), correct across the settlement lag.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="1500" reqs="8" minutes="12"></spec-budget>
+
+  <spec-tldr>
+    <p>A cash account has more than one correct balance at a single instant. <strong>Traded cash</strong> (the
+    investment book, IBOR) counts every fill executed by the as-of time; <strong>settled cash</strong> (the accounting
+    book, ABOR) counts only trades whose cash has actually settled. The gap between them is cash in flight across the
+    settlement lag. This feature computes both, as of any point in time, deriving each trade's settlement date from the
+    standard cycle in force <em>on that trade's trade date</em> — so a historical snapshot is settled under the rule that
+    governed it, not today's. It is realised by the std-only Rust <code>settlement</code> crate.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Depends only on a trade record and a business-day calendar. Knows nothing about positions, P&amp;L, or tax lots.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (two edition-correct balances as of an instant), not a named language or storage engine.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — a front office and an accounting team reading one account and each seeing their own truthful balance.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Settlement-date arithmetic, an as-of filter, and a two-book sum are well-understood; the edition cutover is the one subtlety and it is pinned.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One entity, one function, four functional requirements; refresh cadence is a product knob, not core math.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Settlement dates, the IBOR/ABOR split, and the double-settlement-day edge are all mechanically checkable against fixed fixtures.</dd>
+  </dl>
+
+  <spec-audience-map>
+    <dl>
+      <dt>Exec / PM</dt>   <dd>§<a href="#context">Context</a>, §<a href="#scenarios">User scenarios</a>, §<a href="#success">Success criteria</a>.</dd>
+      <dt>Reviewer</dt>    <dd>§<a href="#requirements">Requirements</a>, §<a href="#assumptions">Assumptions</a>, §<a href="#questions">Open questions</a>.</dd>
+      <dt>Implementer</dt> <dd>§<a href="#requirements">Requirements</a>, §<a href="#data">Data model</a>, §<a href="#conformance">Conformance index</a>.</dd>
+    </dl>
+  </spec-audience-map>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>Cash reconciliation breaks when a single account is asked for "the balance" as if there were only one. The front-office
+desk works trade-date: the moment a fill executes, that cash is committed and must show. The accounting team works
+settlement-date: cash is real only once it has settled, because that is what NAV and the books are struck on. Between the
+two sits the settlement lag — for US equities, one or two business days — during which the same account legitimately holds
+two different balances.</p>
+<p>The users are the <strong>investment desk</strong> (needs traded cash now) and the <strong>fund-accounting team</strong>
+(needs settled cash as of a close). Both read one cash account; each needs its own basis to be correct, and correct
+<em>as of a chosen instant</em>, not just live.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Settled cash across the lag <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>fund accountant</strong>, I want the settled-cash balance as of a close date, so NAV is struck on cash that
+has actually settled and not on trades still in flight.</p>
+<p><em>Acceptance:</em> given a book of trades and an as-of date, the settled (ABOR) balance includes exactly those trades
+whose settlement date — trade date + the cycle in force on that trade date — is on or before the as-of date.</p>
+
+<h3 id="US2">US2 · Traded vs settled at one instant <spec-pill>P2</spec-pill></h3>
+<p>As an <strong>investment-desk operator</strong>, I want traded cash and settled cash for the same account as of the same
+instant, so I can see committed cash immediately and the in-flight gap explicitly.</p>
+<p><em>Acceptance:</em> a snapshot returns both the traded (IBOR) and settled (ABOR) balances; their difference equals the
+net cash of trades executed but not yet settled as of that instant.</p>
+
+<h3 id="US3">US3 · Edition-correct historical snapshot <spec-pill>P3</spec-pill></h3>
+<p>As a <strong>reconciliation analyst</strong>, I want a snapshot as of a past date to settle each trade under the cycle
+that was in force when it was struck, so a re-run of an old close reproduces the books exactly.</p>
+<p><em>Acceptance:</em> a trade dated before the T+1 compliance date settles T+2; a trade dated on or after it settles T+1;
+a snapshot spanning the cutover applies each rule to the trades it governs.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Double settlement day.</strong> The last T+2 trade date and the first T+1 trade date can settle on the same
+  calendar day; both must be recognised on that day, neither early nor late.</li>
+  <li><strong>Holiday in the lag.</strong> A market holiday between trade and settlement extends the settlement date by a
+  business day; weekends and holidays are never settlement dates.</li>
+  <li><strong>As-of before any settlement.</strong> An as-of instant before every trade has settled yields a settled
+  balance equal to the opening balance, with all trade cash still in flight.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+  <p>The settlement date of a US-equity trade <spec-rule>MUST</spec-rule> be its trade date plus <em>N</em> business days,
+  where <em>N</em> is the standard settlement cycle in force <strong>on the trade date</strong> and business days exclude
+  weekends and US market holidays. USD equities settle trade date + 1 business day (T+1) for trades on or after
+  28 May 2024; trades before settle T+2 per the edition then in force.</p>
+  <details><summary>Rationale</summary><p>Point-in-time correctness across the compliance-date cutover: the cycle length is
+  read from <code>standard_cycle(trade_date)</code>, grounded on <code>KB-001@2024-05-28</code>, which supersedes the T+2
+  edition without rewriting how a pre-cutover trade settled.</p></details>
+  </spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>A snapshot as of an instant <spec-rule>MUST</spec-rule> report <strong>traded cash</strong> — the opening balance plus
+the net cash of every trade executed on or before the as-of instant (the IBOR basis) — and <strong>settled cash</strong> —
+the opening balance plus the net cash of only those trades whose settlement date is on or before the as-of instant (the
+ABOR basis).</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="should">
+<p>For a trade with two currency legs, the snapshot <spec-rule level="should">SHOULD</spec-rule> report FX settlement
+exposure on the <strong>principal</strong> of the unsettled leg, carried with a <strong>payment-versus-payment (PvP)
+flag</strong> recording whether the trade settles through a PvP arrangement.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="may">
+<p>The snapshot service <spec-rule level="may">MAY</spec-rule> expose a refresh interval — a product-configurable
+time-to-live after which a cached snapshot is recomputed — so a consumer can trade freshness against recomputation cost.</p>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="TBD-available-cash">Available cash — settled cash net of holds, collateral, and pending withdrawals — a later slice; this spec computes traded and settled only.</li>
+    <li defer-to="TBD-corporate-actions">Corporate-action cash entitlements (dividends across the ex/record/pay dates); adjacent domain, not part of the snapshot math here.</li>
+    <li defer-to="never">Multi-currency NAV translation and FX rate sourcing — owned by the fund-accounting platform, never this slice.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+
+<p>The feature owns the snapshot computation and the settlement calendar; it borrows the trade record.</p>
+
+<h3>Entities</h3>
+<dl>
+  <dt><code>Trade</code></dt><dd>A fill: ticker, side (buy/sell), quantity, price in exact cents, and a trade date. Its cash effect is a buy paying out and a sell bringing cash in.</dd>
+  <dt><code>SettlementCalendar</code></dt><dd>Weekends plus a set of US market holidays; answers <em>is-business-day</em> and <em>add-N-business-days</em>, and derives a trade's settlement date via the edition-correct cycle.</dd>
+  <dt><code>Snapshot</code></dt><dd><code>{ ibor_cents, abor_cents }</code> — traded cash and settled cash as of an instant; their difference is cash in flight.</dd>
+</dl>
+
+<spec-note>
+<p>Invariant: money is exact integer cents — never floating point — and a settlement date is always a business day. The
+IBOR and ABOR balances converge once every trade in the book has settled.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<p>Technology-agnostic, measurable outcomes.</p>
+
+<spec-requirement id="SC-001" priority="must">
+<p>For a fixed book of trades and a given as-of date, the reported settled balance equals the opening balance plus the net
+cash of exactly the trades whose edition-correct settlement date is on or before that date — reproducible to the cent.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="must">
+<p>A snapshot taken on the last day trades remain unsettled and again on the day they settle shows the traded balance
+unchanged and the settled balance rising by exactly the settling trades' net cash, closing the in-flight gap to zero.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>Trades are US-equity single-currency fills except where FR-003's two-legged FX case applies; other asset classes are out
+of scope for this slice.</p>
+</spec-assumption>
+<spec-assumption>
+<p>The settlement calendar's holiday set is supplied and correct for the window being snapshotted; sourcing the holiday
+calendar is not this spec's concern.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the two-book contract and the edition-correct settlement rule are fixed here; available cash and
+corporate actions are explicitly deferred rather than left open, and the refresh interval is a product knob, not an
+unresolved question.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-24">24 Jul 2026</time><span>Initial draft. Point-in-time cash snapshots across the investment (IBOR) and accounting (ABOR) books: edition-correct settlement-date derivation (FR-001, T+2 in this edition), the two-book as-of snapshot (FR-002), FX exposure on principal with a PvP flag (FR-003), and an optional refresh interval (FR-004). Realised by the std-only Rust <code>settlement</code> crate.</span></li>
+  <li><time datetime="2026-07-26">26 Jul 2026</time><span>Applied <a href="./changes/archive/2024-05-28-usd-t1-settlement/proposal.html">2024-05-28-usd-t1-settlement</a>: USD equities T+2 → T+1 (SEC Rule 15c6-1, 28 May 2024).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  001-cash-snapshot · Point-in-time cash-account snapshots · authored 24 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

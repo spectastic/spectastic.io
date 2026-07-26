@@ -220,6 +220,36 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     </div>
   </a>
 
+  <!-- FEATURED: settlement (corpus supersession + change management) -->
+  <a href="example-settlement.html" style="text-decoration:none;color:inherit;display:block;margin-top:16px">
+    <div class="feature card" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:30px 32px">
+      <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true" style="flex:0 0 auto;font-family:'Lato',sans-serif">
+        <line x1="12" y1="118" x2="138" y2="118" stroke="var(--rule-strong)" stroke-width="1.5"/>
+        <line x1="86" y1="24" x2="86" y2="124" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="3 4"/>
+        <text x="90" y="32" font-size="9.5" font-weight="700" fill="var(--amber)">T+1</text>
+        <line x1="24" y1="62" x2="70" y2="62" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24" cy="62" r="5" fill="var(--bg-raised)" stroke="var(--amber)" stroke-width="2.5"/>
+        <circle cx="70" cy="62" r="5" fill="var(--amber)"/>
+        <text x="20" y="52" font-size="8.5" font-weight="700" fill="var(--amber)">T+2</text>
+        <line x1="92" y1="90" x2="116" y2="90" stroke="var(--green)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="92" cy="90" r="5" fill="var(--bg-raised)" stroke="var(--green)" stroke-width="2.5"/>
+        <circle cx="116" cy="90" r="5" fill="var(--green)"/>
+        <line x1="58" y1="30" x2="58" y2="126" stroke="var(--sea)" stroke-width="2"/>
+        <circle cx="58" cy="30" r="3.5" fill="var(--sea)"/>
+        <text x="58" y="142" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--sea)">as of</text>
+      </svg>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill">Knowledge corpus</span><span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Change management</span><span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 38%,transparent)">Rust</span><span style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">● Applied</span></div>
+        <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:12px 0 0">As of when?</h2>
+        <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.56;color:var(--ink-soft);margin:9px 0 0;max-width:52ch">A cash balance is a question about time. Point-in-time IBOR/ABOR snapshots grounded on a settlement corpus — then US equities move <span style="color:var(--ink)">T+2 → T+1</span>, the corpus supersedes its edition, and a <span style="color:var(--ink)">propose → apply</span> change re-grounds the spec. A Rust engine, proven by <span style="color:var(--ink)">cargo test</span>; includes a live as-of timeline across the 28 May 2024 cutover.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <span class="btn-primary">Read the build →</span>
+          <span class="btn-secondary">▷ Show me</span>
+        </div>
+      </div>
+    </div>
+  </a>
+
   <!-- mini grid: session-token + enterprise -->
   <div class="mini-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
     <a href="example.html" style="text-decoration:none;color:inherit">

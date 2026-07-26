@@ -1,0 +1,8 @@
+[package]
+name = "settlement"
+version = "0.1.0"
+edition = "2021"
+description = "Point-in-time cash-account snapshots (IBOR/ABOR) with edition-correct securities settlement — the 001-cash-snapshot spec, in Rust. std-only, no dependencies."
+license = "CC0-1.0"
+
+[dependencies]

@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Point-in-time cash-account snapshots · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 001-cash-snapshot</p>
+  <h1>Point-in-time cash-account snapshots</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">001-cash-snapshot</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>001-cash-snapshot</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-24">24 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Realise the two-book snapshot as a small, std-only Rust crate: exact <code>i64</code> cents, a hand-rolled
+    business-day calendar, and a <code>settlement_date</code> that reads the standard cycle in force on each trade's trade
+    date. <code>snapshot</code> folds a trade book into IBOR (traded) and ABOR (settled) balances as of an instant. The one
+    subtlety — and the biggest risk — is the settlement-cycle edition: the cycle is a domain fact that must be grounded in
+    the corpus and pinned by edition, so a cutover in the rule is a re-grounding, not a code guess.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verify this plan respects every principle in
+<a href="../../principles.html">v0.1.0</a>. Any violation requires either a
+principles amendment or a deliberate exception logged below.</p>
+
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>One crate, one public <code>snapshot</code> entry point; the settlement-cycle edition is data, changeable by re-grounding, not a rewrite.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Money is exact <code>i64</code> cents; a settlement date is always a business day — no floating point, no silent weekend settle.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>D-001..D-006 each cite the §3 grounding row they rest on — a corpus edition for a domain fact, the crate source for the stack pick.</td></tr>
+    <tr><td>P-9 · Decisions are grounded</td><td><spec-pill>OK</spec-pill></td><td>Every domain decision is <code>verified</code> against a pinned corpus edition; the one <code>assumed</code> decision (D-005) is a product knob, deliberately un-grounded.</td></tr>
+    <tr><td>P-7 · Done means verified</td><td><spec-pill>OK</spec-pill></td><td>The crate ships with 5 passing <code>cargo test</code> cases spanning the cutover and the IBOR/ABOR reconcile — mechanical, not asserted.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Rust (2021 edition), standard library only — no external crates.</dd>
+  <dt>Frameworks</dt>       <dd>None. A single library crate, <code>settlement</code>.</dd>
+  <dt>Architecture</dt>     <dd>Single-module domain library: a <code>SettlementCalendar</code>, an edition-correct <code>standard_cycle</code>, and a pure <code>snapshot</code> fold over a trade book. No I/O, no framework.</dd>
+  <dt>Storage</dt>          <dd>None — the caller owns the trade book and calendar; the crate is pure computation.</dd>
+  <dt>Testing</dt>          <dd>Rust <code>#[cfg(test)]</code> unit tests on fixed fixtures spanning the 2024 cutover; <code>cargo test</code>.</dd>
+  <dt>Coverage</dt>         <dd>Diff-aware: the settlement and snapshot paths carry direct tests; a change never lowers coverage of the code it touches. Never a single universal %.</dd>
+  <dt>Perf targets</dt>     <dd>Not in scope — a snapshot is an in-memory fold over a bounded book; there is no latency SLO in this slice.</dd>
+  <dt>Constraints</dt>      <dd>Exact integer cents (no floating point on money); settlement dates are always business days; the settlement cycle is edition-pinned domain data, not a hard-coded constant.</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>3 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed — read this before the
+approach: it separates what the plan <em>knows</em> from what it <em>assumes</em> (per
+<code>REQ-LIFECYCLE-006</code>). Status is <code>verified</code> (opened the source
+this turn), <code>spike</code> (decidable only by a time-boxed investigation — run it, record the
+finding), or <code>assumed</code> (taken as true without verification). A <code>must</code>-tier decision
+may not rest on an <code>assumed</code>/unresolved-<code>spike</code> fact unless accepted as a
+<code>&lt;spec-risk&gt;</code> (see §8).</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>The US standard settlement cycle in force is T+1 — a trade settles one business day after trade date, from the 28 May 2024 compliance date.</td>
+        <td><code>KB-001@2024-05-28</code> (finance-settlement corpus)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>SEC Rule 15c6-1 shortened the standard cycle to T+1, compliance date 28 May 2024 — the current corpus edition, which supersedes the earlier T+2 edition. Re-grounded from KB-001@2017-09-05 after the cutover. Grounds D-001.</td></tr>
+    <tr><td>IBOR is a trade-date (traded-cash) view; ABOR is a settlement-date (settled-cash) view; PBOR is out of scope.</td>
+        <td><code>KB-003@2024-01-15</code> (finance-settlement corpus)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Books of record differ chiefly in cash basis and timing: IBOR shows traded cash immediately, ABOR once settled. Grounds D-002.</td></tr>
+    <tr><td>A snapshot is a balance "as of" an instant; settled cash counts trades whose settlement date is on or before the as-of time.</td>
+        <td><code>KB-004@2024-01-15</code> (finance-settlement corpus)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>A correct as-of snapshot applies the settlement rule in force on each trade's trade date, not today's. Grounds D-003.</td></tr>
+    <tr><td>FX settlement risk is on the full principal of the unsettled leg; PvP settlement eliminates principal risk.</td>
+        <td><code>KB-002@2022-07-08</code> (finance-settlement corpus)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Report exposure on principal with a PvP flag (BIS CPMI). Grounds D-004.</td></tr>
+    <tr><td>A 60-second snapshot cache TTL is an acceptable freshness/cost trade-off.</td>
+        <td>— (product choice)</td>
+        <td><spec-status value="blocked">assumed</spec-status></td>
+        <td>A local product knob, not a domain fact; deliberately not grounded against the corpus. Grounds D-005.</td></tr>
+    <tr><td>A std-only Rust crate with <code>i64</code> cents and a hand-rolled calendar realises the whole computation.</td>
+        <td><code>impl/src/lib.rs</code> — <code>settlement_date</code>, <code>snapshot</code>, <code>standard_cycle</code>, <code>T1_EFFECTIVE</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>The crate compiles std-only and passes 5 <code>cargo test</code> cases spanning the cutover and the IBOR/ABOR reconcile. Grounds D-006.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>4 · Approach</h2>
+
+<p>The crate is one module. <code>Date</code> is a day-count (Howard Hinnant's civil ⇄ days algorithms) so ordering and
+business-day arithmetic are cheap and total. <code>SettlementCalendar</code> holds weekends plus a holiday set and offers
+<code>is_business_day</code> / <code>add_business_days</code>; <code>settlement_date</code> composes the latter with
+<code>standard_cycle(trade_date)</code>, which returns the cycle length in force on that trade date. <code>snapshot</code>
+folds a trade book into a <code>Snapshot { ibor_cents, abor_cents }</code>: a trade counts toward IBOR when its trade date
+is on or before the as-of instant, and toward ABOR when its settlement date is.</p>
+
+<p>The single load-bearing choice is that the cycle length is <em>domain data pinned by edition</em>, not a constant.
+<code>standard_cycle</code> reads T+1 on or after the 28 May 2024 compliance date and T+2 before it; that cutover is
+grounded against <code>KB-001@2024-05-28</code> and exercised by tests that straddle it — never a guess in code.</p>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="System architecture sketch">
+  <style>
+    .box { fill:#fcfbf7; stroke:#c4c1bb; stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill:#4a4a46; letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill:#353534; }
+    .arr { stroke:#73706d; stroke-width:1.2; fill:none; }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">Trade book</text>
+  <text class="body"  x="56" y="122">fills + as-of</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">settlement_date</text>
+  <text class="body"  x="286" y="122">edition-correct cycle</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">Snapshot</text>
+  <text class="body"  x="516" y="122">IBOR + ABOR</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#73706d"/></marker></defs>
+</svg>
+<figcaption>A trade book plus an as-of instant is folded through the edition-correct <code>settlement_date</code> into a two-book <code>Snapshot</code>.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>5 · Alternatives considered</h2>
+
+<spec-matrix target="D-006">
+<table>
+  <thead>
+    <tr><th>Option</th><th>Exact money</th><th>Zero-dep footprint</th><th>Edition control</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr data-winner><td>Rust, std-only — chosen</td><td>5</td><td>5</td><td>5</td><td class="score">15</td></tr>
+    <tr><td>Rust + a date crate (chrono/time)</td><td>5</td><td>3</td><td>5</td><td class="score">13</td></tr>
+    <tr><td>Python + pandas</td><td>2</td><td>2</td><td>3</td><td class="score">7</td></tr>
+  </tbody>
+</table>
+</spec-matrix>
+<p>A date crate would buy calendar conveniences the hand-rolled day-count already covers, at the cost of a dependency and
+less direct control over the business-day rule. Python's float money basis fails the exact-cents constraint outright. The
+std-only crate wins on all three axes and keeps the settlement cycle a one-constant, fully-owned edition switch.</p>
+</section>
+
+
+<section id="decisions">
+<h2>6 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Settlement date from a business-day calendar (T+1)</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-001">FR-001</a> needs a trade's settlement date. The standard US-equity cycle is T+1 from the 28 May 2024 compliance date, grounded on the §3 corpus row <code>KB-001@2024-05-28</code>, which supersedes the earlier T+2 edition — re-grounded here after applying <code>2024-05-28-usd-t1-settlement</code>.</dd>
+    <dt>Decision</dt>     <dd>Settlement date = trade date + 1 business day (T+1) for trades on or after 28 May 2024, and + 2 (T+2) before, where business days exclude weekends and the calendar's US market holidays. The cycle length is read from <code>standard_cycle(trade_date)</code>, not hard-coded at the call site.</dd>
+    <dt>Consequences</dt> <dd>+ point-in-time correct and edition-pinned; a cutover is a re-grounding, not a rewrite. − the pinned edition must be re-grounded when the rule changes, or the plan drifts from the live corpus (exactly the staleness signal this example demonstrates).</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Cash basis per book — IBOR traded, ABOR settled</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-002">FR-002</a> needs two balances from one account. The §3 corpus row <code>KB-003@2024-01-15</code> gives the basis: IBOR is trade-date (traded cash), ABOR is settlement-date (settled cash); PBOR is deferred.</dd>
+    <dt>Decision</dt>     <dd><code>Snapshot { ibor_cents, abor_cents }</code>: IBOR sums trades with trade date ≤ as-of; ABOR sums trades with settlement date ≤ as-of. PBOR is out of scope for this slice.</dd>
+    <dt>Consequences</dt> <dd>+ one fold yields both books; their difference is cash in flight. − a consumer must not read ABOR as available cash — holds are a later slice.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · As-of snapshot semantics</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#SC-001">SC-001</a> and <a href="./spec.html#SC-002">SC-002</a> require a balance "as of" an instant. The §3 corpus row <code>KB-004@2024-01-15</code> fixes the semantics: settled cash counts trades whose settlement date is ≤ the as-of time, under the rule in force on each trade date.</dd>
+    <dt>Decision</dt>     <dd><code>snapshot(opening, book, as_of, cal)</code> is a pure fold; a trade contributes to ABOR only once <code>cal.settlement_date(trade_date) &lt;= as_of</code>. Opening balance seeds both books.</dd>
+    <dt>Consequences</dt> <dd>+ a historical as-of reproduces exactly, because each trade settles under its own edition. − correctness depends on the calendar's holiday set being right for the window.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-004" grounding="verified">
+  <h4>D-004 · FX exposure on principal with a PvP flag</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-003">FR-003</a> asks for FX settlement exposure. The §3 corpus row <code>KB-002@2022-07-08</code> (BIS CPMI) says settlement risk is on the full principal of the unsettled leg, and PvP eliminates principal risk.</dd>
+    <dt>Decision</dt>     <dd>For a two-legged trade, report exposure on the principal of the unsettled leg and carry a boolean PvP flag; a PvP-settled trade reports zero principal risk.</dd>
+    <dt>Consequences</dt> <dd>+ the exposure number matches how settlement risk is actually measured. − FX is a SHOULD in this slice; the single-currency path ships first.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-005" grounding="assumed">
+  <h4>D-005 · Snapshot refresh interval (60 s TTL)</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-004">FR-004</a> (MAY) allows a refresh cadence. This is a <strong>local product decision</strong> — a freshness/cost trade-off, not a domain fact — so it is grounded <code>assumed</code> and, per the plan's grounding rules, a product choice must <em>not</em> manufacture a corpus citation to look verified.</dd>
+    <dt>Decision</dt>     <dd>Default a 60-second cache TTL for a computed snapshot, product-configurable; below the TTL a cached snapshot is returned, above it the snapshot is recomputed.</dd>
+    <dt>Consequences</dt> <dd>+ bounds recomputation cost with a single knob. − a stale-tolerant default; a consumer needing to-the-second freshness sets the TTL to zero.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-006" grounding="verified">
+  <h4>D-006 · Implementation stack — Rust, std-only</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Decision drivers</dt> <dd>Exact integer money · zero external dependencies · direct control of the business-day / edition rule</dd>
+    <dt>Considered options</dt>
+    <dd>
+      <ul class="considered-options">
+        <li><strong>Rust, std-only — chosen</strong> — + exact <code>i64</code> cents, no dependency to audit, full control of the cycle constant. − a hand-rolled day-count to own.</li>
+        <li><strong>Rust + a date crate</strong> — + calendar conveniences. − a dependency for arithmetic the day-count already covers.</li>
+        <li><strong>Python + pandas</strong> — + fast to sketch. − float money fails the exact-cents constraint.</li>
+      </ul>
+    </dd>
+    <dt>Context</dt>      <dd>This is a <strong>stack pick, not a domain fact</strong>, so it is grounded on real code, never the corpus: the §3 row <code>impl/src/lib.rs</code> — the symbols <code>settlement_date</code>, <code>snapshot</code>, <code>standard_cycle</code>, and <code>T1_EFFECTIVE</code> — and its 5 passing <code>cargo test</code> cases.</dd>
+    <dt>Decision</dt>     <dd>Implement as the std-only Rust crate <code>settlement</code>: <code>i64</code> cents, a hand-rolled <code>SettlementCalendar</code>, and an edition-correct <code>standard_cycle</code>.</dd>
+    <dt>Consequences</dt> <dd>+ no supply chain, exact money, one-constant edition control. − the calendar and day-count are ours to maintain and test.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>7 · Project structure</h2>
+
+<p>Only the new or changed paths, grouped by the single-module boundary the §6 decisions draw.</p>
+
+<pre><code>impl/
+  Cargo.toml            crate: settlement (std-only)
+  src/
+    lib.rs              Date, SettlementCalendar, standard_cycle, Trade, Snapshot, snapshot() + 5 tests
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>8 · Risks &amp; mitigations</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>R-1 · The pinned settlement cycle (D-001) goes stale when the standard cycle changes, so the plan asserts a rule the live corpus no longer carries.</td><td>H</td><td>M</td><td>Re-ground D-001 against the newer corpus edition on any cutover; the <code>corpus-staleness</code> validate warning makes the drift loud rather than silent.</td></tr>
+    <tr><td>R-2 · The holiday set is wrong for the window, so a settlement date lands on a non-business day.</td><td>L</td><td>H</td><td><code>is_business_day</code> excludes weekends and holidays; tests pin Memorial Day 2024 across the cutover.</td></tr>
+    <tr><td>R-3 · A consumer reads ABOR as available cash and over-spends against holds not yet modelled.</td><td>M</td><td>M</td><td>Name the two books explicitly; available cash is a deferred slice (spec §3 out-of-scope), documented on the <code>Snapshot</code> type.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="complexity">
+<h2>9 · Complexity tracking</h2>
+<p>Anywhere this plan introduces complexity not strictly required by the spec, justify it here.</p>
+
+<spec-assumption>
+<p>The day-count and business-day calendar are hand-rolled rather than pulled from a date library. This is deliberate: it
+removes a dependency, keeps money and dates as plain integers, and makes the settlement cycle a single owned constant that
+a corpus re-grounding can flip — the whole point of the worked example.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>10 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — every domain decision is grounded against a pinned corpus edition, the stack pick against the real
+crate, and the one product knob (D-005) is deliberately left as an assumed default rather than an open question.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>11 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-24">24 Jul 2026</time><span>Initial plan. Std-only Rust crate: settlement-date from a business-day calendar (D-001, T+2, grounded on KB-001@2017-09-05), IBOR/ABOR cash basis (D-002), as-of snapshot semantics (D-003), FX exposure + PvP (D-004), a 60 s refresh TTL as a product knob (D-005, assumed), and the std-only Rust stack pick grounded on the real crate (D-006).</span></li>
+  <li><time datetime="2026-07-26">26 Jul 2026</time><span>Re-grounded D-001 after applying <a href="./changes/archive/2024-05-28-usd-t1-settlement/proposal.html">2024-05-28-usd-t1-settlement</a>: T+2 → T+1, and its corpus pin from KB-001@2017-09-05 to KB-001@2024-05-28 (the current edition), clearing the corpus-staleness warning.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 001-cash-snapshot · Point-in-time cash-account snapshots · authored 24 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>
