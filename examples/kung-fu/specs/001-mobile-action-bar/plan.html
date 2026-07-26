@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Mobile action bar · Plan</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Implementation plan · 001-mobile-action-bar</p>
+  <h1>Mobile action bar</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">001-mobile-action-bar</a></span>
+    <b>Owner</b>      <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Branch</b>     <span><code>001-mobile-action-bar</code></span>
+    <b>Created</b>    <span><time datetime="2026-07-25">25 Jul 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Build the bar as a flex row of icon buttons, each a <code>min-height:24px;min-width:24px</code> hit box with a
+    <code>gap</code> that satisfies the SC 2.5.8 spacing test, and an <code>aria-label</code> per button. The one decision
+    worth recording is the target-size floor (D-001): 24&times;24 at Level AA, grounded against the corpus, not the reflexive
+    44&times;44 that belongs to the AAA / Enhanced criterion.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="technical-context">
+<h2>1 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>HTML + CSS; no framework required for the bar itself.</dd>
+  <dt>Architecture</dt>     <dd>A single presentational component: a flex row of <code>&lt;button&gt;</code> elements, each an icon glyph with an accessible name.</dd>
+  <dt>Testing</dt>          <dd>A rendered-geometry assertion (computed box ≥ 24&times;24 px per button) plus an inter-target spacing check; an axe/a11y pass for accessible names.</dd>
+  <dt>Constraints</dt>      <dd>24&times;24 CSS px is the floor for every control (FR-001); spacing must pass the SC 2.5.8 24&nbsp;px-circle test (FR-002); the 44&times;44 enhanced target is per-control opt-in (FR-003), never the baseline.</dd>
+</dl>
+</section>
+
+
+<section id="grounding">
+<h2>2 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed. Status is <code>verified</code> (opened the source
+this turn), <code>spike</code>, or <code>assumed</code>.</p>
+
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>The Level-AA minimum target size is 24&times;24 CSS px, introduced in WCAG 2.2 as SC 2.5.8 — not the 44&times;44 of the AAA SC 2.5.5.</td>
+        <td><code>KB-001@2023-10-05</code> (web-a11y corpus)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Opened the corpus document this turn: WCAG 2.2 (W3C Rec, 5 Oct 2023) SC 2.5.8 Target Size (Minimum), Level AA = 24&times;24 CSS px, with spacing / inline / user-agent / essential exceptions. 44&times;44 is the AAA Enhanced target (SC 2.5.5, WCAG 2.1). Grounds D-001.</td></tr>
+    <tr><td>A CSS flex <code>gap</code> plus per-button min-size satisfies the SC 2.5.8 spacing exception for a dense bar.</td>
+        <td>Spike: measure the computed target boxes and inter-target circle test at three, four, and five actions</td>
+        <td><spec-status value="review">spike</spec-status></td>
+        <td>Pending. Expected to pass with a modest gap; the polish phase records the measured spacing. Grounds FR-002's spacing path.</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="approach">
+<h2>3 · Approach</h2>
+<p>The bar is a <code>&lt;nav&gt;</code> holding a flex row of <code>&lt;button&gt;</code> controls. Each button sets
+<code>min-inline-size:24px;min-block-size:24px</code> (the FR-001 floor) and carries an <code>aria-label</code> (FR-004). The
+row's <code>gap</code> is sized so the SC 2.5.8 24&nbsp;px-circle test passes even when buttons sit at the floor (FR-002). A
+control marked <code>primary</code> raises only its own box to 44&times;44 (FR-003); siblings are untouched. Nothing here
+depends on a colour theme or animation — those are deferred.</p>
+</section>
+
+
+<section id="decisions">
+<h2>4 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Minimum interactive target size</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The action bar's icon buttons need a minimum hit target. The reflexive answer — 44&times;44 CSS px — is Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> SC 2.5.5 (Enhanced), not the AA floor. WCAG 2.2 introduced SC 2.5.8 Target Size (Minimum) at Level AA: <strong>24&times;24 CSS px</strong>, with spacing, inline, and essential exceptions. Grounded against <code>KB-001@2023-10-05</code>.</dd>
+    <dt>Decision</dt>     <dd>Set the minimum interactive target to <strong>24&times;24 CSS px</strong> to meet WCAG 2.2 SC 2.5.8 (Level AA); treat 44&times;44 (SC 2.5.5, AAA) as an enhanced target for primary actions, not the baseline.</dd>
+    <dt>Consequences</dt> <dd>+ A real AA floor, cited and edition-pinned — no longer an assumed 44. + Denser bars stay conformant. &minus; AAA (44&times;44) is a separate, higher bar adopted per-control, not by default.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>5 · Project structure</h2>
+<pre><code>components/
+  action-bar/
+    action-bar.html   nav + flex row of icon buttons
+    action-bar.css     24px min target + gap spacing + primary 44px opt-in
+test/
+  action-bar.geometry.test.js   computed box >= 24x24 and spacing circle test
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>6 · Risks &amp; mitigations</h2>
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>R-1 · A designer reintroduces 44&times;44 as the baseline, over-shooting AA and crowding a dense bar.</td><td>M</td><td>L</td><td>Encode 24&times;24 as the token floor and 44&times;44 as an explicit per-control <code>primary</code> tier; the geometry test asserts siblings stay at 24.</td></tr>
+    <tr><td>R-2 · Icon-only buttons ship without accessible names.</td><td>M</td><td>M</td><td>The a11y test fails the build if any button lacks an <code>aria-label</code> (FR-004).</td></tr>
+  </tbody>
+</table>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the target-size floor is decided in D-001 and grounded against <code>KB-001@2023-10-05</code>; the
+spacing figure is a bounded spike, not an open question.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>8 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-25">25 Jul 2026</time><span>Initial plan. Flex row of icon buttons at the 24&times;24 CSS px AA floor with SC 2.5.8-conformant spacing; target-size decision recorded as D-001, grounded against <code>KB-001@2023-10-05</code>.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Plan for 001-mobile-action-bar · Mobile action bar · authored 25 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

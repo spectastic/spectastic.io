@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<title>Mobile action bar · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Specification · 001-mobile-action-bar</p>
+  <h1>Mobile action bar</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    A compact bottom bar of icon-only actions that stays tappable — every hit target meeting the accessibility floor, not an assumed one.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>001-mobile-action-bar</span>
+    <b>Owner</b>       <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Reviewers</b>   <span>Brian Corbin · @briancorbinxyz</span>
+    <b>Created</b>     <span><time datetime="2026-07-25">25 Jul 2026</time></span>
+    <b>Smallest demoable</b><span>Render the bar with three icon buttons; every button measures at least 24&times;24 CSS px and is independently tappable.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-budget words="900" reqs="4" minutes="7"></spec-budget>
+
+  <spec-tldr>
+    <p>A mobile screen ends in a fixed bottom bar of icon-only actions (back, share, more). Icon buttons are the
+    easiest control to under-size, so the bar's one load-bearing rule is a <strong>minimum interactive target</strong>:
+    every button meets the WCAG 2.2 Level-AA floor of <strong>24&times;24 CSS px</strong> (SC 2.5.8), with adequate
+    spacing so a 24&nbsp;px tap circle never overlaps a neighbour. 44&times;44 (the AAA / Enhanced target) is available
+    per-control for primary actions, but it is not the baseline. The visual chrome is deliberately out of scope here.</p>
+  </spec-tldr>
+
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>A self-contained UI component; depends on no sibling spec, only on the WCAG target-size fact it grounds against.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcome (tappable, conformant, spaced), not a named CSS framework or icon set.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — a bar every user can actually hit, on a real, cited accessibility floor.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Four requirements over one component; the target-size and spacing rules are measurable up front.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One component, icon buttons, four functional requirements; theming and animation deferred.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Rendered button box size and inter-target spacing are both mechanically checkable in px.</dd>
+  </dl>
+</header>
+
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>The reflexive answer to "how big is a tap target?" is 44&times;44 — Apple's Human Interface Guidelines figure, which is
+also WCAG's <em>AAA</em> SC 2.5.5 (Enhanced), not the AA floor. Treating 44 as the requirement over-shoots what Level AA
+actually asks and quietly conflates an AAA criterion with the baseline. WCAG 2.2 (a W3C Recommendation since 5&nbsp;Oct&nbsp;2023)
+settled this: SC 2.5.8 Target Size (Minimum), Level AA, is <strong>24&times;24 CSS px</strong>. This spec pins the bar to that
+real floor and treats 44 as an enhanced target adopted per-control, not by default.</p>
+</section>
+
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+
+<p>Each story <strong>MUST</strong> be independently testable.</p>
+
+<h3 id="US1">US1 · Tap an action without mis-hitting a neighbour <spec-pill>P1</spec-pill></h3>
+<p>As a <strong>one-handed mobile user</strong>, I want each icon button to be big enough and spaced enough to hit
+reliably, so I don't trigger the wrong action with my thumb.</p>
+<p><em>Acceptance:</em> every button's rendered box is at least 24&times;24 CSS px, and a 24&nbsp;px-diameter circle centred
+on any button does not intersect a neighbouring button's target.</p>
+
+<h3>Edge cases</h3>
+<ul>
+  <li><strong>Dense bar.</strong> Adding a fourth and fifth action must keep every target at the 24&times;24 floor with conformant spacing, rather than shrinking buttons below it.</li>
+  <li><strong>Primary action.</strong> A control opting into the 44&times;44 enhanced target (SC 2.5.5, AAA) must not force its neighbours up to 44 — the baseline stays 24.</li>
+</ul>
+</section>
+
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+
+<p>Conformance keywords (<spec-rule>MUST</spec-rule>, <spec-rule level="should">SHOULD</spec-rule>,
+<spec-rule level="may">MAY</spec-rule>) follow RFC 2119.</p>
+
+<h3>Functional</h3>
+
+<spec-requirement id="FR-001" priority="must">
+<p>Every interactive control in the action bar <spec-rule>MUST</spec-rule> present a pointer target of at least
+<strong>24&times;24 CSS pixels</strong>, meeting <strong>WCAG 2.2 SC 2.5.8 Target Size (Minimum)</strong> at Level AA.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-002" priority="must">
+<p>Adjacent targets <spec-rule>MUST</spec-rule> be spaced so a 24&nbsp;px-diameter circle centred on any target does not
+intersect another target — the spacing exception path of SC 2.5.8, so a dense bar stays conformant without inflating each
+button.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-003" priority="should">
+<p>A control designated a <strong>primary action</strong> <spec-rule level="should">SHOULD</spec-rule> offer the
+<strong>44&times;44 CSS px</strong> enhanced target (WCAG SC 2.5.5, Level AAA) as a per-control opt-in; this
+<spec-rule>MUST NOT</spec-rule> raise the baseline for other controls above the 24&times;24 floor.</p>
+</spec-requirement>
+
+<spec-requirement id="FR-004" priority="must">
+<p>Icon-only buttons <spec-rule>MUST</spec-rule> carry an accessible name (e.g. <code>aria-label</code>) so the target is
+identifiable to assistive technology, not merely large enough to tap.</p>
+</spec-requirement>
+
+<h3>Out of scope (deferred)</h3>
+<spec-out-of-scope>
+  <ul>
+    <li defer-to="TBD-visual-theme">Colour, elevation, and light/dark theming of the bar — a later visual-design slice; this spec fixes hit geometry, not chrome.</li>
+    <li defer-to="TBD-motion">Show/hide-on-scroll animation and transition timing.</li>
+    <li defer-to="never">Re-stating the WCAG normative text verbatim — the criteria are grounded by citation, not copied.</li>
+  </ul>
+</spec-out-of-scope>
+</section>
+
+
+<section id="data">
+<h2>4 · Data model</h2>
+<p>The bar is presentational; it holds only the action descriptors it renders.</p>
+<dl>
+  <dt><code>Action</code></dt><dd><code>{ id, iconName, accessibleName, tier }</code> — <code>tier</code> is <code>baseline</code> (24&times;24 floor) or <code>primary</code> (44&times;44 enhanced target opt-in).</dd>
+  <dt>Target box</dt><dd>The rendered hit rectangle of one control, measured in CSS px; the unit both FR-001 and FR-002 are checked against.</dd>
+</dl>
+<spec-note>
+<p>Invariant: 24&times;24 is the floor for every control, not an average. A control below it is a conformance fault under
+FR-001, not a styling preference.</p>
+</spec-note>
+</section>
+
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+
+<spec-requirement id="SC-001" priority="must">
+<p>Rendering the bar with three or more icon buttons yields, for every button, a target box of at least 24&times;24 CSS px
+and inter-target spacing that satisfies the SC 2.5.8 24&nbsp;px-circle test.</p>
+</spec-requirement>
+
+<spec-requirement id="SC-002" priority="must">
+<p>Marking one control <code>primary</code> renders it at the 44&times;44 enhanced target while every other control stays at
+the 24&times;24 baseline.</p>
+</spec-requirement>
+</section>
+
+
+<section id="assumptions">
+<h2>6 · Assumptions</h2>
+<spec-assumption>
+<p>Targets are measured in CSS pixels at the document's default zoom; the user-agent-controlled and essential exceptions of
+SC 2.5.8 do not apply to these author-styled buttons.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the interactive-target floor is fixed here at the WCAG 2.2 AA figure (24&times;24, SC 2.5.8), and the
+44&times;44 enhanced target is a per-control opt-in rather than an open choice.</p>
+</spec-questions>
+</section>
+
+
+<section id="conformance">
+<h2>8 · Conformance index</h2>
+<p>Auto-built from every <code>&lt;spec-requirement&gt;</code> in this document.</p>
+<spec-conformance></spec-conformance>
+</section>
+
+
+<section id="changelog">
+<h2>9 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-07-25">25 Jul 2026</time><span>Initial draft. A compact mobile action bar whose interactive controls meet the WCAG 2.2 SC 2.5.8 Level-AA minimum target of 24&times;24 CSS px (FR-001) with conformant spacing (FR-002), a per-control 44&times;44 enhanced-target opt-in (FR-003), and accessible names on icon-only buttons (FR-004).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  001-mobile-action-bar · Mobile action bar · authored 25 Jul 2026
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

@@ -194,6 +194,32 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     </div>
   </a>
 
+  <!-- FEATURED: grounding (knowledge corpus) -->
+  <a href="example-grounding.html" style="text-decoration:none;color:inherit;display:block;margin-top:16px">
+    <div class="feature card" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:30px 32px">
+      <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true" style="flex:0 0 auto;font-family:'Lato',sans-serif">
+        <!-- the AAA / HIG figure: the bigger, dashed ring (not the floor) -->
+        <circle cx="75" cy="62" r="54" fill="none" stroke="color-mix(in srgb,#b07d1a 55%,transparent)" stroke-width="1.5" stroke-dasharray="3 5"/>
+        <!-- the AA minimum: the grounded ring, solid green -->
+        <circle cx="75" cy="62" r="30" fill="color-mix(in srgb,var(--green) 13%,transparent)" stroke="var(--green)" stroke-width="2.4"/>
+        <circle cx="75" cy="62" r="3.6" fill="var(--green)"/>
+        <text x="132" y="16" text-anchor="end" font-size="9.5" font-weight="700" fill="#b07d1a">44 · AAA</text>
+        <text x="75" y="66" text-anchor="middle" font-size="12" font-weight="700" fill="var(--green)">24</text>
+        <rect x="20" y="120" width="110" height="22" rx="6" fill="var(--bg-sunken)" stroke="var(--rule-strong)"/>
+        <text x="75" y="135" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--green)">KB-001 · grounded</text>
+      </svg>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill">Knowledge corpus</span><span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">WCAG 2.2</span><span style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">● Grounded</span></div>
+        <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:12px 0 0">I know kung fu</h2>
+        <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.56;color:var(--ink-soft);margin:9px 0 0;max-width:52ch">A plan needs one domain fact — the minimum touch-target size — and a model guesses wrong: 44px, not the AA floor of 24. Watch a <span style="color:var(--ink)">knowledge corpus</span> correct it, live: a decision flips from a loud <em>ASSUMED</em> guess to a <em>verified</em>, edition-pinned citation. Includes an &ldquo;I know kung fu&rdquo; toggle and the real <span style="color:var(--ink)">validate</span> gates going green.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <span class="btn-primary">Read the build →</span>
+          <span class="btn-secondary">▷ Show me</span>
+        </div>
+      </div>
+    </div>
+  </a>
+
   <!-- mini grid: session-token + enterprise -->
   <div class="mini-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
     <a href="example.html" style="text-decoration:none;color:inherit">
