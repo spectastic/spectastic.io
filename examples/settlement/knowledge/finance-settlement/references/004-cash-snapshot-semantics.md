@@ -25,4 +25,4 @@ trades count:
 A correct as-of snapshot applies the **settlement rule in force on each trade's
 trade date**, not the rule in force today — otherwise a historical snapshot
 would re-settle old trades under a cycle that did not govern them. Cite as
-`KB-004@2024-01-15`.
+the `@2024-01-15` edition.

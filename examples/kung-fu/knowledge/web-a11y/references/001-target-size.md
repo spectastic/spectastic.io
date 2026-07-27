@@ -43,4 +43,4 @@ is the WCAG **AAA / Enhanced** target (SC 2.5.5). The minimum-target floor intro
 in WCAG 2.2 is **24×24** (SC 2.5.8). Reaching for 44 by reflex over-shoots the AA requirement and
 quietly conflates an AAA criterion with the AA baseline.
 
-Cite as `KB-001@2023-10-05`.
+Cite this document by its registry `KB-NNNN` id, pinned to the `@2023-10-05` edition.

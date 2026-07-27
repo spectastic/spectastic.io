@@ -23,4 +23,4 @@ canonical PvP mechanism for FX.
 
 For reporting, exposure is measured on the **principal** of the unsettled leg,
 carried with a **PvP flag** recording whether the trade settles through a PvP
-arrangement. Cite as `KB-002@2022-07-08`.
+arrangement. Cite this document by its registry `KB-NNNN` id, pinned to the `@2022-07-08` edition.

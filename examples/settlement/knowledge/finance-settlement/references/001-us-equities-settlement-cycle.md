@@ -30,10 +30,10 @@ settlement date, 29 May 2024.
 
 ## Editioning
 
-Prior editions are retained under `superseded/`, so `KB-001@2017-09-05` (the T+2
+Prior editions are retained under `superseded/`, so the `@2017-09-05` edition (the T+2
 rule in force before the cutover) still resolves. A trade is settled under the
 cycle in force **on its trade date**, not under today's rule applied
 retroactively.
 
 This is a hand-authored distillation, not a verbatim reproduction of the rule
-text. Cite as `KB-001@2024-05-28`.
+text. Cite this document by its registry `KB-NNNN` id, pinned to the `@2024-05-28` edition.

@@ -16,7 +16,7 @@ was **T+2** — a standard US-equity trade settled **two business days** after i
 trade date — effective **5 September 2017**.
 
 This is the rule in force **before 28 May 2024**. It is retained here, never
-overwritten, so an edition-pinned citation to the older cycle — `KB-001@2017-09-05`
+overwritten, so an edition-pinned citation to the older cycle — the `@2017-09-05` edition
 — always resolves, and a trade struck before the cutover can still be settled
 under the cycle that actually governed it.
 

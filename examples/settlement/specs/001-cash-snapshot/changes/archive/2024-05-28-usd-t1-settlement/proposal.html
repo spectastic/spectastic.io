@@ -50,7 +50,7 @@
 <h2>1 · Intent</h2>
 <p>The domain fact underneath <a href="../../../spec.html#FR-001">FR-001</a> changed. Under SEC Rule 15c6-1 the US standard
 settlement cycle for equities shortened from T+2 to T+1, with a compliance date of 28 May 2024. FR-001 was written in the
-T+2 era and now asserts a cycle the current corpus edition (<code>KB-001@2024-05-28</code>) no longer carries.</p>
+T+2 era and now asserts a cycle the current corpus edition (<code>KB-0001@2024-05-28</code>) no longer carries.</p>
 <p>This proposal brings FR-001 into line with the new rule while preserving point-in-time correctness: a trade struck
 before the cutover still settles under the T+2 cycle that governed it, so re-running an old close reproduces exactly.</p>
 </section>
@@ -100,7 +100,7 @@ the live spec. <code>op=</code> is one of <code>added | modified | removed | ren
   weekends and US market holidays. USD equities settle trade date + 1 business day (T+1) for trades on or after
   28 May 2024; trades before settle T+2 per the edition then in force.</p>
   <details><summary>Rationale</summary><p>Point-in-time correctness across the compliance-date cutover: the cycle length is
-  read from <code>standard_cycle(trade_date)</code>, grounded on <code>KB-001@2024-05-28</code>, which supersedes the T+2
+  read from <code>standard_cycle(trade_date)</code>, grounded on <code>KB-0001@2024-05-28</code>, which supersedes the T+2
   edition without rewriting how a pre-cutover trade settled.</p></details>
   </spec-requirement>
 </spec-delta>
@@ -133,9 +133,9 @@ the live spec. <code>op=</code> is one of <code>added | modified | removed | ren
 </spec-risk>
 
 <spec-risk target="§4" status="mitigated" by="Brian Corbin · @briancorbinxyz">
-  <p class="claim">Corpus contradiction: a live requirement still asserting T+2 contradicts <code>KB-001@2024-05-28</code> (supersedes <code>KB-001@2017-09-05</code>) — the current corpus edition carries T+1.</p>
+  <p class="claim">Corpus contradiction: a live requirement still asserting T+2 contradicts <code>KB-0001@2024-05-28</code> (supersedes <code>KB-0001@2017-09-05</code>) — the current corpus edition carries T+1.</p>
   <p class="citation">§4 delta on <a href="../../../spec.html#FR-001">FR-001</a>, against the finance-settlement corpus.</p>
-  <div class="response">Mitigated: this delta is exactly the fix — it re-states FR-001 as T+1 grounded on the current edition, and the plan's D-001 is re-grounded from <code>KB-001@2017-09-05</code> to <code>KB-001@2024-05-28</code> in the same change, clearing the <code>corpus-staleness</code> warning.</div>
+  <div class="response">Mitigated: this delta is exactly the fix — it re-states FR-001 as T+1 grounded on the current edition, and the plan's D-001 is re-grounded from <code>KB-0001@2017-09-05</code> to <code>KB-0001@2024-05-28</code> in the same change, clearing the <code>corpus-staleness</code> warning.</div>
 </spec-risk>
 </spec-risk-log>
 </section>

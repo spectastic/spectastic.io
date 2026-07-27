@@ -24,4 +24,4 @@ when the entitlement is struck — which is why entitlement is decided by these
 dates, not by settled position alone.
 
 This document is part of the pack as **adjacent** domain context; it is not
-cited by any decision in `001-cash-snapshot`. Cite as `KB-005@2023-06-01`.
+cited by any decision in `001-cash-snapshot`. Cite this document by its registry `KB-NNNN` id, pinned to the `@2023-06-01` edition.

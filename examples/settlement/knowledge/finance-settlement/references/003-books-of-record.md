@@ -24,4 +24,4 @@ positions and cash on a different basis:
   reconciled to ABOR with performance-specific adjustments.
 
 The books differ chiefly in **cash basis and timing**: IBOR shows traded cash
-immediately; ABOR shows it once settled. Cite as `KB-003@2024-01-15`.
+immediately; ABOR shows it once settled. Cite this document by its registry `KB-NNNN` id, pinned to the `@2024-01-15` edition.
