@@ -1,5 +1,5 @@
 ---
-id: KB-005
+slug: 005-corporate-actions-cash
 origin: Securities-operations market practice — corporate-action cash entitlements
 origin-url: TODO
 edition: 2023-06-01

@@ -85,7 +85,7 @@ impl SettlementCalendar {
 
     /// The settlement date for a US-equity trade: trade date + N business
     /// days, where N is the standard cycle in force on the trade date.
-    /// KB-001@2024-05-28 (T+1) supersedes KB-001@2017-09-05 (T+2); a trade is
+    /// KB-0001@2024-05-28 (T+1) supersedes KB-0001@2017-09-05 (T+2); a trade is
     /// settled under the edition current when it was struck — point-in-time
     /// correctness, not today's rule applied retroactively.
     pub fn settlement_date(&self, trade_date: Date) -> Date {
@@ -99,9 +99,9 @@ pub const T1_EFFECTIVE: Date = Date(19871); // 2024-05-28
 /// Standard settlement cycle (business days) in force on `trade_date`.
 pub fn standard_cycle(trade_date: Date) -> u32 {
     if trade_date < T1_EFFECTIVE {
-        2 // T+2 — KB-001@2017-09-05
+        2 // T+2 — KB-0001@2017-09-05
     } else {
-        1 // T+1 — KB-001@2024-05-28
+        1 // T+1 — KB-0001@2024-05-28
     }
 }
 

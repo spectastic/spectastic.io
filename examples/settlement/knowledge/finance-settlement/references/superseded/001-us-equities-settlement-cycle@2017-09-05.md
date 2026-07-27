@@ -1,5 +1,5 @@
 ---
-id: KB-001
+slug: 001-us-equities-settlement-cycle
 origin: U.S. Securities and Exchange Commission — 2017 amendment to Rule 15c6-1 (T+3 → T+2)
 origin-url: https://www.sec.gov/rules/final/2017/34-80295.pdf
 edition: 2017-09-05

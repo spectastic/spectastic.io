@@ -1,5 +1,5 @@
 ---
-id: KB-001
+slug: 001-us-equities-settlement-cycle
 origin: U.S. Securities and Exchange Commission — amendments to Rule 15c6-1 shortening the standard settlement cycle for US securities to T+1
 origin-url: https://www.sec.gov/rules/final/2023/34-96930.pdf
 edition: 2024-05-28

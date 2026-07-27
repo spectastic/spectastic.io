@@ -201,7 +201,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div class="step-num">3</div>
         <div style="padding-bottom:26px">
           <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Cite it — the fact gets corrected</h3>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">/spectastic.plan</span> grounds the decision by citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-001@2023-10-05</span> — the id pinned to the exact edition read. The grounding flips to <strong style="color:var(--green)">verified</strong>, and the number is corrected from 44 to <strong style="color:var(--ink)">24</strong>. Grounding didn't just add a badge; it fixed a confident error. <a href="#show-me" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Flip it below.</a></p>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">/spectastic.plan</span> grounds the decision by citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-0001@2023-10-05</span> — the id pinned to the exact edition read. The grounding flips to <strong style="color:var(--green)">verified</strong>, and the number is corrected from 44 to <strong style="color:var(--ink)">24</strong>. Grounding didn't just add a badge; it fixed a confident error. <a href="#show-me" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Flip it below.</a></p>
         </div>
       </div>
       <div class="step">
@@ -231,7 +231,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
           <dt>Context</dt>
           <dd>
             <span class="when-assumed">The action bar's icon buttons need a minimum hit target. The reflexive answer — <strong>44&times;44 CSS px</strong> — is Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> criterion. There's no committed source to cite, so this rests on the model's memory.</span>
-            <span class="when-verified kf-reveal">The action bar's icon buttons need a minimum hit target. WCAG 2.2 introduced <strong>SC 2.5.8 Target Size (Minimum)</strong> at Level AA: <strong>24&times;24 CSS px</strong>, with spacing, inline, and essential exceptions. 44&times;44 is the separate <em>AAA</em> bar (SC 2.5.5). Grounded against <code>KB-001@2023-10-05</code>.</span>
+            <span class="when-verified kf-reveal">The action bar's icon buttons need a minimum hit target. WCAG 2.2 introduced <strong>SC 2.5.8 Target Size (Minimum)</strong> at Level AA: <strong>24&times;24 CSS px</strong>, with spacing, inline, and essential exceptions. 44&times;44 is the separate <em>AAA</em> bar (SC 2.5.5). Grounded against <code>KB-0001@2023-10-05</code>.</span>
           </dd>
           <dt>Decision</dt>
           <dd>Set the minimum interactive target to <strong><span class="when-assumed">44&times;44</span><span class="when-verified kf-reveal">24&times;24</span> CSS px</strong>.
@@ -241,7 +241,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
           <dt>Source</dt>
           <dd>
             <span class="when-assumed" style="color:var(--ink-faint)">— none; no corpus to cite.</span>
-            <span class="when-verified kf-reveal"><a href="examples/kung-fu/knowledge/web-a11y/references/KB-001-target-size.md" class="lnk-crimson" style="font-family:'IBM Plex Mono',monospace;font-size:.86em">KB-001@2023-10-05</a> &mdash; WCAG 2.2 SC 2.5.8, Target Size (Minimum), Level AA.</span>
+            <span class="when-verified kf-reveal"><a href="examples/kung-fu/knowledge/web-a11y/references/KB-001-target-size.md" class="lnk-crimson" style="font-family:'IBM Plex Mono',monospace;font-size:.86em">KB-0001@2023-10-05</a> &mdash; WCAG 2.2 SC 2.5.8, Target Size (Minimum), Level AA.</span>
           </dd>
         </dl>
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--rule);display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap">
@@ -254,7 +254,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         </div>
       </div>
 
-      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">The card above uses spectastic's real <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">spec-decision[grounding]</span> rendering; the toggle only flips the <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">grounding</span> attribute. In a project you don't flip it by hand — citing <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-001@2023-10-05</span> in the plan is what earns the green.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">The card above uses spectastic's real <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">spec-decision[grounding]</span> rendering; the toggle only flips the <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">grounding</span> attribute. In a project you don't flip it by hand — citing <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-0001@2023-10-05</span> in the plan is what earns the green.</p>
     </div>
 
     <!-- read -->
@@ -266,7 +266,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
       <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:18px 0 6px"><span style="font-family:'IBM Plex Mono',monospace">knowledge/web-a11y/references/KB-001-target-size.md</span></div>
       <div class="code"><span class="c">---</span>
-<span class="k">id</span>: KB-001
+<span class="k">slug</span>: 001-target-size
 <span class="k">origin</span>: W3C — Web Content Accessibility Guidelines (WCAG) 2.2, Success Criterion 2.5.8 Target Size (Minimum)
 <span class="k">origin-url</span>: https://www.w3.org/TR/WCAG22/#target-size-minimum
 <span class="k">edition</span>: 2023-10-05
@@ -291,7 +291,7 @@ a pointer input be at least **24&times;24 CSS pixels** …
 
 **44&times;44 is not the AA minimum.** 44&times;44 CSS px is the figure in Apple's
 Human Interface Guidelines and is the WCAG **AAA / Enhanced** target (SC 2.5.5) …
-Cite as `KB-001@2023-10-05`.</div>
+Cite as `KB-0001@2023-10-05`.</div>
       <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ the <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">content-hash</span> is real (sha256 of the body), not a placeholder — so a later re-ingest can detect drift. <span style="color:var(--ink-soft)">provenance frontmatter, 051 · FR-003</span></div>
 
       <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">The plan decision that cites it — <span style="font-family:'IBM Plex Mono',monospace">specs/001-mobile-action-bar/plan.html</span></div>
@@ -301,12 +301,12 @@ Cite as `KB-001@2023-10-05`.</div>
     <span class="c">…</span>
     <span class="t">&lt;dt&gt;</span>Context<span class="t">&lt;/dt&gt;</span> <span class="t">&lt;dd&gt;</span>… WCAG 2.2 introduced SC 2.5.8 Target Size (Minimum)
         at Level AA: <span class="t">&lt;strong&gt;</span>24&times;24 CSS px<span class="t">&lt;/strong&gt;</span>, with spacing, inline, and
-        essential exceptions. Grounded against <span class="t">&lt;code&gt;</span>KB-001@2023-10-05<span class="t">&lt;/code&gt;</span>.<span class="t">&lt;/dd&gt;</span>
+        essential exceptions. Grounded against <span class="t">&lt;code&gt;</span>KB-0001@2023-10-05<span class="t">&lt;/code&gt;</span>.<span class="t">&lt;/dd&gt;</span>
     <span class="t">&lt;dt&gt;</span>Decision<span class="t">&lt;/dt&gt;</span> <span class="t">&lt;dd&gt;</span>Set the minimum interactive target to <span class="t">&lt;strong&gt;</span>24&times;24 CSS px<span class="t">&lt;/strong&gt;</span>
         … treat 44&times;44 (SC 2.5.5, AAA) as an enhanced target, not the baseline.<span class="t">&lt;/dd&gt;</span>
   <span class="t">&lt;/dl&gt;</span>
 <span class="t">&lt;/spec-decision&gt;</span></div>
-      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--green)">grounding="verified"</span> plus a resolvable <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">KB-001@2023-10-05</span> is what renders the green row — no bespoke element, just the existing decision card. <span style="color:var(--ink-soft)">052 · citation contract</span></div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--green)">grounding="verified"</span> plus a resolvable <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">KB-0001@2023-10-05</span> is what renders the green row — no bespoke element, just the existing decision card. <span style="color:var(--ink-soft)">052 · citation contract</span></div>
     </div>
 
     <!-- trust -->
@@ -319,7 +319,7 @@ Cite as `KB-001@2023-10-05`.</div>
       <div style="color:var(--green)">✓ no findings</div>
       <div style="color:var(--ink-faint)">&nbsp;</div>
       <div style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-provenance · corpus-staleness · corpus-citation-form · corpus-well-formed · corpus-license — all clear;</div>
-      <div style="color:var(--ink-faint)">&nbsp;&nbsp;the pinned citation KB-001@2023-10-05 resolved to the committed document.</div>
+      <div style="color:var(--ink-faint)">&nbsp;&nbsp;the pinned citation KB-0001@2023-10-05 resolved to the committed document.</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px" class="card-grid">
@@ -327,8 +327,8 @@ Cite as `KB-001@2023-10-05`.</div>
         <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--deny)">corpus-provenance · error</div>
         <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">Typo the pin to an edition that doesn't exist and the build fails — a citation can't rot into a dead reference.</p>
         <div class="term" style="font-size:.72rem">
-          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-001@2020-01-01</span></div>
-          <div><span style="color:var(--deny)">error</span> Corpus citation "KB-001@2020-01-01" resolves to no</div>
+          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2020-01-01</span></div>
+          <div><span style="color:var(--deny)">error</span> Corpus citation "KB-0001@2020-01-01" resolves to no</div>
           <div>&nbsp;&nbsp;committed document at that id/edition — a dead reference.</div>
           <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-provenance</span></div>
           <div style="color:var(--deny)">1 error, 0 warnings</div>
@@ -338,8 +338,8 @@ Cite as `KB-001@2023-10-05`.</div>
         <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b07d1a">corpus-staleness · warning</div>
         <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">Pin to the superseded 2018 edition and it warns — loud, like an assumed decision, but never blocking.</p>
         <div class="term" style="font-size:.72rem">
-          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-001@2018-06-05</span></div>
-          <div><span style="color:#b07d1a">warning</span> Corpus citation "KB-001@2018-06-05" is pinned to a</div>
+          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2018-06-05</span></div>
+          <div><span style="color:#b07d1a">warning</span> Corpus citation "KB-0001@2018-06-05" is pinned to a</div>
           <div>&nbsp;&nbsp;superseded edition — the current edition is 2023-10-05.</div>
           <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-staleness</span></div>
           <div style="color:#b07d1a">0 errors, 1 warning</div>

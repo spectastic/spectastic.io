@@ -1,5 +1,5 @@
 ---
-id: KB-004
+slug: 004-cash-snapshot-semantics
 origin: Investment-operations market practice — cash-account snapshot semantics
 origin-url: TODO
 edition: 2024-01-15

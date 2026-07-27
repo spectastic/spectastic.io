@@ -1,5 +1,5 @@
 ---
-id: KB-001
+slug: 001-target-size
 origin: W3C — Web Content Accessibility Guidelines (WCAG) 2.2, Success Criterion 2.5.8 Target Size (Minimum)
 origin-url: https://www.w3.org/TR/WCAG22/#target-size-minimum
 edition: 2023-10-05

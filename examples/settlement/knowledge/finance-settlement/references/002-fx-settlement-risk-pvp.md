@@ -1,5 +1,5 @@
 ---
-id: KB-002
+slug: 002-fx-settlement-risk-pvp
 origin: Bank for International Settlements, Committee on Payments and Market Infrastructures — FX settlement risk and payment-versus-payment (PvP)
 origin-url: https://www.bis.org/cpmi/
 edition: 2022-07-08

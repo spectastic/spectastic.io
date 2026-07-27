@@ -59,7 +59,7 @@ this turn), <code>spike</code>, or <code>assumed</code>.</p>
   </thead>
   <tbody>
     <tr><td>The Level-AA minimum target size is 24&times;24 CSS px, introduced in WCAG 2.2 as SC 2.5.8 — not the 44&times;44 of the AAA SC 2.5.5.</td>
-        <td><code>KB-001@2023-10-05</code> (web-a11y corpus)</td>
+        <td><code>KB-0001@2023-10-05</code> (web-a11y corpus)</td>
         <td><spec-status value="accepted">verified</spec-status></td>
         <td>Opened the corpus document this turn: WCAG 2.2 (W3C Rec, 5 Oct 2023) SC 2.5.8 Target Size (Minimum), Level AA = 24&times;24 CSS px, with spacing / inline / user-agent / essential exceptions. 44&times;44 is the AAA Enhanced target (SC 2.5.5, WCAG 2.1). Grounds D-001.</td></tr>
     <tr><td>A CSS flex <code>gap</code> plus per-button min-size satisfies the SC 2.5.8 spacing exception for a dense bar.</td>
@@ -88,7 +88,7 @@ depends on a colour theme or animation — those are deferred.</p>
   <h4>D-001 · Minimum interactive target size</h4>
   <dl>
     <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
-    <dt>Context</dt>      <dd>The action bar's icon buttons need a minimum hit target. The reflexive answer — 44&times;44 CSS px — is Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> SC 2.5.5 (Enhanced), not the AA floor. WCAG 2.2 introduced SC 2.5.8 Target Size (Minimum) at Level AA: <strong>24&times;24 CSS px</strong>, with spacing, inline, and essential exceptions. Grounded against <code>KB-001@2023-10-05</code>.</dd>
+    <dt>Context</dt>      <dd>The action bar's icon buttons need a minimum hit target. The reflexive answer — 44&times;44 CSS px — is Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> SC 2.5.5 (Enhanced), not the AA floor. WCAG 2.2 introduced SC 2.5.8 Target Size (Minimum) at Level AA: <strong>24&times;24 CSS px</strong>, with spacing, inline, and essential exceptions. Grounded against <code>KB-0001@2023-10-05</code>.</dd>
     <dt>Decision</dt>     <dd>Set the minimum interactive target to <strong>24&times;24 CSS px</strong> to meet WCAG 2.2 SC 2.5.8 (Level AA); treat 44&times;44 (SC 2.5.5, AAA) as an enhanced target for primary actions, not the baseline.</dd>
     <dt>Consequences</dt> <dd>+ A real AA floor, cited and edition-pinned — no longer an assumed 44. + Denser bars stay conformant. &minus; AAA (44&times;44) is a separate, higher bar adopted per-control, not by default.</dd>
   </dl>
@@ -123,7 +123,7 @@ test/
 <section id="questions">
 <h2>7 · Open questions</h2>
 <spec-questions>
-<p>None outstanding — the target-size floor is decided in D-001 and grounded against <code>KB-001@2023-10-05</code>; the
+<p>None outstanding — the target-size floor is decided in D-001 and grounded against <code>KB-0001@2023-10-05</code>; the
 spacing figure is a bounded spike, not an open question.</p>
 </spec-questions>
 </section>
@@ -133,7 +133,7 @@ spacing figure is a bounded spike, not an open question.</p>
 <h2>8 · Change log</h2>
 <spec-changelog>
 <ol>
-  <li><time datetime="2026-07-25">25 Jul 2026</time><span>Initial plan. Flex row of icon buttons at the 24&times;24 CSS px AA floor with SC 2.5.8-conformant spacing; target-size decision recorded as D-001, grounded against <code>KB-001@2023-10-05</code>.</span></li>
+  <li><time datetime="2026-07-25">25 Jul 2026</time><span>Initial plan. Flex row of icon buttons at the 24&times;24 CSS px AA floor with SC 2.5.8-conformant spacing; target-size decision recorded as D-001, grounded against <code>KB-0001@2023-10-05</code>.</span></li>
 </ol>
 </spec-changelog>
 </section>

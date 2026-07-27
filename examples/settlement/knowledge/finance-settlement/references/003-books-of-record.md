@@ -1,5 +1,5 @@
 ---
-id: KB-003
+slug: 003-books-of-record
 origin: Investment-operations market practice — investment, accounting, and performance books of record
 origin-url: TODO
 edition: 2024-01-15
