@@ -230,22 +230,27 @@ p.lead{font-family:'Source Serif 4',serif;font-size:1.04rem;line-height:1.62;col
             </div>
           </div>
 
-          <!-- edition timeline -->
+          <!-- edition timeline (only shown for a ref with supersession history) -->
           <div>
             <div class="xp-lbl">3 · Edition timeline — the fact changed; the corpus kept both</div>
-            <div class="tl" id="tl" role="group" aria-label="Editions of KB-0001">
-              <button class="tl-stop" id="tlOld" type="button">
-                <div class="tl-ed">@2017-09-05</div>
-                <div class="tl-cyc">T+2</div>
-                <span class="tl-tag sup">superseded</span>
-              </button>
-              <button class="tl-stop on" id="tlNew" type="button">
-                <div class="tl-ed">@2024-05-28</div>
-                <div class="tl-cyc">T+1</div>
-                <span class="tl-tag cur">current</span>
-              </button>
+            <div id="tlActive">
+              <div class="tl" id="tl" role="group" aria-label="Editions of KB-0001">
+                <button class="tl-stop" id="tlOld" type="button">
+                  <div class="tl-ed">@2017-09-05</div>
+                  <div class="tl-cyc">T+2</div>
+                  <span class="tl-tag sup">superseded</span>
+                </button>
+                <button class="tl-stop on" id="tlNew" type="button">
+                  <div class="tl-ed">@2024-05-28</div>
+                  <div class="tl-cyc">T+1</div>
+                  <span class="tl-tag cur">current</span>
+                </button>
+              </div>
+              <p class="cap-i" style="margin:12px 0 0">The US equities settlement cycle really shortened from <strong style="font-style:normal;color:var(--ink)">T+2</strong> to <strong style="font-style:normal;color:var(--ink)">T+1</strong> on 28 May 2024 (SEC Rule 15c6-1). The corpus <em>retains</em> the prior edition under <span class="mono" style="font-style:normal;font-size:.86em">references/superseded/</span> — so a citation pinned to the old rule still resolves, and flags as stale rather than silently rotting. Click an edition to resolve against it.</p>
             </div>
-            <p class="cap-i" style="margin:12px 0 0">The US equities settlement cycle really shortened from <strong style="font-style:normal;color:var(--ink)">T+2</strong> to <strong style="font-style:normal;color:var(--ink)">T+1</strong> on 28 May 2024 (SEC Rule 15c6-1). The corpus <em>retains</em> the prior edition under <span class="mono" style="font-style:normal;font-size:.86em">references/superseded/</span> — so a citation pinned to the old rule still resolves, and flags as stale rather than silently rotting. Click an edition to resolve against it.</p>
+            <div id="tlEmpty" style="display:none;border:1px dashed var(--rule-strong);border-radius:11px;padding:20px 18px;background:var(--bg-sunken)">
+              <p class="cap-i" style="margin:0">This reference has a single edition — no supersession history to show. In this sample only <span class="mono" style="font-style:normal;font-size:.86em"><a href="#" id="tlPick" class="lnk-crimson" style="font-family:inherit">KB-0001</a></span> has been superseded (T+2&nbsp;→&nbsp;T+1); select it to see how a retained prior edition still resolves.</p>
+            </div>
           </div>
         </div>
 
@@ -514,16 +519,20 @@ p.lead{font-family:'Source Serif 4',serif;font-size:1.04rem;line-height:1.62;col
   rId.addEventListener('change', () => selectRef(rId.value, byId[rId.value].current));
   rEd.addEventListener('change', () => { syncTimeline(); render(); });
 
-  // ---- edition timeline (KB-0001) ----
+  // ---- edition timeline (only for a ref with >1 edition; here, KB-0001) ----
   const tlOld=document.getElementById('tlOld'), tlNew=document.getElementById('tlNew');
+  const tlActive=document.getElementById('tlActive'), tlEmpty=document.getElementById('tlEmpty');
   function syncTimeline(){
-    const active = rId.value==='KB-0001';
+    const hasHistory = Object.keys(byId[rId.value].editions).length > 1;
+    tlActive.style.display = hasHistory ? '' : 'none';
+    tlEmpty.style.display  = hasHistory ? 'none' : '';
     const ed = rEd.value;
-    tlOld.classList.toggle('on', active && ed==='2017-09-05');
-    tlNew.classList.toggle('on', active && ed==='2024-05-28');
+    tlOld.classList.toggle('on', hasHistory && ed==='2017-09-05');
+    tlNew.classList.toggle('on', hasHistory && ed==='2024-05-28');
   }
   tlOld.addEventListener('click', () => selectRef('KB-0001','2017-09-05'));
   tlNew.addEventListener('click', () => selectRef('KB-0001','2024-05-28'));
+  document.getElementById('tlPick').addEventListener('click', e => { e.preventDefault(); selectRef('KB-0001','2024-05-28'); });
 
   // ---- init: KB-0001 @ current ----
   selectRef('KB-0001','2024-05-28');
