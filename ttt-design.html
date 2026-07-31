@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Over-engineered tic-tac-toe · Implementation plan — spectastic</title>
-<meta name="description" content="The implementation plan that drove the tic-tac-toe worked example — a pure rules core, an engine registry, and a thin view — authored with spectastic.">
+<title>Over-engineered tic-tac-toe · Implementation design — spectastic</title>
+<meta name="description" content="The implementation design that drove the tic-tac-toe worked example — a pure rules core, an engine registry, and a thin view — authored with spectastic.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,7 +73,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Walkthrough</span>
     </a>
     <div style="display:flex;align-items:center;gap:18px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-tic-tac-toe/plan.html</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)">specs/001-tic-tac-toe/design.html</span>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
         <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
         <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
@@ -84,7 +84,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
 <article style="max-width:740px;margin:0 auto;padding:56px 32px 40px">
 
-  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Implementation plan · 001-tic-tac-toe</div>
+  <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Implementation design · 001-tic-tac-toe</div>
   <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2.2rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Building over-engineered tic-tac-toe</h1>
   <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:1.16rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0">A pure rules core, an engine registry, and a thin view — plus the one decision that actually mattered.</p>
 
@@ -258,7 +258,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§9 &nbsp;Change log</h2>
   <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
     <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">1.0.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Accepted; grounding gate cleared, all decisions grounded.</div></div>
-    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Draft plan: three-layer approach, engine registry.</div></div>
+    <div><div style="font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-faint)">0.1.0 · 2026-07-20</div><div style="font-family:'Source Serif 4',serif;font-size:1rem;color:var(--ink-soft);margin-top:3px">Draft design: three-layer approach, engine registry.</div></div>
   </div>
 
   <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule)">
@@ -266,7 +266,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       <a href="ttt-principles.html" class="switch">principles.html</a>
       <a href="ttt-spec.html" class="switch">spec.html</a>
-      <a href="ttt-plan.html" class="switch here">plan.html</a>
+      <a href="ttt-design.html" class="switch here">design.html</a>
       <a href="ttt-tasks.html" class="switch">tasks.html</a>
       <a href="ttt-triage-log.html" class="switch">triage-log.html</a>
       <a href="ttt-proposal.html" class="switch">proposal.html</a>

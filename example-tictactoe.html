@@ -117,7 +117,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   <main style="min-width:0">
     <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · build-along</div>
     <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Building an unbeatable tic-tac-toe, the spectastic way</h1>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">Tic-tac-toe is solved — so we over-engineered it. Six AI opponents, from a coin-flip to Monte Carlo Tree Search; two- and three-player modes; one self-contained HTML file. Here is how every decision was <em>driven</em> through the spectastic lifecycle — principles first, then spec, plan, tasks, a verification pass that had to <em>prove</em> the perfect players are unbeatable, a triage log for the one defect that slipped past it, and a change — proposed, risk-checked, and applied — that grew the board so three-player games aren't foregone draws.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">Tic-tac-toe is solved — so we over-engineered it. Six AI opponents, from a coin-flip to Monte Carlo Tree Search; two- and three-player modes; one self-contained HTML file. Here is how every decision was <em>driven</em> through the spectastic lifecycle — principles first, then spec, design, tasks, a verification pass that had to <em>prove</em> the perfect players are unbeatable, a triage log for the one defect that slipped past it, and a change — proposed, risk-checked, and applied — that grew the board so three-player games aren't foregone draws.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
       <a href="tictactoe.html" class="btn-primary">▷ &nbsp;Play the game</a>
@@ -167,11 +167,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         </div>
       </div>
 
-      <!-- step 3 plan -->
+      <!-- step 3 design -->
       <div class="step">
         <div class="step-num">3</div>
         <div style="padding-bottom:26px">
-          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Plan</h3><a href="ttt-plan.html" class="artifact-link">plan.html</a></div>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Design</h3><a href="ttt-design.html" class="artifact-link">design.html</a></div>
           <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The <em>how</em> — and where the one real decision lived. Three-player tic-tac-toe only makes MaxN and Paranoid interesting, but a bigger board would blow the move-time budget. <strong style="color:var(--ink)">Decision D-001: keep the 3×3 board for three players</strong> and accept that strong three-way play tends to draw. Every design fact was grounded against reality first — including the measured pruning win below.</p>
           <div style="margin-top:14px;background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--ink-soft);line-height:1.7">
             <div style="color:var(--ink-faint)"># grounding &amp; evidence · reply to a centre opening</div>
@@ -186,7 +186,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div class="step-num">4</div>
         <div style="padding-bottom:26px">
           <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Tasks</h3><a href="ttt-tasks.html" class="artifact-link">tasks.html</a></div>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The plan, sliced into eighteen ordered, checkable tasks. The pure rules core lands first (everything depends on it); the engines stack up from Random to MCTS; the final phase is the verification harness. Tests-first where it counted — <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--sea)">T-110</span> Minimax carried its own acceptance: <em>never loses</em>.</p>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The design, sliced into eighteen ordered, checkable tasks. The pure rules core lands first (everything depends on it); the engines stack up from Random to MCTS; the final phase is the verification harness. Tests-first where it counted — <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--sea)">T-110</span> Minimax carried its own acceptance: <em>never loses</em>.</p>
         </div>
       </div>
 
@@ -268,7 +268,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     </div>
     <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:18px 22px;margin-top:16px">
       <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)">A finding, not a bug</div>
-      <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Every strong three-player game drew. That isn't a defect — it's what three-way tic-tac-toe on a 3×3 board <em>is</em> under good play, exactly as decision D-001 predicted. The plan called it; the tests confirmed it.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Every strong three-player game drew. That isn't a defect — it's what three-way tic-tac-toe on a 3×3 board <em>is</em> under good play, exactly as decision D-001 predicted. The design called it; the tests confirmed it.</p>
     </div>
 
     <!-- artifacts -->
@@ -277,7 +277,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
       <a href="ttt-principles.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">principles.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Five non-negotiables</span></a>
       <a href="ttt-spec.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">spec.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">What to build &amp; how we'd know</span></a>
-      <a href="ttt-plan.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">plan.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The approach &amp; the decisions</span></a>
+      <a href="ttt-design.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">design.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The approach &amp; the decisions</span></a>
       <a href="ttt-tasks.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">tasks.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Eighteen ordered, checkable tasks</span></a>
       <a href="ttt-triage-log.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">triage-log.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">A defect, reproduced &amp; closed</span></a>
       <a href="ttt-proposal.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--crimson);flex:0 0 9rem">proposal.html</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">A change: propose → apply → implement</span></a>

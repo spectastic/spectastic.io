@@ -18,7 +18,7 @@
   ceremony is OFF: no requirement IDs, no INVEST block, no conformance index, no
   budget gauge. This is a discovery record, not a conformant spec artifact —
   `spectastic validate` scans the sibling quarantine.json, never this file.
-  Graduate to turn what you learned into a real spec/plan/tasks.
+  Graduate to turn what you learned into a real spec/design/tasks.
 -->
 
 <header>
@@ -33,7 +33,7 @@
     <b>Explore ID</b><span>001-find-the-shortest-path-between-two</span>
     <b>Intent</b>   <span>find the shortest path between two nodes in a small weighted graph</span>
     <b>Created</b>  <span><time datetime="2026-07-23">23 Jul 2026</time></span>
-    <b>Exits</b>    <span>graduate (→ spec/plan/tasks) · delete</span>
+    <b>Exits</b>    <span>graduate (→ spec/design/tasks) · delete</span>
   </spec-meta>
 </header>
 
@@ -85,7 +85,7 @@ argue about it.</p>
   <li>BFS is <strong>wrong for this problem</strong>: weight-blind, it took the 2-hop route <code>A → C → E</code>
     at <strong>cost 25</strong> — the most expensive path on the board.</li>
   <li>No negative-weight handling — out of scope here; that would need Bellman-Ford, not Dijkstra.</li>
-  <li>No priority-queue frontier yet — fine at this size, but the obvious first hardening step for the plan.</li>
+  <li>No priority-queue frontier yet — fine at this size, but the obvious first hardening step for the design.</li>
 </ul>
 </section>
 

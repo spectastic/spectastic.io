@@ -80,12 +80,12 @@ policy, and desks expect it next to FIFO/LIFO. The spec already anticipated it: 
 
 <section id="approach">
 <h2>3 · Approach</h2>
-<p>FIFO and LIFO are pop-from-an-end operations on the acquisition-ordered <code>ArrayDeque</code> (plan D-001). HIFO is not:
+<p>FIFO and LIFO are pop-from-an-end operations on the acquisition-ordered <code>ArrayDeque</code> (design D-001). HIFO is not:
 it must find the lot with the greatest <code>basisPerUnit</code>, which can sit anywhere in the deque. So relief generalises
 from "peek/poll the head or tail" to "<strong>select the policy-preferred lot</strong>, then relieve and possibly split it".
 FIFO/LIFO stay O(1) end operations; HIFO becomes an O(open-lots) scan — bounded by the same ≤&nbsp;1000-open-lots envelope
 NFR-001 already assumes, so the relief-latency SLO is unaffected. The deque still holds lots in acquisition order (the
-audit record's holding period depends on it); HIFO simply removes an interior element. The plan gains a decision (D-004)
+audit record's holding period depends on it); HIFO simply removes an interior element. The design gains a decision (D-004)
 recording this generalisation.</p>
 <spec-note>
 <p>Everything downstream is unchanged: partial-lot split, exact integer realised gain (<code>qty·(sellPrice − basis)</code>),

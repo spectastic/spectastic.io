@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
-<title>Real-time position engine · Plan</title>
+<title>Real-time position engine · Design</title>
 <link rel="stylesheet" href="../../assets/spec.css">
 <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 <script src="../../assets/theme-boot.js"></script>
@@ -13,7 +13,7 @@
 <main>
 
 <header>
-  <p class="small-caps">Implementation plan · 003-position-engine</p>
+  <p class="small-caps">Implementation design · 003-position-engine</p>
   <h1>Real-time position engine</h1>
   <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
     How we will build it.
@@ -41,12 +41,12 @@
 
 <section id="principles-check">
 <h2>1 · Principles check</h2>
-<p>Verify this plan respects every principle in
+<p>Verify this design respects every principle in
 <a href="../../principles.html">v0.1.0</a>. Any violation requires either a
 principles amendment or a deliberate exception logged below.</p>
 
 <p>Focused on the principles most load-bearing for this slice; platform-wide principle conformance is tracked in the
-umbrella plan (<a href="../001-portfolio-analytics/spec.html">001</a>).</p>
+umbrella design (<a href="../001-portfolio-analytics/spec.html">001</a>).</p>
 
 <table>
   <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
@@ -82,8 +82,8 @@ umbrella plan (<a href="../001-portfolio-analytics/spec.html">001</a>).</p>
 
 <section id="grounding">
 <h2>3 · Grounding &amp; evidence</h2>
-<p>Every design-bearing fact this plan rests on, and how it was confirmed — read this before the
-approach: it separates what the plan <em>knows</em> from what it <em>assumes</em> (per
+<p>Every design-bearing fact this design rests on, and how it was confirmed — read this before the
+approach: it separates what the design <em>knows</em> from what it <em>assumes</em> (per
 <code>REQ-LIFECYCLE-006</code>). Status is <code>verified</code> (opened the source
 this turn), <code>spike</code> (decidable only by a time-boxed investigation — run it, record the
 finding), or <code>assumed</code> (taken as true without verification). A <code>must</code>-tier decision
@@ -259,7 +259,7 @@ src/test/java/io/spectastic/portfolio/
 
 <section id="complexity">
 <h2>9 · Complexity tracking</h2>
-<p>Anywhere this plan introduces complexity not strictly required by the spec, justify it here.
+<p>Anywhere this design introduces complexity not strictly required by the spec, justify it here.
 A reviewer should be able to point at any non-trivial choice and find its rationale in this section.</p>
 
 <spec-assumption>
@@ -283,14 +283,14 @@ were settled in the interview, and lot-level decomposition is explicitly deferre
 <h2>11 · Change log</h2>
 <spec-changelog>
 <ol>
-  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial plan. Aggregate position state (D-001), exact-integer sign-flip basis rule (D-002), O(1) mark-to-market on tick (D-003); TDD per story with a reconcile-to-replay gate.</span></li>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial design. Aggregate position state (D-001), exact-integer sign-flip basis rule (D-002), O(1) mark-to-market on tick (D-003); TDD per story with a reconcile-to-replay gate.</span></li>
 </ol>
 </spec-changelog>
 </section>
 
 
 <footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
-  Plan for 003-position-engine · Real-time position engine · authored 22 Jul 2026
+  Design for 003-position-engine · Real-time position engine · authored 22 Jul 2026
 </footer>
 
 </main>

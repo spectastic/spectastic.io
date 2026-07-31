@@ -169,7 +169,7 @@ event is lost and no sequence gap is introduced.</p>
   <ul>
     <li defer-to="003-position-engine">Deriving net position or cost basis from the log — the ledger stores events, it does not fold them.</li>
     <li defer-to="005-tax-lots">Lot construction and FIFO/LIFO relief over the event stream.</li>
-    <li defer-to="TBD-storage-engine">The concrete durable-storage and cold-tiering engine (mmap segment files, an embedded LSM, or a log service) — an implementation choice for the plan.</li>
+    <li defer-to="TBD-storage-engine">The concrete durable-storage and cold-tiering engine (mmap segment files, an embedded LSM, or a log service) — an implementation choice for the design.</li>
     <li defer-to="TBD-cross-region-replication">Geo-replication and multi-writer sequencing — a later reliability slice; this spec assumes a single writer.</li>
   </ul>
 </spec-out-of-scope>
@@ -221,7 +221,7 @@ bit-identical to a full replay of <code>[0, M]</code>.</p>
 <h2>7 · Open questions</h2>
 <spec-questions>
 <p>None outstanding — the append-only, unlimited-retention, snapshot-and-replay contract is fixed here; the concrete storage
-engine is explicitly deferred to the plan (<code>TBD-storage-engine</code>) rather than left open.</p>
+engine is explicitly deferred to the design (<code>TBD-storage-engine</code>) rather than left open.</p>
 </spec-questions>
 </section>
 
