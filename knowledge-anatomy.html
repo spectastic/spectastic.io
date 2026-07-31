@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge corpus · anatomy &amp; schema — spectastic</title>
+<meta name="description" content="The shape of a knowledge pack: the Agent Skills folder, the two-layer identity model, the root registry, reference frontmatter, editions and supersession, and licensing.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --green:#3f6a37;--amber:#b07d1a;--amber-bg:#fcf5e9;--deny:#c0432f;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --green:#8fb56a;--amber:#e0a23c;--amber-bg:#2c2413;--deny:#f08a79;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.lnk-tinted{color:var(--ink-soft);text-decoration:none;padding:5px 0;display:block;transition:color .2s}
+.lnk-tinted:hover{color:var(--crimson)}
+.lnk-tinted.active{color:var(--crimson)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--bg);background:var(--ink);padding:12px 22px;border-radius:999px;text-decoration:none;transition:transform .2s}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--ink);border:1px solid var(--rule-strong);padding:12px 22px;border-radius:999px;text-decoration:none;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--ink-soft)}
+.mono{font-family:'IBM Plex Mono',monospace}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 38%,transparent);padding:2px 8px;border-radius:999px}
+h2.sec{font-family:'Fraunces',serif;font-weight:540;font-size:1.6rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px}
+h3.sub{font-family:'Fraunces',serif;font-weight:560;font-size:1.16rem;letter-spacing:-.01em;color:var(--ink);margin:30px 0 0}
+p.lead{font-family:'Source Serif 4',serif;font-size:1.04rem;line-height:1.62;color:var(--ink-soft);margin:12px 0 0;max-width:64ch}
+p.body{font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0;max-width:64ch}
+code.c{font-family:'IBM Plex Mono',monospace;font-size:.85em;color:var(--ink)}
+code.cx{font-family:'IBM Plex Mono',monospace;font-size:.85em;color:var(--crimson)}
+/* code / tree blocks */
+.codeblock{background:var(--bg-sunken);border:1px solid var(--rule-strong);border-radius:12px;padding:18px 20px;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;line-height:1.85;color:var(--ink);overflow-x:auto;white-space:pre;tab-size:2}
+.codeblock .cm{color:var(--ink-faint)}
+.codeblock .k{color:var(--crimson)}
+.codeblock .s{color:var(--green)}
+.codeblock .t{color:var(--sea)}
+.codeblock .dir{color:var(--purple)}
+/* data table */
+.tbl-scroll{overflow-x:auto;margin-top:16px;border:1px solid var(--rule);border-radius:12px}
+table.dt{width:100%;border-collapse:collapse;font-size:.9rem}
+table.dt th{text-align:left;font-family:'Lato',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);padding:12px 14px;border-bottom:1px solid var(--rule-strong);white-space:nowrap;background:var(--bg-sunken)}
+table.dt td{padding:11px 14px;border-bottom:1px solid var(--rule);color:var(--ink-soft);vertical-align:top}
+table.dt tr:last-child td{border-bottom:none}
+table.dt td .mono{font-size:.82rem;color:var(--ink)}
+table.dt td.req{font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.req-yes{color:var(--crimson)} .req-no{color:var(--ink-faint)}
+/* callout */
+.note{border:1px solid var(--rule);border-left:4px solid var(--sea);border-radius:11px;padding:15px 18px;margin-top:18px;background:var(--bg-raised)}
+.note.warn{border-left-color:var(--amber)}
+.note p{margin:0;font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:3px 9px;border-radius:6px;background:var(--bg-sunken);border:1px solid var(--rule);color:var(--ink)}
+
+@media (max-width: 820px){
+  .doc-layout{grid-template-columns:1fr !important}
+  .sidenav-wrap{position:static !important}
+}
+@media (max-width: 600px){
+  .topnav{gap:14px;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .topnav::-webkit-scrollbar{display:none}
+  .topnav a,.topnav button{flex:0 0 auto;white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+<style>/* scroll-driven spectrum header mark */.navMark{transform:rotate(calc(var(--sp,0) * 360deg));transform-origin:center}@media (prefers-reduced-motion:reduce){.navMark{transform:none}}</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="index.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg class="navMark" width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Knowledge</span>
+    </a>
+    <div class="topnav" style="display:flex;align-items:center;gap:18px">
+      <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
+      <a href="examples.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Examples</a>
+      <a href="https://github.com/spectastic/spectastic" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">GitHub</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="doc-layout" style="max-width:1080px;margin:0 auto;padding:56px 32px 96px;display:grid;grid-template-columns:200px 1fr;gap:56px;align-items:start">
+
+  <nav class="sidenav-wrap" style="position:sticky;top:84px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">On this page</div>
+    <a href="#layout" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Pack layout</a>
+    <a href="#identity" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Two-layer identity</a>
+    <a href="#registry" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The root registry</a>
+    <a href="#frontmatter" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Reference frontmatter</a>
+    <a href="#editions" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Editions &amp; supersession</a>
+    <a href="#skill" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The SKILL slug map</a>
+    <a href="#licensing" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Licensing</a>
+    <a href="#discoverability" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Discoverability</a>
+    <div style="height:14px"></div>
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">Knowledge docs</div>
+    <a href="knowledge.html" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.92rem">Overview</a>
+    <a href="knowledge-anatomy.html" class="lnk-tinted active" style="font-family:'Source Serif 4',serif;font-size:.92rem">Anatomy &amp; schema</a>
+    <a href="knowledge-citations.html" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.92rem">Citations &amp; grounding</a>
+    <a href="knowledge-authoring.html" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.92rem">Authoring a pack</a>
+    <a href="knowledge-commands.html" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.92rem">Command reference</a>
+  </nav>
+
+  <main style="min-width:0">
+    <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Knowledge corpus · anatomy &amp; schema</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.4vw,2.9rem);line-height:1.05;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink);text-wrap:balance">The shape of a knowledge pack</h1>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">A corpus is a directory and a handful of conventions. Every element below is committed, human-readable, and diff-friendly — no database, no build artifact. The examples on this page are the real <a href="example-settlement.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">finance-settlement</a> pack, unedited.</p>
+
+    <!-- ============ PACK LAYOUT ============ -->
+    <h2 id="layout" class="sec">Pack layout</h2>
+    <p class="lead">A corpus lives under <code class="c">knowledge/</code> at the repo root. It holds one <strong style="color:var(--ink)">registry</strong> and one or more <strong style="color:var(--ink)">packs</strong> — each pack a self-contained <a href="https://agentskills.io" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:1em">Agent Skills</a> folder: a required <code class="c">SKILL.md</code> plus a <code class="c">references/</code> directory of documents.</p>
+    <div class="codeblock" aria-label="Corpus file tree">
+<span class="dir">knowledge/</span>
+  index.md                          <span class="cm"># the root registry — project-owned</span>
+  <span class="dir">finance-settlement/</span>                <span class="cm"># one pack = one Agent Skill</span>
+    SKILL.md                        <span class="cm"># pack metadata + the slug map</span>
+    <span class="dir">references/</span>
+      001-us-equities-settlement-cycle.md
+      002-fx-settlement-risk-pvp.md
+      003-books-of-record.md
+      004-cash-snapshot-semantics.md
+      005-corporate-actions-cash.md
+      <span class="dir">superseded/</span>
+        001-us-equities-settlement-cycle@2017-09-05.md   <span class="cm"># retained prior edition</span>
+    </div>
+    <div class="note">
+      <p>The per-pack <code class="c">index.md</code> from the earliest prototype is <strong style="color:var(--ink)">retired</strong> — a pack's contents are listed once in its <code class="c">SKILL.md</code> slug map, and identity lives in the single root registry. One source of truth for ids, not one per folder.</p>
+    </div>
+
+    <!-- ============ IDENTITY ============ -->
+    <h2 id="identity" class="sec">Two-layer identity</h2>
+    <p class="lead">Every reference carries <em>two</em> names, and keeping them separate is the load-bearing idea in the whole schema.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px" class="idgrid">
+      <div style="border:1px solid var(--rule);border-radius:12px;padding:18px 20px;background:var(--bg-raised)">
+        <div style="font-family:'Lato',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sea);margin-bottom:8px">Layer 1 · pack-owned</div>
+        <div style="font-family:'Fraunces',serif;font-weight:560;font-size:1.1rem;color:var(--ink)">Slug</div>
+        <div class="mono" style="font-size:.86rem;color:var(--crimson);margin-top:4px">001-us-equities-settlement-cycle</div>
+        <p style="margin:10px 0 0;font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft)">Portable and human-readable. Assigned by the pack author, stable as the pack travels between repos. Shape: <code class="c">NNN-topic</code>.</p>
+        <div class="mono" id="slugRe" style="font-size:.74rem;color:var(--ink-faint);margin-top:10px">SLUG_RE = /^\d+-[a-z0-9]+(?:-[a-z0-9]+)*$/i
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;padding:18px 20px;background:var(--bg-raised)">
+        <div style="font-family:'Lato',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);margin-bottom:8px">Layer 2 · project-assigned</div>
+        <div style="font-family:'Fraunces',serif;font-weight:560;font-size:1.1rem;color:var(--ink)">KB-NNNN</div>
+        <div class="mono" style="font-size:.86rem;color:var(--crimson);margin-top:4px">KB-0001</div>
+        <p style="margin:10px 0 0;font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft)">Opaque and repo-unique. Assigned by the consuming project when a pack is registered — the token a spec actually cites. It means nothing on its own; the registry gives it meaning.</p>
+        <div class="mono" id="kbRe" style="font-size:.74rem;color:var(--ink-faint);margin-top:10px">KB_ID_RE = /^KB-\d{3,}$/
+      </div>
+    </div>
+    <p class="body" style="margin-top:18px">It's the <strong style="color:var(--ink)">DOI move</strong>. A paper has a human title <em>and</em> a stable, opaque DOI; you cite the DOI so the reference survives a retitle. Here the slug is the title — legible, pack-owned, potentially colliding across packs — and the <code class="c">KB-NNNN</code> is the DOI: project-unique, citeable, immune to the slug being reused elsewhere. Two packs can both ship a <code class="c">001-overview</code>; only the registry decides which <code class="c">KB-NNNN</code> each becomes here.</p>
+
+    <!-- ============ REGISTRY ============ -->
+    <h2 id="registry" class="sec">The root registry</h2>
+    <p class="lead"><code class="c">knowledge/index.md</code> is the one place ids are minted and editions pinned. It's an ordinary markdown table — eight columns, the resolver's source of truth. This is the real settlement registry:</p>
+    <div class="tbl-scroll">
+      <table class="dt">
+        <thead><tr><th>KB-NNNN</th><th>Marketplace</th><th>Plugin</th><th>Slug</th><th>Title</th><th>Edition</th><th>Path</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">KB-0001</td><td>spectastic-examples</td><td>finance-settlement</td><td class="mono">001-us-equities-settlement-cycle</td><td>US equities settlement cycle</td><td class="mono">2024-05-28</td><td class="mono" style="font-size:.76rem">finance-settlement/references/001-us-equities-settlement-cycle.md</td><td></td></tr>
+          <tr><td class="mono">KB-0002</td><td>spectastic-examples</td><td>finance-settlement</td><td class="mono">002-fx-settlement-risk-pvp</td><td>FX settlement risk and PvP</td><td class="mono">2022-07-08</td><td class="mono" style="font-size:.76rem">finance-settlement/references/002-fx-settlement-risk-pvp.md</td><td></td></tr>
+          <tr><td class="mono">KB-0003</td><td>spectastic-examples</td><td>finance-settlement</td><td class="mono">003-books-of-record</td><td>Books of record — IBOR, ABOR, PBOR</td><td class="mono">2024-01-15</td><td class="mono" style="font-size:.76rem">finance-settlement/references/003-books-of-record.md</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+      <div style="display:flex;gap:12px;align-items:baseline"><span class="mono" style="flex:0 0 8.5rem;color:var(--crimson);font-size:.8rem">Marketplace / Plugin</span><span class="body" style="margin:0">The publishing namespace and the pack name — together they let one project host packs from several sources without slug collisions.</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline"><span class="mono" style="flex:0 0 8.5rem;color:var(--crimson);font-size:.8rem">Edition</span><span class="body" style="margin:0">The <em>current</em> edition of this reference — a date. A citation that pins this edition is grounded; one that pins an older, retained edition is stale.</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline"><span class="mono" style="flex:0 0 8.5rem;color:var(--crimson);font-size:.8rem">Path</span><span class="body" style="margin:0">Corpus-root-relative — it does <em>not</em> repeat the <code class="c">knowledge/</code> prefix. Points at the document that backs this id.</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline"><span class="mono" style="flex:0 0 8.5rem;color:var(--crimson);font-size:.8rem">Status</span><span class="body" style="margin:0">Blank for a healthy row; <span id="statusVals" class="mono" style="font-size:.82em;color:var(--amber)">orphaned</span> flags a row whose backing file has gone missing on a re-import. The row is <em>never</em> deleted — it stays, flagged, so a dangling citation is visible rather than vanishing.</span></div>
+    </div>
+
+    <!-- ============ FRONTMATTER ============ -->
+    <h2 id="frontmatter" class="sec">Reference frontmatter</h2>
+    <p class="lead">Each document under <code class="c">references/</code> opens with YAML frontmatter — its provenance. The slug lives here (pack-owned); the <code class="c">KB-NNNN</code> deliberately does <em>not</em> (project-owned, in the registry). Real frontmatter from <code class="c">001-us-equities-settlement-cycle.md</code>:</p>
+    <div class="codeblock" aria-label="Reference frontmatter example">
+<span class="cm">---</span>
+<span class="k">slug</span>: 001-us-equities-settlement-cycle
+<span class="k">origin</span>: U.S. Securities and Exchange Commission — amendments to Rule
+        15c6-1 shortening the standard settlement cycle to T+1
+<span class="k">origin-url</span>: https://www.sec.gov/rules/final/2023/34-96930.pdf
+<span class="k">edition</span>: 2024-05-28
+<span class="k">license</span>: CC0-1.0
+<span class="k">converter</span>: hand-authored
+<span class="k">content-hash</span>: sha256:ac35428fc6181045c9b43e4ddc798e52209e97ca7ec03…
+<span class="k">status</span>: authoritative
+<span class="cm">---</span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="dt">
+        <thead><tr><th>Field</th><th>Req</th><th>Meaning</th></tr></thead>
+        <tbody id="fmBody"><!-- injected --></tbody>
+      </table>
+    </div>
+    <div class="note warn">
+      <p><strong style="color:var(--ink)">Never fabricate the <code class="c">content-hash</code>.</strong> It's a hash of the document body — the integrity anchor that lets validation tell an edited reference from an intact one. It's computed, not typed. <a href="knowledge-authoring.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">Authoring covers how →</a></p>
+    </div>
+
+    <!-- ============ EDITIONS ============ -->
+    <h2 id="editions" class="sec">Editions &amp; supersession</h2>
+    <p class="lead">A domain fact can change in the world — the settlement cycle really did move T+2 → T+1. The corpus models that as an <strong style="color:var(--ink)">edition</strong>, and it <em>appends</em>: the new edition becomes current in the registry, and the prior document is retained, never overwritten.</p>
+    <div class="codeblock" aria-label="Superseded edition path">
+knowledge/finance-settlement/references/
+  001-us-equities-settlement-cycle.md              <span class="cm"># current   → edition 2024-05-28 (T+1)</span>
+  superseded/
+    001-us-equities-settlement-cycle<span class="t">@2017-09-05</span>.md   <span class="cm"># retained  → edition 2017-09-05 (T+2)</span>
+    </div>
+    <p class="body" style="margin-top:16px">Retained editions live under <code class="c">references/superseded/</code> named <code class="c">&lt;slug&gt;@&lt;edition&gt;.md</code>. The superseded document keeps its own frontmatter with <code class="c">status: superseded</code>. Because it's still on disk, a citation pinned to the old edition still <em>resolves</em> — it just flags as stale rather than becoming a dead link. That's the point of edition-pinning: <strong style="color:var(--ink)">point-in-time correctness</strong>. A decision made in 2023 that cited the T+2 rule was correct then, and its citation still opens the rule as it stood. <a href="knowledge-citations.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">How staleness surfaces →</a></p>
+
+    <!-- ============ SKILL ============ -->
+    <h2 id="skill" class="sec">The SKILL slug map</h2>
+    <p class="lead">A pack's <code class="c">SKILL.md</code> is a standard Agent Skill file — a name/description header and instructions — plus one spectastic addition: a <strong style="color:var(--ink)">slug map</strong> table listing the pack's own references by slug, so an agent can see the menu before opening any document (progressive disclosure). Five columns:</p>
+    <div class="tbl-scroll">
+      <table class="dt">
+        <thead><tr><th>Slug</th><th>Title</th><th>Description</th><th>Edition</th><th>Path</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">001-us-equities-settlement-cycle</td><td>US equities settlement cycle</td><td>Standard settlement cycle for US equities (T+1); prior T+2 retained.</td><td class="mono">2024-05-28</td><td class="mono" style="font-size:.78rem">references/001-us-equities-settlement-cycle.md</td></tr>
+          <tr><td class="mono">003-books-of-record</td><td>Books of record — IBOR, ABOR, PBOR</td><td>Investment, accounting, performance books and each one's cash basis.</td><td class="mono">2024-01-15</td><td class="mono" style="font-size:.78rem">references/003-books-of-record.md</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p>The slug map uses the <em>pack-relative</em> path (<code class="c">references/…</code>) and the pack-owned slug — no <code class="c">KB-NNNN</code>. That's what keeps the pack portable: it says nothing about which project consumes it or what ids that project assigned.</p>
+    </div>
+
+    <!-- ============ LICENSING ============ -->
+    <h2 id="licensing" class="sec">Licensing</h2>
+    <p class="lead">Every reference declares a <code class="c">license</code>, and validation enforces an <strong style="color:var(--ink)">allowlist</strong> of permissive terms. A corpus is redistributable knowledge; the allowlist keeps a pack from quietly carrying content no one may lawfully republish.</p>
+    <div class="tags" id="licenseTags">
+      <span class="tag">MIT</span><span class="tag">Apache-2.0</span><span class="tag">BSD-2-Clause</span><span class="tag">BSD-3-Clause</span><span class="tag">CC0-1.0</span><span class="tag">ISC</span><span class="tag">Unlicense</span><span class="tag">0BSD</span><span class="tag">public-domain</span>
+    </div>
+    <p class="body" style="margin-top:16px">Plain <code class="c">CC-BY-&lt;version&gt;</code> is accepted too — but deliberately <em>not</em> the <code class="c">NC</code> / <code class="c">ND</code> / <code class="c">SA</code> variants. Anything outside the list trips the <code class="cx">corpus-license</code> rule (a warning), so an unredistributable license is surfaced rather than slipping through silently. The intent is that references are hand-authored distillations or genuinely open material, with the source always named in <code class="c">origin</code> / <code class="c">origin-url</code>.</p>
+
+    <!-- ============ DISCOVERABILITY ============ -->
+    <h2 id="discoverability" class="sec">Discoverability</h2>
+    <p class="lead">A pack meant to be <em>published</em> — offered to other projects — carries a <code class="c">marketplace.json</code> manifest describing it. This is a publishing concern: a consumer repo that has merely imported packs does <strong style="color:var(--ink)">not</strong> keep a root <code class="c">marketplace.json</code>; it keeps the registry. The manifest is how a pack announces itself to a marketplace, not how a project tracks what it uses.</p>
+    <div class="note">
+      <p>Publishing and importing packs is the <a href="knowledge-commands.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">command reference</a>'s territory (<code class="c">corpus publish</code> / <code class="c">corpus import</code>). Here it's enough to know the manifest exists and which side of the fence it lives on.</p>
+    </div>
+
+    <div style="margin-top:60px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">
+      <a href="knowledge-citations.html" class="btn-primary">Next: citations &amp; grounding →</a>
+      <a href="knowledge.html" class="btn-secondary">← Overview</a>
+    </div>
+  </main>
+</div>
+
+<script>
+/* theme toggle */
+(function(){
+  const root = document.documentElement, toggle = document.getElementById('themeToggle');
+  function syncIcons(){ const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : ''; }
+  try { const s = localStorage.getItem('spectastic-theme'); if (s==='dark'||s==='light') root.dataset.theme=s; } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => { const n = root.dataset.theme==='dark'?'light':'dark';
+    root.dataset.theme=n; try{ localStorage.setItem('spectastic-theme',n); }catch(e){} syncIcons(); });
+})();
+
+/* frontmatter field table */
+(function(){
+  const FIELDS = [
+    ['slug', true, 'The pack-owned portable id (layer 1) — matches the file name and the pack\'s slug map. The KB-NNNN does not live here; it\'s the project\'s, in the registry.'],
+    ['origin', true, 'Plain-language description of the source the document distills.'],
+    ['origin-url', true, 'A link to that source. Required — provenance should be followable.'],
+    ['edition', true, 'The edition this document represents — a date. Pinned by citations.'],
+    ['license', true, 'An identifier from the permissive allowlist (see Licensing).'],
+    ['converter', true, 'How the document was produced — e.g. hand-authored, or an adapter name.'],
+    ['content-hash', true, 'sha256 of the body. Computed, never typed — the integrity anchor.'],
+    ['status', true, 'Lifecycle label for the document — e.g. authoritative, or superseded on a retained prior edition.']
+  ];
+  const tb = document.getElementById('fmBody');
+  FIELDS.forEach(([k,req,desc]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="mono">'+k+'</span></td>'+
+      '<td class="req '+(req?'req-yes':'req-no')+'">'+(req?'required':'optional')+'</td>'+
+      '<td>'+desc+'</td>';
+    tb.appendChild(tr);
+  });
+})();
+</script>
+<script>
+/* scroll-driven spectrum header mark */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root=document.documentElement, ticking=false;
+  function onScroll(){ if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){ var y=window.scrollY||0, max=root.scrollHeight-window.innerHeight;
+      root.style.setProperty('--sp', (max>0?Math.min(y/max,1):0).toFixed(4)); ticking=false; }); }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
