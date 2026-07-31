@@ -219,7 +219,7 @@ code.cx{font-family:'IBM Plex Mono',monospace;font-size:.85em;color:var(--crimso
 
     <div class="cmd">
       <div class="sig"><span class="v">spectastic corpus</span> <span class="n">migrate</span> <span class="a">&lt;pack&gt;</span></div>
-      <p class="desc">Bring a single-layer pack — the early shape, with an <code class="c">id:</code> field and a pack-local <code class="c">index.md</code> — up to the two-layer convention (a <code class="c">slug:</code> plus a root registry row) in place.</p>
+      <p class="desc">Convert a single-layer pack — one that carries a document-level <code class="c">id:</code> and a pack-local <code class="c">index.md</code> — to the two-layer convention (a <code class="c">slug:</code> plus a root registry row) in place.</p>
       <dl>
         <dt>Safe</dt><dd>idempotent — a no-op on an already-migrated pack, so it's safe to re-run.</dd>
       </dl>
