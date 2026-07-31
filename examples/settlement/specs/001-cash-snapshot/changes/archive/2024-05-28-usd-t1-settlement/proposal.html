@@ -135,7 +135,7 @@ the live spec. <code>op=</code> is one of <code>added | modified | removed | ren
 <spec-risk target="§4" status="mitigated" by="Brian Corbin · @briancorbinxyz">
   <p class="claim">Corpus contradiction: a live requirement still asserting T+2 contradicts <code>KB-0001@2024-05-28</code> (supersedes <code>KB-0001@2017-09-05</code>) — the current corpus edition carries T+1.</p>
   <p class="citation">§4 delta on <a href="../../../spec.html#FR-001">FR-001</a>, against the finance-settlement corpus.</p>
-  <div class="response">Mitigated: this delta is exactly the fix — it re-states FR-001 as T+1 grounded on the current edition, and the plan's D-001 is re-grounded from <code>KB-0001@2017-09-05</code> to <code>KB-0001@2024-05-28</code> in the same change, clearing the <code>corpus-staleness</code> warning.</div>
+  <div class="response">Mitigated: this delta is exactly the fix — it re-states FR-001 as T+1 grounded on the current edition, and the design's D-001 is re-grounded from <code>KB-0001@2017-09-05</code> to <code>KB-0001@2024-05-28</code> in the same change, clearing the <code>corpus-staleness</code> warning.</div>
 </spec-risk>
 </spec-risk-log>
 </section>
@@ -149,7 +149,7 @@ the live spec. <code>op=</code> is one of <code>added | modified | removed | ren
 <ul style="list-style:none;padding-left:0;">
   <li><input type="checkbox"> <strong>Confirm the T+1 branch</strong> — assert <code>standard_cycle</code> returns 1 on/after <code>T1_EFFECTIVE</code> <span class="path">impl/src/lib.rs</span></li>
   <li><input type="checkbox"> <strong>Pin the cutover test</strong> — a post-cutover trade settles T+1, a pre-cutover trade T+2 <span class="path">impl/src/lib.rs</span></li>
-  <li><input type="checkbox"> <strong>Re-ground plan D-001</strong> — cite the current corpus edition and state T+1 <span class="path">specs/001-cash-snapshot/plan.html</span></li>
+  <li><input type="checkbox"> <strong>Re-ground design D-001</strong> — cite the current corpus edition and state T+1 <span class="path">specs/001-cash-snapshot/design.html</span></li>
 </ul>
 </section>
 

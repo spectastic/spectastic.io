@@ -97,11 +97,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
   <div style="background:var(--bg-raised);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:34px">
     <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)">TL;DR</div>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">These aren't authored per feature — they're <em>inherited</em>. <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">spectastic init --profile enterprise</span> composes this floor before a word of spec is written, and it's the strictest of the four profiles. The rate-limiter's <a href="ratelimiter-spec.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">spec</a>, <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a>, and <a href="ratelimiter-tasks.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">tasks</a> are all checked against it — §1 of the plan re-walks the relevant ones.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.08rem;line-height:1.6;color:var(--ink);margin:10px 0 0">These aren't authored per feature — they're <em>inherited</em>. <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">spectastic init --profile enterprise</span> composes this floor before a word of spec is written, and it's the strictest of the four profiles. The rate-limiter's <a href="ratelimiter-spec.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">spec</a>, <a href="ratelimiter-design.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">design</a>, and <a href="ratelimiter-tasks.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">tasks</a> are all checked against it — §1 of the design re-walks the relevant ones.</p>
   </div>
 
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§1 &nbsp;Purpose &amp; scope</h2>
-  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Project-wide rules, not feature rules. Every spec in this project inherits them; a plan opens by re-walking each relevant one and must clear it or record an accepted risk. The enterprise profile turns them from advice into an enforced floor — the difference the <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">walkthrough</a> is really about.</p>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Project-wide rules, not feature rules. Every spec in this project inherits them; a design opens by re-walking each relevant one and must clear it or record an accepted risk. The enterprise profile turns them from advice into an enforced floor — the difference the <a href="example-ratelimiter.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">walkthrough</a> is really about.</p>
 
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§2 &nbsp;The twenty principles</h2>
 
@@ -161,7 +161,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   </div>
 
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§3 &nbsp;Governance</h2>
-  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Principles change only by proposal, and the set carries a semantic version. The enterprise profile also declares the <em>enforcement policy</em> — the tool categories the rigor requires — which <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic enforce</span> checks and the <a href="ratelimiter-plan.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">plan</a> resolves to concrete tools.</p>
+  <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.62;color:var(--ink-soft);margin:14px 0 0">Principles change only by proposal, and the set carries a semantic version. The enterprise profile also declares the <em>enforcement policy</em> — the tool categories the rigor requires — which <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic enforce</span> checks and the <a href="ratelimiter-design.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">design</a> resolves to concrete tools.</p>
 
   <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:48px 0 0">§4 &nbsp;Change log</h2>
   <div style="margin-top:20px;border-left:2px solid var(--rule);padding-left:22px;display:flex;flex-direction:column;gap:18px">
@@ -173,7 +173,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       <a href="ratelimiter-principles.html" class="switch here">principles.html</a>
       <a href="ratelimiter-spec.html" class="switch">spec.html</a>
-      <a href="ratelimiter-plan.html" class="switch">plan.html</a>
+      <a href="ratelimiter-design.html" class="switch">design.html</a>
       <a href="ratelimiter-tasks.html" class="switch">tasks.html</a>
       <a href="example-ratelimiter.html" class="switch">↳ walkthrough</a>
       <a href="ratelimiter.html" class="switch">▶ simulator</a>

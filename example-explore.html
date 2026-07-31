@@ -180,7 +180,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div class="step-num">4</div>
         <div>
           <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Graduate or delete — never ship as-is</h3>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">An exploration has no path to a shippable state. You either <strong style="color:var(--ink)">graduate</strong> it (extract a spec + plan from the build, restore the gates) or <strong style="color:var(--ink)">delete</strong> the directory. There is no &ldquo;abandoned-but-lingering&rdquo; state, and — until you pick — the guard holds the line.</p>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">An exploration has no path to a shippable state. You either <strong style="color:var(--ink)">graduate</strong> it (extract a spec + design from the build, restore the gates) or <strong style="color:var(--ink)">delete</strong> the directory. There is no &ldquo;abandoned-but-lingering&rdquo; state, and — until you pick — the guard holds the line.</p>
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <div>&nbsp;&nbsp;1:1&nbsp;&nbsp;<span style="color:var(--deny)">error</span>&nbsp;&nbsp;Exploration is quarantined — un-graduated work must not ship.&nbsp;&nbsp;<span style="color:var(--ink-faint)">explore-quarantined</span></div>
       <div style="color:var(--deny)">1 error, 0 warnings</div>
       <div style="color:var(--ink-faint)">&nbsp;</div>
-      <div><span style="color:var(--green)">$</span> spectastic plan <span style="color:var(--sea)">001-find-the-shortest-path-between-two</span></div>
+      <div><span style="color:var(--green)">$</span> spectastic design <span style="color:var(--sea)">001-find-the-shortest-path-between-two</span></div>
       <div style="color:var(--ink)">001-… is a quarantined exploration. Core verbs refuse to advance it —</div>
       <div style="color:var(--ink)">graduate it into a spec, or delete it. <span style="color:var(--ink-faint)">(exit 2)</span></div>
     </div>
@@ -216,7 +216,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       </div>
       <div style="background:var(--bg-raised);border:1px solid color-mix(in srgb,var(--green) 34%,transparent);border-radius:14px;padding:20px 22px">
         <div style="display:flex;align-items:center;gap:10px"><span class="pill" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 42%,transparent)">tracer-bullet</span><span style="font-family:'Lato',sans-serif;font-size:.84rem;font-weight:700;color:var(--ink)">keep it, harden in place</span></div>
-        <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:10px 0 0">The prototype was sound. Graduation extracts a Draft spec + plan <em>from the build</em>, seeding the plan's evidence ledger with the run's <strong style="color:var(--ink)">verified</strong> facts. Restore emits a <strong style="color:var(--ink)">refactor-to-comply</strong> list: move the kept code into place, back-fill tests, restore the gates.</p>
+        <p style="font-family:'Source Serif 4',serif;font-size:.96rem;line-height:1.55;color:var(--ink-soft);margin:10px 0 0">The prototype was sound. Graduation extracts a Draft spec + design <em>from the build</em>, seeding the design's evidence ledger with the run's <strong style="color:var(--ink)">verified</strong> facts. Restore emits a <strong style="color:var(--ink)">refactor-to-comply</strong> list: move the kept code into place, back-fill tests, restore the gates.</p>
         <p style="font-family:'Source Serif 4',serif;font-size:.86rem;font-style:italic;color:var(--green);margin:10px 0 0">This example took the tracer-bullet path — Dijkstra was kept.</p>
       </div>
     </div>
@@ -225,7 +225,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
       <div><span style="color:var(--green)">$</span> spectastic explore <span style="color:var(--sea)">--graduate</span> 001-find-the-shortest-path-between-two <span style="color:var(--sea)">--classify tracer-bullet</span></div>
       <div><span style="color:var(--sea)">→</span> Graduated 001-… (tracer-bullet) → specs/001-…/spec.html</div>
       <div>&nbsp;&nbsp;exploration archived → explorations/archive/001-…/ <span style="color:var(--ink-faint)">(frozen)</span></div>
-      <div>&nbsp;&nbsp;Next: review the Draft spec + plan, then /spectastic.tasks 001-… <span style="color:var(--sea)">--restore</span></div>
+      <div>&nbsp;&nbsp;Next: review the Draft spec + design, then /spectastic.tasks 001-… <span style="color:var(--sea)">--restore</span></div>
       <div style="color:var(--ink-faint)">&nbsp;</div>
       <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">'specs/**/*.html' 'principles.html'</span></div>
       <div><span style="color:var(--green)">✓</span> no findings <span style="color:var(--ink-faint)"># the marker flipped quarantined → graduated; the guard clears</span></div>
@@ -293,7 +293,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   }
   <span class="c">// …reconstruct the path from prev, or null if goal was never reached</span>
 }</div>
-      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ kept from the spike, unchanged; the linear-scan frontier is correct, with a heap deferred. <span style="color:var(--ink-soft)">spec 001 · FR-001, plan D-001/D-002</span></div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ kept from the spike, unchanged; the linear-scan frontier is correct, with a heap deferred. <span style="color:var(--ink-soft)">spec 001 · FR-001, design D-001/D-002</span></div>
 
       <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">The ledger's run block — what graduation promotes to <span style="font-family:'IBM Plex Mono',monospace">verified</span></div>
       <div class="code"><span class="t">&lt;spec-runblock&gt;</span>
@@ -302,7 +302,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     (2 hops, cost 25) while Dijkstra returns A → B → C → D → E (cost 6).
     They disagree by 19 — proving "shortest" means least weight.<span class="t">&lt;/spec-demo&gt;</span>
 <span class="t">&lt;/spec-runblock&gt;</span></div>
-      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ at graduation, this run's proven facts become <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--green)">verified</span> rows in the plan's §3 evidence ledger, citing the archived exploration. <span style="color:var(--ink-soft)">explore.html §3</span></div>
+      <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ at graduation, this run's proven facts become <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--green)">verified</span> rows in the design's §3 evidence ledger, citing the archived exploration. <span style="color:var(--ink-soft)">explore.html §3</span></div>
     </div>
 
     <!-- TRUST -->
@@ -324,9 +324,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
     <!-- artifacts -->
     <h2 id="artifacts" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The artifacts</h2>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The graduated Draft bundle — a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">spec · plan · tasks</span> triple — plus the frozen exploration record it came from. Every artifact passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span> at the standard profile, and the archived spike still runs.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The graduated Draft bundle — a <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">spec · design · tasks</span> triple — plus the frozen exploration record it came from. Every artifact passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span> at the standard profile, and the archived spike still runs.</p>
     <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
-      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/explore/specs/001-find-the-shortest-path-between-two/spec.html" style="color:var(--crimson);text-decoration:none">001 · least-weight path</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The graduated Draft — extracted from the kept build (tracer-bullet)</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/explore/specs/001-find-the-shortest-path-between-two/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/explore/specs/001-find-the-shortest-path-between-two/plan.html" style="color:var(--sea);text-decoration:none">plan</a> · <a href="examples/explore/specs/001-find-the-shortest-path-between-two/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/explore/specs/001-find-the-shortest-path-between-two/spec.html" style="color:var(--crimson);text-decoration:none">001 · least-weight path</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The graduated Draft — extracted from the kept build (tracer-bullet)</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/explore/specs/001-find-the-shortest-path-between-two/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/explore/specs/001-find-the-shortest-path-between-two/design.html" style="color:var(--sea);text-decoration:none">design</a> · <a href="examples/explore/specs/001-find-the-shortest-path-between-two/tasks.html" style="color:var(--sea);text-decoration:none">tasks</a></div></div></div>
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 11rem"><a href="examples/explore/explorations/archive/001-find-the-shortest-path-between-two/explore.html" style="color:var(--purple);text-decoration:none">↳ exploration</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The <strong style="color:var(--ink)">archived ledger</strong> — intent, what I built/tried/worked/didn't, and the run block. <a href="examples/explore/explorations/archive/001-find-the-shortest-path-between-two/explore.html" style="color:var(--purple);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--purple) 40%,transparent)">Read the ledger →</a></span></div></div>
       <a href="https://github.com/spectastic/example-explore-shortest-path" target="_blank" rel="noopener" style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;text-decoration:none"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 11rem">▷ node --test</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">The TypeScript source — 5 tests, green · <span style="color:var(--sea);border-bottom:1px solid color-mix(in srgb,var(--sea) 40%,transparent)">view the source on GitHub&nbsp;↗</span></span></a>
     </div>

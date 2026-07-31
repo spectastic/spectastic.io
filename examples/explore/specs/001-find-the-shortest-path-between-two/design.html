@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
-<title>Least-weight shortest path · Plan</title>
+<title>Least-weight shortest path · Design</title>
 <link rel="stylesheet" href="../../assets/spec.css">
 <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 <script src="../../assets/theme-boot.js"></script>
@@ -13,7 +13,7 @@
 <main>
 
 <header>
-  <p class="small-caps">Implementation plan · 001-find-the-shortest-path-between-two</p>
+  <p class="small-caps">Implementation design · 001-find-the-shortest-path-between-two</p>
   <h1>Least-weight shortest path</h1>
   <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
     How we will build it — by hardening a build that already exists.
@@ -39,7 +39,7 @@
 
 <section id="principles-check">
 <h2>1 · Principles check</h2>
-<p>Verify this plan respects every principle in
+<p>Verify this design respects every principle in
 <a href="../principles.html">v0.1.0</a>. Any violation requires either a principles amendment or a deliberate
 exception logged below.</p>
 
@@ -73,7 +73,7 @@ exception logged below.</p>
 
 <section id="grounding">
 <h2>3 · Grounding &amp; evidence</h2>
-<p>Every design-bearing fact this plan rests on, and how it was confirmed. Because this slice graduated from an
+<p>Every design-bearing fact this design rests on, and how it was confirmed. Because this slice graduated from an
 exploration, the headline facts are <code>verified</code> — they were <em>run</em> in the archived spike, and the run
 record is preserved (per <code>REQ-LIFECYCLE-006</code> / 023 FR-004).</p>
 
@@ -244,14 +244,14 @@ the test and assert it is <em>more expensive</em> than Dijkstra's — a guard th
 <h2>11 · Change log</h2>
 <spec-changelog>
 <ol>
-  <li><time datetime="2026-07-23">23 Jul 2026</time><span>Initial plan, extracted at graduation from exploration 001 (tracer-bullet). §3 seeded with the archived run's verified facts.</span></li>
+  <li><time datetime="2026-07-23">23 Jul 2026</time><span>Initial design, extracted at graduation from exploration 001 (tracer-bullet). §3 seeded with the archived run's verified facts.</span></li>
 </ol>
 </spec-changelog>
 </section>
 
 
 <footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
-  Plan for 001-find-the-shortest-path-between-two · Least-weight shortest path · authored 2026-07-23
+  Design for 001-find-the-shortest-path-between-two · Least-weight shortest path · authored 2026-07-23
 </footer>
 
 </main>

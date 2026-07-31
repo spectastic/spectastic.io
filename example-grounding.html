@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>I know kung fu — grounding a domain fact with the knowledge corpus, a worked example</title>
-<meta name="description" content="A worked example of spectastic's knowledge corpus: commit the domain facts a spec needs, cite one as KB-NNN@edition, and watch a plan decision flip from an assumed guess to a verified, edition-pinned fact. Live: toggle the corpus off and on.">
+<meta name="description" content="A worked example of spectastic's knowledge corpus: commit the domain facts a spec needs, cite one as KB-NNN@edition, and watch a design decision flip from an assumed guess to a verified, edition-pinned fact. Live: toggle the corpus off and on.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,7 +159,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
   <main style="min-width:0">
     <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · knowledge corpus · grounding</div>
     <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">I know kung&nbsp;fu.</h1>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">In the Matrix, they upload kung&nbsp;fu straight into Neo's head; he opens his eyes, says <em>&ldquo;I know kung&nbsp;fu,&rdquo;</em> and Morpheus answers, <em>&ldquo;Show me.&rdquo;</em> A spectastic <a href="knowledge.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">knowledge corpus</a> is the unglamorous, auditable version: commit the domain facts your specs need, and a decision that used to be a <strong style="color:var(--ink)">guess</strong> becomes a <strong style="color:var(--ink)">cited, edition-pinned</strong> fact. The tell is one attribute in a plan — <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--deny)">ASSUMED</span> flips to <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--green)">grounded</span>. Below, you can flip it yourself.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">In the Matrix, they upload kung&nbsp;fu straight into Neo's head; he opens his eyes, says <em>&ldquo;I know kung&nbsp;fu,&rdquo;</em> and Morpheus answers, <em>&ldquo;Show me.&rdquo;</em> A spectastic <a href="knowledge.html" class="lnk-crimson" style="font-family:inherit;font-size:.98em">knowledge corpus</a> is the unglamorous, auditable version: commit the domain facts your specs need, and a decision that used to be a <strong style="color:var(--ink)">guess</strong> becomes a <strong style="color:var(--ink)">cited, edition-pinned</strong> fact. The tell is one attribute in a design — <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--deny)">ASSUMED</span> flips to <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--green)">grounded</span>. Below, you can flip it yourself.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">
       <span class="pill">Knowledge corpus</span>
@@ -176,19 +176,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <!-- overview -->
     <div id="overview" style="scroll-margin-top:80px;margin-top:40px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:24px 26px">
       <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)">The gap</div>
-      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">Spectastic already demands that every design-bearing fact in a plan cite a <strong style="color:var(--ink)">source</strong>. But before the corpus, every source it could name lived <em>in the repo</em> — so a <strong style="color:var(--ink)">domain</strong> fact (a regulation, a standard, a settlement window) had nothing external to point at, and could only ever be graded <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:#b07d1a">assumed</span>. The corpus supplies the missing thing to cite: committed, greppable markdown under <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">knowledge/</span>, each document carrying a stable <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">KB-NNN</span> id. Cite one, and the fact can finally be <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--green)">verified</span>.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">Spectastic already demands that every design-bearing fact in a design cite a <strong style="color:var(--ink)">source</strong>. But before the corpus, every source it could name lived <em>in the repo</em> — so a <strong style="color:var(--ink)">domain</strong> fact (a regulation, a standard, a settlement window) had nothing external to point at, and could only ever be graded <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:#b07d1a">assumed</span>. The corpus supplies the missing thing to cite: committed, greppable markdown under <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">knowledge/</span>, each document carrying a stable <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">KB-NNN</span> id. Cite one, and the fact can finally be <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--green)">verified</span>.</p>
     </div>
 
     <!-- arc -->
     <h2 id="arc" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Before grounding</h2>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A real, small feature: a <strong style="color:var(--ink)">mobile action bar</strong> — a row of icon buttons. The plan needs one domain fact: the minimum interactive target size. Ask a model cold and you'll usually get <strong style="color:var(--ink)">44&times;44 CSS px</strong>, stated with confidence. It's the wrong criterion — that's Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> bar. The AA floor, introduced in WCAG 2.2, is <strong style="color:var(--ink)">24&times;24</strong>. The model doesn't know what it doesn't know.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A real, small feature: a <strong style="color:var(--ink)">mobile action bar</strong> — a row of icon buttons. The design needs one domain fact: the minimum interactive target size. Ask a model cold and you'll usually get <strong style="color:var(--ink)">44&times;44 CSS px</strong>, stated with confidence. It's the wrong criterion — that's Apple's Human Interface Guidelines figure and WCAG 2.1's <em>AAA</em> bar. The AA floor, introduced in WCAG 2.2, is <strong style="color:var(--ink)">24&times;24</strong>. The model doesn't know what it doesn't know.</p>
 
     <div style="margin-top:28px;display:flex;flex-direction:column;gap:0">
       <div class="step">
         <div class="step-num">1</div>
         <div style="padding-bottom:26px">
-          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">The ungrounded plan</h3>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The plan decides a target size with nothing external to cite. It renders <strong style="color:var(--ink)">ASSUMED</strong> — spectastic's loud, visible-failure affordance for a design-bearing fact resting on a guess. The build isn't blocked, but the badge is impossible to miss in review.</p>
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">The ungrounded design</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The design decides a target size with nothing external to cite. It renders <strong style="color:var(--ink)">ASSUMED</strong> — spectastic's loud, visible-failure affordance for a design-bearing fact resting on a guess. The build isn't blocked, but the badge is impossible to miss in review.</p>
         </div>
       </div>
       <div class="step">
@@ -202,7 +202,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div class="step-num">3</div>
         <div style="padding-bottom:26px">
           <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.24rem;margin:0;color:var(--ink)">Cite it — the fact gets corrected</h3>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">/spectastic.plan</span> grounds the decision by citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-0001@2023-10-05</span> — the id pinned to the exact edition read. The grounding flips to <strong style="color:var(--green)">verified</strong>, and the number is corrected from 44 to <strong style="color:var(--ink)">24</strong>. Grounding didn't just add a badge; it fixed a confident error. <a href="#show-me" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Flip it below.</a></p>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0"><span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--crimson)">/spectastic.design</span> grounds the decision by citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-0001@2023-10-05</span> — the id pinned to the exact edition read. The grounding flips to <strong style="color:var(--green)">verified</strong>, and the number is corrected from 44 to <strong style="color:var(--ink)">24</strong>. Grounding didn't just add a badge; it fixed a confident error. <a href="#show-me" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Flip it below.</a></p>
         </div>
       </div>
       <div class="step">
@@ -216,7 +216,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
     <!-- show me -->
     <h2 id="show-me" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Show me</h2>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">This is the real plan decision, rendered by spectastic's own grounding CSS. The toggle flips one attribute — <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">grounding</span> — exactly as citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-0001</span> does. Watch the badge, the number, and the source line.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">This is the real design decision, rendered by spectastic's own grounding CSS. The toggle flips one attribute — <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">grounding</span> — exactly as citing <span style="font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--ink)">KB-0001</span> does. Watch the badge, the number, and the source line.</p>
 
     <div style="margin-top:22px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
       <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
@@ -255,7 +255,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         </div>
       </div>
 
-      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">The card above uses spectastic's real <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">spec-decision[grounding]</span> rendering; the toggle only flips the <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">grounding</span> attribute. In a project you don't flip it by hand — citing <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-0001@2023-10-05</span> in the plan is what earns the green.</p>
+      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">The card above uses spectastic's real <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">spec-decision[grounding]</span> rendering; the toggle only flips the <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">grounding</span> attribute. In a project you don't flip it by hand — citing <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em;color:var(--ink-soft)">KB-0001@2023-10-05</span> in the design is what earns the green.</p>
     </div>
 
     <!-- read -->
@@ -295,7 +295,7 @@ Human Interface Guidelines and is the WCAG **AAA / Enhanced** target (SC 2.5.5) 
 Cite as `KB-0001@2023-10-05`.</div>
       <div style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ the <span style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--ink-soft)">content-hash</span> is real (sha256 of the body), not a placeholder — so a later re-ingest can detect drift. <span style="color:var(--ink-soft)">provenance frontmatter, 051 · FR-003</span></div>
 
-      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">The plan decision that cites it — <span style="font-family:'IBM Plex Mono',monospace">specs/001-mobile-action-bar/plan.html</span></div>
+      <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:20px 0 6px">The design decision that cites it — <span style="font-family:'IBM Plex Mono',monospace">specs/001-mobile-action-bar/design.html</span></div>
       <div class="code"><span class="t">&lt;spec-decision</span> <span class="k">id</span>=<span class="s">"D-001"</span> <span class="k">grounding</span>=<span class="s">"verified"</span><span class="t">&gt;</span>
   <span class="t">&lt;h4&gt;</span>D-001 · Minimum interactive target size<span class="t">&lt;/h4&gt;</span>
   <span class="t">&lt;dl&gt;</span>
@@ -328,7 +328,7 @@ Cite as `KB-0001@2023-10-05`.</div>
         <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--deny)">corpus-provenance · error</div>
         <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">Typo the pin to an edition that doesn't exist and the build fails — a citation can't rot into a dead reference.</p>
         <div class="term" style="font-size:.72rem">
-          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2020-01-01</span></div>
+          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">design.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2020-01-01</span></div>
           <div><span style="color:var(--deny)">error</span> Corpus citation "KB-0001@2020-01-01" resolves to no</div>
           <div>&nbsp;&nbsp;committed document at that id/edition — a dead reference.</div>
           <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-provenance</span></div>
@@ -339,7 +339,7 @@ Cite as `KB-0001@2023-10-05`.</div>
         <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b07d1a">corpus-staleness · warning</div>
         <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">Pin to the superseded 2018 edition and it warns — loud, like an assumed decision, but never blocking.</p>
         <div class="term" style="font-size:.72rem">
-          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">plan.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2018-06-05</span></div>
+          <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">design.html</span> &nbsp;<span style="color:var(--ink-faint)"># KB-0001@2018-06-05</span></div>
           <div><span style="color:#b07d1a">warning</span> Corpus citation "KB-0001@2018-06-05" is pinned to a</div>
           <div>&nbsp;&nbsp;superseded edition — the current edition is 2023-10-05.</div>
           <div><span style="color:var(--ink-faint)">&nbsp;&nbsp;corpus-staleness</span></div>
@@ -350,10 +350,10 @@ Cite as `KB-0001@2023-10-05`.</div>
 
     <!-- artifacts -->
     <h2 id="artifacts" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The artifacts</h2>
-    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A self-contained bundle: the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">web-a11y</span> corpus pack and the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">mobile-action-bar</span> spec &amp; plan that cites it. Every file is real and passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span>.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A self-contained bundle: the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">web-a11y</span> corpus pack and the <span style="font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)">mobile-action-bar</span> spec &amp; design that cites it. Every file is real and passes <span style="font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--ink)">spectastic validate</span>.</p>
     <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 12rem"><a href="examples/kung-fu/knowledge/web-a11y/references/001-target-size.md" style="color:var(--crimson);text-decoration:none">KB-0001 · target size</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The corpus document — provenance frontmatter + the distilled fact</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/kung-fu/knowledge/web-a11y/SKILL.md" style="color:var(--sea);text-decoration:none">SKILL.md</a> · <a href="examples/kung-fu/knowledge/index.md" style="color:var(--sea);text-decoration:none">registry</a> · <a href="examples/kung-fu/knowledge/web-a11y/references/superseded/001-target-size@2018-06-05.md" style="color:var(--sea);text-decoration:none">superseded/2018</a></div></div></div>
-      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 12rem"><a href="examples/kung-fu/specs/001-mobile-action-bar/spec.html" style="color:var(--crimson);text-decoration:none">001 · mobile action bar</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The spec &amp; plan — D-001 grounds the target size against KB-0001</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/kung-fu/specs/001-mobile-action-bar/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/kung-fu/specs/001-mobile-action-bar/plan.html" style="color:var(--sea);text-decoration:none">plan</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 12rem"><a href="examples/kung-fu/specs/001-mobile-action-bar/spec.html" style="color:var(--crimson);text-decoration:none">001 · mobile action bar</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The spec &amp; design — D-001 grounds the target size against KB-0001</span><div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/kung-fu/specs/001-mobile-action-bar/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/kung-fu/specs/001-mobile-action-bar/design.html" style="color:var(--sea);text-decoration:none">design</a></div></div></div>
       <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--sea);flex:0 0 12rem">▷ spectastic validate</code><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink)">Corpus present, citation resolved, gates green — the run shown above</span></div>
     </div>
     <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:14px 0 0">These are the real, rendered artifacts — the same files <span style="font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:.9em">spectastic validate</span> checks; the excerpts above are drawn from them verbatim.</p>
@@ -389,7 +389,7 @@ Cite as `KB-0001@2023-10-05`.</div>
 })();
 
 // The grounding toggle — flips the decision card's `grounding` attribute,
-// exactly as citing KB-0001 does in a real plan.
+// exactly as citing KB-0001 does in a real design.
 (function(){
   const card = document.getElementById('kfCard');
   const off = document.getElementById('kf-off');

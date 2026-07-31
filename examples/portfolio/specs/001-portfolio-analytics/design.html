@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
-<title>Real-time portfolio analytics · Plan</title>
+<title>Real-time portfolio analytics · Design</title>
 <link rel="stylesheet" href="../../assets/spec.css">
 <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 <script src="../../assets/theme-boot.js"></script>
@@ -13,7 +13,7 @@
 <main>
 
 <header>
-  <p class="small-caps">Implementation plan · 001-portfolio-analytics</p>
+  <p class="small-caps">Implementation design · 001-portfolio-analytics</p>
   <h1>Real-time portfolio analytics</h1>
   <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
     How we will build it: one append-only ledger, analytics as pure folds, exact integer money, on Java 21 + Quarkus.
@@ -41,7 +41,7 @@
 
 <section id="principles-check">
 <h2>1 · Principles check</h2>
-<p>This umbrella carries the platform-wide principle conformance for all five specs; each child plan checks only the
+<p>This umbrella carries the platform-wide principle conformance for all five specs; each child design checks only the
 principles most load-bearing for its slice and points here. Verified against
 <a href="../../principles.html">v0.1.0</a> (enterprise, 20 principles).</p>
 
@@ -272,7 +272,7 @@ src/test/java/io/spectastic/portfolio/
 
 <section id="complexity">
 <h2>9 · Complexity tracking</h2>
-<p>Where this plan adds anything beyond the minimum the specs demand.</p>
+<p>Where this design adds anything beyond the minimum the specs demand.</p>
 
 <spec-assumption>
 <p>Maintaining two basis decompositions — aggregate average-cost in the position engine and exact per-lot in the tax-lot
@@ -297,13 +297,13 @@ stack (Java 21 + Quarkus) were all settled and grounded this turn; storage durab
 <h2>11 · Change log</h2>
 <spec-changelog>
 <ol>
-  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial plan. Event-sourced projections over a single append-only ledger (D-001), exact integer fixed-point money at scale 1e-4 (D-002), Java 21 + Quarkus 3.37.3 (D-003), and an in-memory hot tail with durable storage deferred (D-004). Carries the platform-wide 20-principle check for the child plans.</span></li>
+  <li><time datetime="2026-07-22">22 Jul 2026</time><span>Initial design. Event-sourced projections over a single append-only ledger (D-001), exact integer fixed-point money at scale 1e-4 (D-002), Java 21 + Quarkus 3.37.3 (D-003), and an in-memory hot tail with durable storage deferred (D-004). Carries the platform-wide 20-principle check for the child designs.</span></li>
 </ol>
 </spec-changelog>
 </section>
 
 <footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
-  Plan for 001-portfolio-analytics · Real-time portfolio analytics · authored 22 Jul 2026
+  Design for 001-portfolio-analytics · Real-time portfolio analytics · authored 22 Jul 2026
 </footer>
 
 </main>
