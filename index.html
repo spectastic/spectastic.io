@@ -224,7 +224,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <span style="color:var(--accent,var(--purple));font-family:'IBM Plex Mono',monospace;font-size:.78rem">→</span>
         <code id="cmdOut" style="font-family:'IBM Plex Mono',monospace;font-size:.86rem;color:var(--ink-soft)">principles.html</code>
       </div>
-      <p id="phaseNote" style="font-family:'Source Serif 4',serif;font-size:1.12rem;line-height:1.6;color:var(--ink-soft);max-width:60ch;margin:20px 0 0">Establish the project's five non-negotiable principles — the constitution every later artifact is checked against.</p>
+      <p id="phaseNote" style="font-family:'Source Serif 4',serif;font-size:1.12rem;line-height:1.6;color:var(--ink-soft);max-width:60ch;margin:20px 0 0">Establish the project's non-negotiable principles — the constitution every later artifact is checked against.</p>
     </div>
     <p style="text-align:center;font-family:'Source Serif 4',serif;font-style:italic;font-size:.94rem;color:var(--ink-faint);margin:24px 0 0">Eight commands. <span style="color:var(--crimson)">propose</span> &amp; <span style="color:var(--crimson)">apply</span> loop forever as the spec evolves.</p>
 
@@ -426,7 +426,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
 
   // ---------- verbs row ----------
   const steps = [
-    { n:'01', verb:'principles', cmd:'/spectastic.principles <name>',  out:'principles.html',                 group:'Foundation',        note:"Establish the project's five non-negotiable principles — the constitution every later artifact is checked against.",       accent:'--purple' },
+    { n:'01', verb:'principles', cmd:'/spectastic.principles <name>',  out:'principles.html',                 group:'Foundation',        note:"Establish the project's non-negotiable principles — the constitution every later artifact is checked against.",       accent:'--purple' },
     { n:'02', verb:'spec',       cmd:'/spectastic.spec <feature>',      out:'specs/<id>/spec.html',            group:'Core lifecycle',    note:'Specify one feature — goals, scoped requirements, decisions — with a live size budget that nudges you to split before it bloats.', accent:'--sea' },
     { n:'03', verb:'design',       cmd:'/spectastic.design [id]',           out:'specs/<id>/design.html',            group:'Core lifecycle',    note:'Design the build. The estimability gate refuses to run while any open question or failing INVEST row remains.',                accent:'--crimson' },
     { n:'04', verb:'tasks',      cmd:'/spectastic.tasks [id]',          out:'specs/<id>/tasks.html',           group:'Core lifecycle',    note:'Derive an ordered, checkable task breakdown — each task a stable T-NNN id, with [P] flags for work that can run in parallel.', accent:'--salmon' },
