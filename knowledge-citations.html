@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Knowledge corpus · citations &amp; grounding — spectastic</title>
-<meta name="description" content="How a spec cites the corpus: the KB-NNNN@edition grammar, the registry-authoritative resolver, the three grounding states, the validation gates, and why a citation can never be fabricated.">
+<meta name="description" content="How a spec cites the corpus: the KB-NNNN@edition grammar, the registry-authoritative resolver, the grounding states, the validation gates, and why a citation can never be fabricated.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -201,11 +201,11 @@ table.dt tr:last-child td{border-bottom:none}
 <span class="k">if</span> (!entry) <span class="k">return</span> null;                 <span class="cm">// unknown id → no label</span>
 <span class="k">return</span> <span class="s">`${entry.marketplace} · ${entry.plugin} · ${entry.slug}`</span>;
     </div>
-    <p class="body" style="margin-top:16px">Then it resolves the <em>edition</em> to one of three outcomes: the pin matches the registry's current edition (<code class="c">current</code>); the pin matches a retained edition under <code class="c">superseded/</code> (<code class="c">superseded</code> — still resolves); or nothing on disk matches (<code class="c">null</code> — a dead reference). Those three outcomes are exactly the three grounding states.</p>
+    <p class="body" style="margin-top:16px">Then it resolves the <em>edition</em> to one of three outcomes: the pin matches the registry's current edition (<code class="c">current</code>); the pin matches a retained edition under <code class="c">superseded/</code> (<code class="c">superseded</code> — still resolves); or nothing on disk matches (<code class="c">null</code> — a dead reference). Those three outcomes are exactly the grounding states.</p>
 
     <!-- ============ STATES ============ -->
     <h2 id="states" class="sec">Grounding states</h2>
-    <p class="lead">A <code class="c">&lt;spec-decision&gt;</code> renders its grounding as a badge — the same treatment you can flip live in the <a href="example-grounding.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">kung-fu example</a>. Four outcomes, keyed off the resolver:</p>
+    <p class="lead">A <code class="c">&lt;spec-decision&gt;</code> renders its grounding as a badge — the same treatment you can flip live in the <a href="example-grounding.html" class="lnk-crimson" style="font-family:inherit;font-size:1em">kung-fu example</a>. The grounding states, keyed off the resolver:</p>
     <div class="states">
       <div class="gcard" data-state="grounded">
         <span class="gbadge">grounded</span>
