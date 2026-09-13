@@ -1,0 +1,3810 @@
+/* ============================================================
+   spectastic — design system for single-file HTML specs
+   v0.1 — warm cream surface, serif+sans+mono trio, 8 px grid
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Typography ------------------------------------------------ */
+  --font-serif: "Fraunces", "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-body:  "Source Serif 4", "Fraunces", Georgia, serif;
+  --font-sans:  "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:  "IBM Plex Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+
+  /* Theme tokens — owned by the theme (typography weight + structure).
+     Calm (this block) reproduces the original literals exactly;
+     [data-theme="…"] overrides only these. Colour is NOT here — modes own it. */
+  --fw-body:    400;   /* body text (Source Serif 4) */
+  --fw-h1:      400;   /* display heading (Fraunces) */
+  --fw-h2:      300;   /* section heading (Fraunces, light) */
+  --fw-display: 500;   /* serif card / decision headers (Fraunces) */
+  --fw-medium:  600;   /* strong, dfn, emphasis */
+  --fw-bold:    700;   /* sans uppercase labels, h3/h4, chrome */
+  --fw-heavy:   900;   /* loudest labels: RFC-2119 keyword, priority, op */
+  --card-radius:  var(--r);      /* card / panel corner radius */
+  --card-shadow:  var(--sh-sm);  /* card elevation */
+  --rule-w:       1px;           /* borders, dividers, rules */
+  --accent-bar-w: 3px;           /* left accent bar on tldr / admonitions */
+
+  /* Color — light (default) ---------------------------------- */
+  --c-bg:          #f6f5f1;   /* page */
+  --c-surface:     #fcfbf7;   /* cards, code bg, callouts */
+  --c-surface-2:   #efece4;   /* inset blocks, diff hunks */
+  --c-text:        #353534;   /* body */
+  --c-text-soft:   #4a4a46;   /* h2 light weight */
+  --c-muted:       #73706d;   /* metadata */
+  --c-muted-2:     #8e8f94;   /* captions */
+  --c-border:      #e3e3e0;
+  --c-border-soft: #ebeae6;
+
+  --c-link:        #5f023e;   /* crimson */
+  --c-link-hover:  #960462;
+  --c-accent:      #04a5bb;   /* sea blue */
+  --c-accent-deep: #00758f;
+  --c-purple:      #7558b2;
+  --c-salmon:      #e1624f;
+  --c-gold:        #ffd09c;   /* <mark> */
+
+  --c-must:    #5f023e;
+  --c-should:  #00758f;
+  --c-may:     #73706d;
+
+  --c-diff-add:    #d8efd3;
+  --c-diff-add-2:  #3d6834;
+  --c-diff-rm:     #f1d4d4;
+  --c-diff-rm-2:   #8a3a3a;
+
+  --c-warning-bg:  #fdf3f1;   /* admonition: warning surface */
+  --c-bar-bg:      rgba(246, 245, 241, 0.82);  /* vivid sticky header (over blur) */
+  --c-bar-border:  rgba(53, 53, 52, 0.12);     /* vivid header bottom rule */
+
+  /* Brand mark — the spectrum prongs (017-brand-logo). One token per prong in
+     fixed lifecycle order; independent brand literals, NOT aliases of the palette
+     above (so retuning a UI colour never shifts a prong). Measured from the logo
+     guide. --spec-1 = principles … --spec-8 = triage. Dark = the brightened set
+     the mode swaps in (below). --spec-mono follows the ink for single-colour use. */
+  --spec-1: #5f023e;  /* principles */
+  --spec-2: #960462;  /* spec */
+  --spec-3: #e1624f;  /* plan */
+  --spec-4: #e0a23c;  /* tasks */
+  --spec-5: #3f6a37;  /* implement */
+  --spec-6: #04a5bb;  /* propose */
+  --spec-7: #00758f;  /* apply */
+  --spec-8: #7558b2;  /* triage */
+  --spec-mono: currentColor;
+  --c-winner-bg:   #f1ead1;   /* matrix: chosen-row surface */
+  --c-danger:      #b0392a;   /* danger text on a light surface (AA) */
+
+  /* Filled-pill palette — AA-tuned fixed fill+text pairs (≥4.5:1), so a bright
+     pill chip is accessible in light AND dark. Referenced by the vivid theme's
+     pill treatment; colour stays mode-owned (the theme defines no value). */
+  --c-pill-fg:     #faf7f3;   /* near-white text on every filled pill */
+  --c-pill-must:   #c0432f;   /* MUST   — deep salmon-red */
+  --c-pill-should: #6a4fa0;   /* SHOULD — deep purple */
+  --c-pill-may:    #5f5c57;   /* MAY    — deep neutral */
+  --c-pill-ok:     #00758f;   /* accepted / sea-family status */
+
+  /* Spacing — 8px grid -------------------------------------- */
+  --s-1: 0.25rem; --s-2: 0.5rem; --s-3: 0.75rem;
+  --s-4: 1rem;    --s-5: 1.5rem; --s-6: 2rem;
+  --s-7: 3rem;    --s-8: 4rem;   --s-9: 6rem;
+
+  /* Radii ---------------------------------------------------- */
+  --r-sm: 0.2rem; --r:    0.4rem; --r-lg: 0.6rem;
+
+  /* Layout --------------------------------------------------- */
+  --measure: 38rem;            /* main reading column */
+  --measure-wide: 56rem;       /* with sidenotes */
+  --gutter: 14rem;             /* right margin for sidenotes */
+
+  /* Shadows — warm-tinted, not neutral black ---------------- */
+  --sh-sm: 0 1px 2px rgba(40,10,0,.06);
+  --sh-md: 0 2px 8px rgba(40,10,0,.07), 0 1px 2px rgba(40,10,0,.05);
+  --sh-lg: 0 8px 24px rgba(40,10,0,.10);
+  /* Card elevation the vivid theme spends. Mode-owned (a shadow is colour) so it
+     reads on the dark ground; calm keeps the flatter --sh-sm on its cards. */
+  --sh-card:      0 8px 24px rgba(40,10,0,.10);
+  --sh-card-lift: 0 16px 36px rgba(40,10,0,.14);
+}
+
+/* Dark mode — colour-only override, keyed by [data-mode="dark"] on <html>.
+   Light is the :root default. Modes own colour; themes own type + structure. */
+[data-mode="dark"] {
+  --c-bg:          #1c1b18;
+  --c-surface:     #24221f;
+  --c-surface-2:   #2c2a26;
+  --c-text:        #c2bfba;
+  --c-text-soft:   #d4d1cc;
+  --c-muted:       #a09d97;
+  --c-muted-2:     #807d77;
+  --c-border:      #403d36;
+  --c-border-soft: #2c2a26;
+  --c-link:        #f283bd;
+  --c-link-hover:  #f7a3d2;
+  --c-accent:      #2bc4da;
+  --c-gold:        #e5b876;
+  /* RFC-2119 keyword + priority colours, brightened for the dark ground */
+  --c-must:        #e98cb6;
+  --c-should:      #42cadd;
+  --c-may:         #b0aca4;
+  /* Surfaces that were hardcoded light in the base rules */
+  --c-warning-bg:  #2a201e;
+  --c-bar-bg:      rgba(28, 27, 24, 0.82);     /* vivid sticky header (dark, over blur) */
+  --c-bar-border:  rgba(255, 255, 255, 0.10);
+  /* Brand prongs — brightened set the mode swaps in on dark surfaces (measured
+     from the logo guide's dark spectrum specimen). Same lifecycle order. */
+  --spec-1: #e98cb6;  /* principles */
+  --spec-2: #e85aab;  /* spec */
+  --spec-3: #f08a79;  /* plan */
+  --spec-4: #ffd09c;  /* tasks */
+  --spec-5: #8fb56a;  /* implement */
+  --spec-6: #42cadd;  /* propose */
+  --spec-7: #2bb0c4;  /* apply */
+  --spec-8: #b29bdf;  /* triage */
+  --c-winner-bg:   #33301c;
+  --c-danger:      #f08a79;   /* danger text on a dark surface (AA) */
+  /* Deeper elevation on the dark ground so vivid cards still read as lifted. */
+  --sh-card:      0 8px 24px rgba(0,0,0,.44);
+  --sh-card-lift: 0 16px 40px rgba(0,0,0,.55);
+}
+
+/* Vivid theme — heavier weights + a denser, carded structure (016-theme-support).
+   Overrides ONLY the theme tokens; colour comes from the active mode, so vivid
+   works in light and dark alike. Reuses the four existing families (Fraunces to
+   700, Lato 900) — no new typeface downloads. */
+/* All values MEASURED from example.html (016 SC-006), not guessed. Type +
+   structure only — colour is mode-owned. Reuses the four families (Fraunces
+   range to 700, Lato 900); no new typeface downloads. */
+[data-theme="spectastic-vivid"] {
+  --fw-h1:       500;       /* reference Fraunces display heading */
+  --fw-h2:       540;       /* reference section headings */
+  --fw-display:  540;       /* reference serif card/decision headers */
+  --card-radius: 0.75rem;   /* 12px — SC-006 parity target; re-baselining to the
+                               reference's 14–16px rides with the 016 decision, not
+                               this CSS-only drain (inbox I-044). */
+  --card-shadow: var(--sh-card);  /* warm soft elevation — the reference artifact
+                                     cards rest on a shadow, not a bare 1px border
+                                     (inbox I-044; token-driven cards: decision/slo). */
+  /* One column top-to-bottom (the reference uses a single ~676px content width,
+     not spectastic's narrow-prose / wide-element split). Unify the measure so
+     every top-level block aligns; calm keeps its dual-width reading measure. */
+  --measure:      42rem;
+  --measure-wide: 42rem;
+  /* Default section accent (sea) for cards outside a numbered section (e.g. the
+     header TL;DR); numbered sections override it in the I-043 cycle below. */
+  --section-accent: var(--c-accent);
+}
+
+/* Prose theme — a reading shell for working through a long artifact end to end,
+   rather than scanning it (109-prose-theme). Like vivid it overrides theme tokens
+   only; colour stays mode-owned. Its one departure is emphasis, which the amended
+   016 FR-002 permits as opacity over existing tokens — never a new colour value.
+   The measure is unified as vivid's is (D-006): one column, so prose and wide
+   content share a left edge over a long read. */
+[data-theme="spectastic-prose"] {
+  --measure:      43rem;
+  --measure-wide: 43rem;
+  /* Type: 20px body over a 16px root, leading opened for sustained reading.
+     Both are floors stated by FR-003, not preferences. */
+  --prose-fs:     1.25rem;
+  --prose-lh:     1.8;
+  /* Emphasis, not colour. The amended 016 FR-002 permits modulating rendered
+     emphasis provided no colour token is touched and NFR-003's floor holds. The
+     value is measured, not chosen by eye: over the real tokens LIGHT mode binds,
+     giving 5.35:1 at 0.75, 4.62:1 at 0.70 and 4.04:1 at 0.65 — below the 4.5:1
+     floor. 0.75 keeps real headroom; 0.70 is the absolute floor for any text
+     (design D-004). The source convention's most recessed layer computes 3.53:1
+     and is deliberately not reproduced. */
+  --prose-recess: 0.75;
+}
+/* Body type. Higher specificity than the base `body` rule, so source order is
+   not load-bearing here. */
+[data-theme="spectastic-prose"] body {
+  font-size:   var(--prose-fs);
+  line-height: var(--prose-lh);
+}
+
+/* Narration recedes so emphasis comes forward. Applied to running prose only —
+   never to a heading, a pill, an id chip or a control, each of which is either
+   emphasis itself or an interface element that must stay at full strength. */
+[data-theme="spectastic-prose"] main section > p,
+[data-theme="spectastic-prose"] main section > ul,
+[data-theme="spectastic-prose"] main section > ol,
+[data-theme="spectastic-prose"] main section > dl {
+  opacity: var(--prose-recess);
+}
+[data-theme="spectastic-prose"] :is(strong, em, dfn, mark, a, code) { opacity: 1; }
+
+/* Sidenotes fold into the column (FR-004, D-005). These are the declarations the
+   narrow-viewport block already uses — reused verbatim, keyed on the theme rather
+   than the width, so there is one folded treatment to maintain rather than two.
+   A change to that block changes Prose; a test pins it. */
+[data-theme="spectastic-prose"] spec-sidenote {
+  float: none;
+  display: block;
+  width: auto;
+  margin: var(--s-3) 0;
+  padding: var(--s-3) var(--s-4);
+  background: var(--c-surface);
+  border-left: 2px solid var(--c-border);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+/* Chrome is quieted; structure is not (FR-005). Borders, elevation and fills go —
+   they are what makes a reference card read as a card mid-essay. What stays is
+   everything that carries meaning: the id chips and pills these elements render
+   in ::before, their grid columns, table rows, gauge bars and checkbox state.
+   Admonitions keep their left accent bar, which is the cheapest possible mark of
+   "this is an aside" and is signal rather than decoration. */
+[data-theme="spectastic-prose"] :is(spec-requirement, spec-criterion, spec-decision,
+  spec-matrix, spec-slo, spec-arch, spec-audience-map, spec-triage, spec-change) {
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+[data-theme="spectastic-prose"] spec-requirement:last-of-type { border-bottom: 0; }
+
+/* The divider between numbered sections (FR-009, D-008). The boundary is already
+   in the document, so this needs no element an author has to write — which is what
+   separates it from a scene divider and keeps the theme additive.
+
+   Two details are load-bearing. The glyphs are spaced with letter-spacing, NOT with
+   literal spaces in the string: a hex escape followed by a space has the space eaten
+   as the escape's terminator, a bug this stylesheet has already paid for once. And
+   the `/ ""` alt-text form is what stops a screen reader announcing three bullets as
+   content — the divider is decoration and says so. */
+/* The receding header (FR-008, T-310). It translates out rather than fading:
+   a header held at low opacity is still a UI control below NFR-001's 3:1 floor,
+   AND still covers the column, so fading would fail the requirement twice over
+   while only half-serving the story. Translating is what "nothing hovers over
+   the text" actually means.
+
+   Two of the three return triggers are pure CSS and belong here — pointer is
+   :hover, keyboard is :focus-within. The third, scrolling up, is direction and
+   therefore remembered state, so it lives in the script (FR-007). The focus
+   trigger is must-tier: a control that returns only on hover is unreachable
+   without a mouse. */
+[data-theme="spectastic-prose"] header.spec-bar {
+  transition: transform .35s ease;
+}
+[data-theme="spectastic-prose"] header.spec-bar[data-receded] {
+  transform: translateY(-100%);
+}
+[data-theme="spectastic-prose"] header.spec-bar[data-receded]:hover,
+[data-theme="spectastic-prose"] header.spec-bar[data-receded]:focus-within {
+  transform: none;
+}
+/* The reach strip. A bar translated fully out of the viewport has nothing left to
+   point AT, so "returns on pointer" would be unsatisfiable — found by testing it,
+   not by reading it. This is an invisible 10px band sitting exactly where the bar
+   used to be: because it is the bar's own pseudo-element, hovering it counts as
+   hovering the bar, so the existing :hover rule brings it back with no extra rule
+   and no markup. It exists only while receded, so it can never swallow a click on
+   the page beneath. */
+[data-theme="spectastic-prose"] header.spec-bar[data-receded]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="spectastic-prose"] header.spec-bar { transition: none; }
+}
+
+/* The reveal's resting states (FR-006, D-003). The ORDER of these two rules is
+   the safety property, not a style choice: nothing is hidden until the root
+   carries `data-prose-reveal`, which only the script sets, and it sets it only
+   once it can also un-hide. So JavaScript off, an early throw, reduced motion, or
+   a browser without IntersectionObserver all land on "everything visible" — the
+   failure mode is a page with no animation, never a page with no text.
+
+   Print un-hides unconditionally: a block the reader never scrolled to must not
+   come out blank on paper. */
+[data-theme="spectastic-prose"][data-prose-reveal] :is(main > section, main > header) {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .7s ease-out, transform .7s ease-out;
+}
+[data-theme="spectastic-prose"][data-prose-reveal] :is(main > section, main > header)[data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="spectastic-prose"][data-prose-reveal] :is(main > section, main > header) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+@media print {
+  [data-theme="spectastic-prose"][data-prose-reveal] :is(main > section, main > header) {
+    opacity: 1 !important;
+    transform: none !important;
+    /* Snap, never animate. Without this the un-hide inherits the .7s transition
+       and a block can be captured part-way — paper has no second frame. */
+    transition: none !important;
+  }
+}
+
+[data-theme="spectastic-prose"] main > section + section::before {
+  content: "•••" / "";
+  display: block;
+  text-align: center;
+  font-size: 1.05rem;
+  letter-spacing: 0.7em;
+  text-indent: 0.7em;          /* re-centres: letter-spacing trails the last glyph */
+  color: var(--c-muted);
+  opacity: 0.55;
+  margin: var(--s-7) 0 var(--s-8);
+}
+/* The base h2 hairline was restored in triage T-011, scoped to every section but
+   the document's first. Under Prose that lands on the same boundaries the dot
+   divider above already marks — a hairline AND a dot on all 8 would double the
+   separator this theme deliberately keeps to one mark. Suppressed here rather
+   than in the base rule, which every other theme still wants. */
+[data-theme="spectastic-prose"] main > section h2 {
+  border-top: none;
+  padding-top: 0;
+}
+[data-theme="spectastic-prose"] :is(spec-tldr, spec-note, spec-warning, spec-question,
+  spec-assumption, spec-tip, spec-example) {
+  box-shadow: none;
+  background: none;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+/* Component shape rules — what tokens can't reach (D-006 / D-008: CSS-only over
+   existing elements, calm :root untouched, no document markup). */
+/* Section headings carry the section sign §, as in the reference (e.g. "§2
+   Requirements"). CSS prepends it to the existing "N · Title" text → "§1 · Context"
+   (the § inherits the heading's Fraunces weight/size/colour). The reference drops
+   the middot ("§2 Requirements"); matching that exactly would mean editing every
+   spec's heading text — a separate cross-spec change, not this CSS-only rule. */
+[data-theme="spectastic-vivid"] h2::before { content: "§"; }
+
+/* FR-009 — sticky top header, both themes (built by spec.js §7). The controls
+   live here in both themes; the footer switcher is hidden. Each theme renders the
+   bar in its own register: calm a minimal, flat treatment (opaque cream, thin soft
+   rule, restrained height — P-5); vivid the dense, backdrop-blurred, reference-faithful
+   bar (measured from example.html: 60px, saturate(1.4) blur(10px), cream @ 0.82). The
+   layout (inner/brand/path/controls/mode-toggle) is theme-agnostic. (T-1000) */
+header.spec-bar {
+  display: block;
+  position: sticky; top: 0; z-index: 40;
+  background: var(--c-bg);                          /* calm: opaque page surface, no blur */
+  border-bottom: 1px solid var(--c-border-soft);    /* calm: thin soft rule */
+}
+.spec-bar-inner {
+  max-width: calc(var(--measure) + 2 * var(--s-6));
+  margin: 0 auto;
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: var(--s-2) var(--s-6); min-height: 48px; /* calm: restrained height */
+  box-sizing: border-box;
+}
+.spec-brand {
+  margin-right: auto;                 /* push path + controls to the right */
+  font-family: var(--font-serif); font-weight: var(--fw-bold);
+  color: var(--c-text); border-bottom: none; white-space: nowrap;
+}
+.spec-path {
+  font-family: var(--font-mono); font-size: 0.78rem; color: var(--c-text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.spec-bar-controls { display: inline-flex; align-items: center; gap: var(--s-3); }
+.spec-bar .mode-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; padding: 0;
+  background: none; border: 1px solid var(--c-border); border-radius: 999px;
+  color: var(--c-text); cursor: pointer;
+}
+/* Vivid: the dense, backdrop-blurred bar over a translucent cream surface. */
+[data-theme="spectastic-vivid"] header.spec-bar {
+  background: var(--c-bar-bg);
+  border-bottom: 1px solid var(--c-bar-border);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* No blur support → fall back to the opaque page surface so text stays AA. */
+  [data-theme="spectastic-vivid"] header.spec-bar { background: var(--c-bg); }
+}
+[data-theme="spectastic-vivid"] .spec-bar-inner { padding: var(--s-3) var(--s-6); min-height: 60px; }
+/* The header carries the controls in both themes — hide the footer switcher. */
+footer .theme-controls,
+footer [data-theme-toggle] { display: none; }
+
+/* ---------- Brand lockup (017-brand-logo) — base, theme-independent ----------
+   The spectrum mark sits AFTER the wordmark, lifted to its cap line and sized to
+   the type. Geometry measured from the logo guide (Technique A): mark 0.52em,
+   margin-left .04em, margin-top .05em, overflow visible. The mark's prong fills
+   are var(--spec-1…8) set inline; --mono follows the ink; the sup variant carries
+   the mark in running prose (Technique B). */
+.spec-logo { display: inline-flex; align-items: flex-start; }
+.spec-logo > svg {
+  width: 0.52em; height: 0.52em; flex: none;
+  margin-left: 0.04em; margin-top: 0.05em; overflow: visible;
+}
+/* Standalone icon (no wordmark): one-prong clearspace, 16px legibility floor. */
+.spec-logo--icon { padding: 0.5em; }
+.spec-logo--icon > svg { width: 1em; height: 1em; margin: 0; min-width: 16px; min-height: 16px; }
+/* Mono single-ink derivation — every prong follows the current ink. */
+.spec-logo--mono svg path { fill: var(--spec-mono); }
+/* Technique B — the mark in running prose, via a <sup>. */
+sup.spec-sup { font-size: 0.4em; vertical-align: 1.75em; margin-left: 0.04em; }
+sup.spec-sup > svg { width: 0.95em; height: 0.95em; vertical-align: -0.16em; overflow: visible; }
+[data-theme="spectastic-vivid"] spec-pill,
+[data-theme="spectastic-vivid"] spec-badge { border-radius: 4px; }
+[data-theme="spectastic-vivid"] spec-tldr { border-radius: var(--card-radius); border-left-color: var(--section-accent); }
+[data-theme="spectastic-vivid"] spec-decision { border-top: var(--accent-bar-w) solid var(--section-accent); }
+/* spec-status + spec-requirement chips are styled in the filled-pill / card
+   sections below (T-515 / T-516). */
+
+/* Vivid layout (Slice 2) — measured from example.html. CSS-only over existing
+   elements via :has()/grid (D-008), no document markup; opt-in by usage. */
+
+/* T-510 — goals/non-goals side-by-side (only when both are present). */
+[data-theme="spectastic-vivid"] section:has(> spec-goals):has(> spec-non-goals) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--s-5);
+  align-items: start;
+}
+[data-theme="spectastic-vivid"] section:has(> spec-goals):has(> spec-non-goals) > :not(spec-goals):not(spec-non-goals) {
+  grid-column: 1 / -1;
+}
+
+/* T-511 — budget gauge as a horizontal row of cards (label+value above a bar). */
+[data-theme="spectastic-vivid"] spec-budget {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch;
+  /* No enclosing box — the reference shows the gauge cards alone (measured:
+     container border 0, background transparent, padding 0, gap 14px). */
+  border: none; background: none; border-radius: 0; padding: 0;
+}
+/* "Budget" header sits on its own line so the cards take the full column width
+   (the reference card label is small + nowrap; squeezing it wraps "Read time"). */
+[data-theme="spectastic-vivid"] spec-budget::before { flex-basis: 100%; margin-bottom: 0; }
+[data-theme="spectastic-vivid"] spec-budget .row {
+  flex: 1 1 0; min-width: 10rem;
+  display: grid; grid-template-columns: 1fr auto; column-gap: var(--s-3); row-gap: var(--s-2);
+  align-items: baseline; align-content: start;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 10px; padding: 13px 15px; margin: 0;
+}
+[data-theme="spectastic-vivid"] spec-budget .row .label {
+  grid-column: 1; grid-row: 1;
+  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: var(--fw-bold); white-space: nowrap;
+}
+[data-theme="spectastic-vivid"] spec-budget .row .value { grid-column: 2; grid-row: 1; text-align: right; white-space: nowrap; }
+[data-theme="spectastic-vivid"] spec-budget .row .bar    { grid-column: 1 / -1; grid-row: 2; }
+[data-theme="spectastic-vivid"] spec-budget .hint        { flex-basis: 100%; }
+
+/* T-513 — metadata stays an aligned key/value grid (readable), but compacts to
+   two pairs per row — more horizontal than calm without losing key↔value
+   alignment. Long values (e.g. "Smallest demoable") wrap within their column. */
+[data-theme="spectastic-vivid"] spec-meta {
+  grid-template-columns: max-content 1fr max-content 1fr;
+  gap: var(--s-3) var(--s-5);
+}
+@media (max-width: 700px) {
+  [data-theme="spectastic-vivid"] spec-meta { grid-template-columns: max-content 1fr; }
+}
+
+/* T-512 — options matrix carded (decision already gets its top accent above). */
+[data-theme="spectastic-vivid"] spec-matrix {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--card-radius); padding: var(--s-4) var(--s-5);
+}
+
+/* T-514 — changelog as a timeline: a left rail connecting the dates, entries
+   stacked (date above its note) instead of the calm row-with-divider. */
+[data-theme="spectastic-vivid"] spec-changelog ol {
+  border-left: 2px solid var(--c-border);
+  padding-left: 22px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+[data-theme="spectastic-vivid"] spec-changelog li {
+  display: block; grid-template-columns: none;
+  border-top: none; padding: 0;
+}
+[data-theme="spectastic-vivid"] spec-changelog time { display: block; margin-bottom: var(--s-1); }
+
+/* T-516 — requirements as cards (reverses the T-002 gutter divergence: review
+   confirmed the reference's card reads clearer). id chip + priority pill on a top
+   row, body below. CSS-only restructure of the existing gutter grid, no markup. */
+[data-theme="spectastic-vivid"] spec-requirement {
+  grid-template-columns: auto auto 1fr;
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  border: 1px solid var(--c-border);
+  border-radius: var(--card-radius);
+  background: var(--c-surface);
+  padding: var(--s-5);
+  margin: var(--s-4) 0;
+}
+[data-theme="spectastic-vivid"] spec-requirement:last-of-type { border-bottom: 1px solid var(--c-border); }
+[data-theme="spectastic-vivid"] spec-requirement > * { grid-column: 1 / -1; }
+[data-theme="spectastic-vivid"] spec-requirement::before {
+  grid-row: 1; grid-column: 1;
+  /* I-045 — ID chip tinted with the section accent (ink over a light tint holds
+     AA in both modes) instead of a flat OK-green fill. */
+  background: color-mix(in srgb, var(--section-accent) 14%, var(--c-surface));
+  color: var(--c-text);
+  border: 1px solid color-mix(in srgb, var(--section-accent) 45%, transparent);
+  border-radius: 5px;
+}
+[data-theme="spectastic-vivid"] spec-requirement[priority]::after {
+  grid-row: 1; grid-column: 2;
+  margin: 0; padding: 0.2em 0.6em; border-radius: 4px; color: var(--c-pill-fg);
+}
+[data-theme="spectastic-vivid"] spec-requirement[priority="must"]::after   { background: var(--c-pill-must); }
+[data-theme="spectastic-vivid"] spec-requirement[priority="should"]::after { background: var(--c-pill-should); }
+[data-theme="spectastic-vivid"] spec-requirement[priority="may"]::after    { background: var(--c-pill-may); }
+
+/* One column: cap the content column to the reference's ~676px so every
+   top-level block (header, meta, budget, cards, prose) shares one width and
+   aligns. main padding (64/32/96) already matches the reference. */
+[data-theme="spectastic-vivid"] main,
+[data-theme="spectastic-vivid"] .doc {
+  max-width: 46rem;
+}
+/* Card content fills the card (minus padding) rather than its own narrower
+   reading measure — so the card edge stays flush with the column. */
+[data-theme="spectastic-vivid"] :is(spec-tldr, spec-requirement, spec-decision,
+  spec-note, spec-warning, spec-question, spec-assumption, spec-tip, spec-example) > * {
+  max-width: none;
+}
+
+/* T-515 — bright filled pills. Status keeps spectastic's semantic hues as fills
+   (not the reference's accepted=sea), brightened + filled; near-white text keeps
+   every pill ≥4.5:1 in both modes (fixed fill+text pairs). */
+[data-theme="spectastic-vivid"] spec-status[value] {
+  color: var(--c-pill-fg); border-color: transparent; border-radius: 5px; font-weight: var(--fw-heavy);
+}
+[data-theme="spectastic-vivid"] spec-status[value="draft"]      { background: #8a6a23; }
+[data-theme="spectastic-vivid"] spec-status[value="review"]     { background: var(--c-pill-ok); }
+[data-theme="spectastic-vivid"] spec-status[value="accepted"]   { background: #3f6a37; }
+[data-theme="spectastic-vivid"] spec-status[value="superseded"] { background: var(--c-pill-should); }
+[data-theme="spectastic-vivid"] spec-status[value="deprecated"] { background: var(--c-pill-must); }
+[data-theme="spectastic-vivid"] spec-status[value="blocked"]    { background: #8a3a3a; }
+
+/* ---------- Vivid fidelity pass (inbox I-043–I-048) ---------------------------
+   Closes five style-fidelity gaps against the reference artifact cards. All
+   vivid-scoped; calm untouched; colour stays mode-owned (no colour custom
+   property redefined). Card-radius re-baseline (I-044) and the lifecycle-stage
+   accent (I-046) are held back — both touch the SC-006 parity contract / need a
+   markup signal, so they ride the 016 decision, not this CSS-only drain. */
+
+/* I-044 — resting elevation on the carded family that doesn't read --card-shadow
+   (spec-decision/-slo already pick it up via the token, repointed above). */
+[data-theme="spectastic-vivid"] :is(spec-tldr, spec-requirement, spec-matrix,
+  spec-note, spec-warning, spec-question, spec-assumption, spec-tip, spec-example) {
+  box-shadow: var(--sh-card);
+}
+
+/* I-048 — hover lift: the whole carded family responds to the cursor. Entrance
+   motion stays out (a document isn't a landing page); reduced-motion drops it. */
+[data-theme="spectastic-vivid"] :is(spec-tldr, spec-requirement, spec-decision,
+  spec-matrix, spec-slo, spec-note, spec-warning, spec-question, spec-assumption,
+  spec-tip, spec-example) {
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+[data-theme="spectastic-vivid"] :is(spec-tldr, spec-requirement, spec-decision,
+  spec-matrix, spec-slo, spec-note, spec-warning, spec-question, spec-assumption,
+  spec-tip, spec-example):hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-card-lift);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="spectastic-vivid"] :is(spec-tldr, spec-requirement, spec-decision,
+    spec-matrix, spec-slo, spec-note, spec-warning, spec-question, spec-assumption,
+    spec-tip, spec-example):hover { transform: none; }
+}
+
+/* I-043 — colour as wayfinding: a rotating --section-accent per top-level section
+   (crimson → sea → salmon → purple, the reference cycle), inherited by the cards'
+   accent rails and ID-chips — not the heading text (T-010: differently-coloured
+   section titles/subtitles was a non-goal; 016 SC-006 is structural parity and
+   FR-002 keeps colour mode-owned, so heading colour was never in scope). Colour is
+   drawn from the mode-owned named tokens, so it swaps correctly light/dark. */
+[data-theme="spectastic-vivid"] main section              { --section-accent: var(--c-accent); }
+[data-theme="spectastic-vivid"] main section:nth-of-type(4n+1) { --section-accent: var(--c-link); }
+[data-theme="spectastic-vivid"] main section:nth-of-type(4n+2) { --section-accent: var(--c-accent); }
+[data-theme="spectastic-vivid"] main section:nth-of-type(4n+3) { --section-accent: var(--c-salmon); }
+[data-theme="spectastic-vivid"] main section:nth-of-type(4n)   { --section-accent: var(--c-purple); }
+
+/* I-045 — spend the palette beyond status: the ID chip, TL;DR rail and decision
+   rail follow the section accent (folded into their vivid rules above). Matrix
+   winner rows already carry --c-winner-bg gold. (T-010: the TL;DR *label* text
+   colour was reverted along with the heading — same non-goal.) */
+
+/* I-047 — more air between sections than calm's rhythm (the "quiet" is the space),
+   without turning vivid into calm: open the inter-section heading spacing. */
+[data-theme="spectastic-vivid"] main h2:not(:first-of-type) {
+  margin-top: var(--s-9);
+  padding-top: var(--s-7);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-body);
+  font-weight: var(--fw-body);
+  font-size: 19px;
+  line-height: 1.55;
+  font-feature-settings: "kern", "liga", "onum";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Page container — single column, room for sidenotes -------- */
+main, .doc {
+  /* Single centered reading column: width = the reading measure + horizontal
+     padding, so calm centres the whole column in the viewport (no wide gutter
+     on one side). Vivid overrides this with its own wider column. */
+  max-width: calc(var(--measure) + 2 * var(--s-6));
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-6) var(--s-9);
+}
+
+@media (max-width: 900px) {
+  main, .doc { padding: var(--s-6) var(--s-4) var(--s-7); }
+}
+
+/* Headings -------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 { color: var(--c-text); margin: 0 0 var(--s-3); }
+h1 {
+  font-family: var(--font-serif);
+  font-weight: var(--fw-h1);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  margin-top: var(--s-2);
+}
+h2 {
+  font-family: var(--font-serif);
+  font-weight: var(--fw-h2);
+  color: var(--c-text-soft);
+  font-size: clamp(1.7rem, 3vw, 2.1rem);
+  line-height: 1.2;
+  margin-top: var(--s-8);
+  padding-top: var(--s-5);
+  border-top: var(--rule-w) solid var(--c-border-soft);
+}
+/* :first-of-type is scoped to SIBLINGS, not the document — every h2 sits alone
+   in its own <section>, so the bare form matched all of them and this rule has
+   never rendered (triage T-011). Scoped to the document's first section instead. */
+main > section:first-of-type h2 { border-top: none; padding-top: 0; }
+h3 {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-text-soft);
+  margin-top: var(--s-6);
+}
+h4 {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: var(--fw-bold);
+  margin-top: var(--s-5);
+}
+
+/* Paragraphs & text ---------------------------------------- */
+p { margin: 0 0 var(--s-4); max-width: var(--measure); }
+strong { font-weight: var(--fw-medium); }
+em { font-style: italic; }
+small { font-size: 0.85em; color: var(--c-muted); }
+mark { background: var(--c-gold); padding: 0 0.15em; border-radius: var(--r-sm); }
+hr { border: none; border-top: var(--rule-w) solid var(--c-border); margin: var(--s-7) 0; }
+
+a {
+  color: var(--c-link);
+  text-decoration: none;
+  border-bottom: var(--rule-w) solid color-mix(in srgb, var(--c-link) 30%, transparent);
+  transition: border-color .15s, color .15s;
+}
+a:hover { color: var(--c-link-hover); border-bottom-color: var(--c-link-hover); }
+
+/* Lists ----------------------------------------------------- */
+ul, ol { max-width: var(--measure); padding-left: 1.25rem; margin: 0 0 var(--s-4); }
+li { margin-bottom: var(--s-2); }
+li > ul, li > ol { margin: var(--s-2) 0 0; }
+
+/* Definition lists ----------------------------------------- */
+dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-5); max-width: var(--measure); margin: 0 0 var(--s-5); }
+
+/* Calm keeps a single narrow reading column: prose-bearing cards align to the
+   reading measure so they don't overrun the body text. No effect in vivid,
+   where --measure == --measure-wide. Genuinely-wide content (tables, code,
+   diffs, figures, architecture sketches, tab groups, triage cards) keeps the
+   wider measure. */
+:is(spec-tldr, spec-requirement, spec-decision, spec-meta,
+    spec-conformance, spec-audience-map) {
+  max-width: var(--measure);
+}
+dt { font-family: var(--font-sans); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: var(--fw-bold); color: var(--c-muted); padding-top: 0.2rem; }
+dd { margin: 0; }
+
+/* Inline term defined elsewhere ----------------------------- */
+dfn {
+  font-style: normal;
+  font-weight: var(--fw-medium);
+  border-bottom: 1px dotted var(--c-muted);
+  cursor: help;
+}
+
+/* Code ----------------------------------------------------- */
+code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--c-surface);
+  padding: 0.08em 0.35em;
+  border-radius: var(--r-sm);
+  border: var(--rule-w) solid var(--c-border-soft);
+}
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-4) var(--s-5);
+  overflow-x: auto;
+  margin: 0 0 var(--s-5);
+  max-width: var(--measure-wide);
+}
+pre code { background: none; border: none; padding: 0; font-size: inherit; }
+/* Inline code inside a heading must not inflate the tight heading line box
+   (caused title/code line overlap in both themes). Keep the highlight, drop the
+   vertical padding + border, and ride the heading's own line-height. */
+:is(h1, h2, h3, h4, h5, h6) code {
+  border: none;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.8em;
+  line-height: inherit;
+}
+
+/* Blockquotes / epigraphs ----------------------------------- */
+blockquote {
+  margin: var(--s-5) 0;
+  padding: 0 var(--s-5);
+  border-left: 2px solid var(--c-border);
+  color: var(--c-text-soft);
+  font-style: italic;
+  max-width: var(--measure);
+}
+blockquote footer { font-style: normal; font-size: 0.85rem; color: var(--c-muted); margin-top: var(--s-2); }
+blockquote footer::before { content: "— "; }
+
+/* Tables ---------------------------------------------------- */
+table {
+  width: 100%;
+  max-width: var(--measure-wide);
+  border-collapse: collapse;
+  margin: 0 0 var(--s-5);
+  font-size: 0.92rem;
+}
+th, td { text-align: left; padding: var(--s-2) var(--s-3); border-bottom: var(--rule-w) solid var(--c-border-soft); vertical-align: top; }
+th {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  border-bottom: var(--rule-w) solid var(--c-border);
+}
+tbody tr:hover { background: var(--c-surface); }
+
+/* Figures --------------------------------------------------- */
+figure { margin: var(--s-5) 0; max-width: var(--measure-wide); }
+figcaption {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  margin-top: var(--s-2);
+  text-align: center;
+  font-style: normal;
+}
+svg { max-width: 100%; height: auto; }
+
+/* Small-caps utility ---------------------------------------- */
+.small-caps, .label {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+
+/* ============================================================
+   COMPONENT VOCABULARY (custom elements as semantic tags)
+   ============================================================ */
+
+/* All custom elements render block by default ---------------- */
+spec-meta, spec-tldr, spec-goals, spec-non-goals, spec-requirement,
+spec-decision, spec-note, spec-warning, spec-question, spec-assumption,
+spec-tip, spec-example, spec-tabs, spec-tab, spec-diff, spec-matrix,
+spec-tradeoff, spec-questions, spec-changelog, spec-audience-map,
+spec-conformance, spec-glossary, spec-sidenote, spec-newthought,
+spec-status, spec-badge, spec-pill, spec-rule, spec-arch,
+spec-triage, spec-triage-log, spec-change, spec-delta,
+spec-risk, spec-risk-log, spec-slo, spec-contract, spec-visual,
+spec-screen, spec-state, spec-annotation, spec-render, spec-visual-view,
+spec-flow, spec-step, spec-branch, spec-cstate, spec-transition,
+spec-choreography, spec-cue, spec-reduced-motion,
+spec-copy-budget, spec-refusal, spec-message-shape,
+spec-event, spec-field, spec-consent-gate,
+spec-variant-grid, spec-axis, spec-context, spec-baseline, spec-same, spec-component,
+spec-token-set, spec-release,
+spec-budget, spec-out-of-scope, spec-parent,
+spec-runblock, spec-run, spec-toggle, spec-tests, spec-demo,
+spec-observed-block, spec-observed-endpoint, spec-observed-signals {
+  display: block;
+}
+spec-status, spec-badge, spec-pill, spec-rule, spec-newthought,
+spec-sidenote, spec-parent { display: inline; }
+
+/* ---------- spec-meta — header metadata block ------------- */
+spec-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--s-2) var(--s-5);
+  margin: var(--s-5) 0 var(--s-7);
+  padding: var(--s-4) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  border-bottom: var(--rule-w) solid var(--c-border-soft);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+}
+spec-meta > dt, spec-meta b {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-meta > dd, spec-meta span { margin: 0; color: var(--c-text-soft); }
+
+/* ---------- spec-runblock — the Run/Demo block (021-verify-view) ------
+   Typed run/toggle/tests/demo rows. Each row labels itself via ::before
+   and renders its command monospace; an empty (unrecorded) field renders
+   LOUDLY rather than collapsing — the visible-failure discipline (FR-009). */
+spec-runblock {
+  margin: var(--s-5) 0;
+  padding: var(--s-4) var(--s-5);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: 4px;
+}
+spec-run, spec-toggle, spec-exercise, spec-tests, spec-demo {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--s-2) var(--s-4);
+  align-items: baseline;
+  margin: var(--s-2) 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--c-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+spec-run::before, spec-toggle::before, spec-exercise::before,
+spec-tests::before, spec-demo::before {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-run::before    { content: "Run"; }
+spec-toggle::before { content: "Toggle"; }
+/* The entry point that exercises the feature (083 FR-002) — a command for a
+   library or CLI, an address where `run` already serves it. */
+spec-exercise::before { content: "Exercise"; }
+spec-tests::before  { content: "Tests"; }
+spec-demo::before   { content: "Demo"; }
+/* Loud empty-state: an unrecorded field is impossible to miss. */
+spec-run:empty::after, spec-toggle:empty::after, spec-exercise:empty::after,
+spec-tests:empty::after, spec-demo:empty::after {
+  content: "— not recorded —";
+  font-family: var(--font-sans);
+  font-style: italic;
+  color: var(--c-deprecated, #b0392a);
+}
+
+/* ---------- spec-observed-block — the observables capture (048-verify-slo-trace) ----
+   Clones spec-runblock's contract exactly for the §Observables instrumentation
+   evidence: typed endpoint/signals rows, a loud "not recorded" empty-state,
+   and the same suggested-marker mechanics as the Run/Demo block. */
+spec-observed-block {
+  margin: var(--s-5) 0;
+  padding: var(--s-4) var(--s-5);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: 4px;
+}
+spec-observed-endpoint, spec-observed-signals {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--s-2) var(--s-4);
+  align-items: baseline;
+  margin: var(--s-2) 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--c-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+spec-observed-endpoint::before, spec-observed-signals::before {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-observed-endpoint::before { content: "Endpoint"; }
+spec-observed-signals::before  { content: "Observed signals"; }
+spec-observed-endpoint:empty::after, spec-observed-signals:empty::after {
+  content: "— not recorded —";
+  font-family: var(--font-sans);
+  font-style: italic;
+  color: var(--c-deprecated, #b0392a);
+}
+
+/* ---------- spec-status — status pill --------------------- */
+spec-status {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  color: var(--c-muted);
+  vertical-align: middle;
+}
+spec-status[value="draft"]      { background: #f3eee3; color: #6f561c; border-color: #e6dcc2; }
+spec-status[value="review"]     { background: #e7f1f5; color: var(--c-accent-deep); border-color: #c8e0e8; }
+spec-status[value="accepted"]   { background: #e2efde; color: #3f6a37; border-color: #c4dec0; }
+spec-status[value="superseded"] { background: #ede9f3; color: #5b4a85; border-color: #d7d1e2; text-decoration: line-through; }
+spec-status[value="deprecated"] { background: #f4e0dd; color: #b0392a; border-color: #e7c6c1; }
+spec-status[value="blocked"]    { background: #f6e3e3; color: #8a3a3a; border-color: #ecc9c9; }
+
+/* ---------- spec-pill / spec-badge — generic inline tag --- */
+spec-pill, spec-badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+  color: var(--c-text-soft);
+  vertical-align: middle;
+  margin: 0 0.15em;
+}
+
+/* ---------- spec-tldr — abstract / one-paragraph summary -- */
+spec-tldr {
+  background: var(--c-surface);
+  border-left: var(--accent-bar-w) solid var(--c-accent);
+  padding: var(--s-4) var(--s-5);
+  margin: var(--s-5) 0 var(--s-6);
+  border-radius: 0 var(--r) var(--r) 0;
+  font-size: 1.02rem;
+}
+spec-tldr::before {
+  content: "TL;DR";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+  margin-bottom: var(--s-2);
+}
+spec-tldr > *:last-child { margin-bottom: 0; }
+
+/* ---------- spec-goals / spec-non-goals ------------------- */
+spec-goals, spec-non-goals { margin: var(--s-4) 0; }
+spec-goals ul, spec-non-goals ul { list-style: none; padding-left: 0; }
+spec-goals li, spec-non-goals li {
+  padding-left: 1.6rem;
+  position: relative;
+  margin-bottom: var(--s-2);
+}
+spec-goals li::before {
+  content: "✓";
+  position: absolute; left: 0; top: 0;
+  color: var(--c-accent-deep);
+  font-weight: var(--fw-bold);
+}
+spec-non-goals li::before {
+  content: "✕";
+  position: absolute; left: 0; top: 0;
+  color: var(--c-muted);
+}
+spec-non-goals li { color: var(--c-muted); }
+
+/* ---------- spec-requirement — the unit of conformance --- */
+spec-requirement {
+  display: grid;
+  grid-template-columns: auto auto 1fr;   /* id · priority · (spacer) on the top row */
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  padding: var(--s-4) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  scroll-margin-top: var(--s-5);
+}
+spec-requirement:last-of-type { border-bottom: var(--rule-w) solid var(--c-border-soft); }
+spec-requirement::before {
+  content: attr(id);
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: var(--fw-display);
+  color: var(--c-muted);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.2em 0.5em;
+  white-space: nowrap;
+  align-self: start;
+  justify-self: start;
+  line-height: 1.4;
+}
+spec-requirement::after {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  justify-self: start;
+  align-self: center;
+}
+spec-requirement[priority="must"]::after   { content: "MUST";   color: var(--c-must); }
+spec-requirement[priority="should"]::after { content: "SHOULD"; color: var(--c-should); }
+spec-requirement[priority="may"]::after    { content: "MAY";    color: var(--c-may); }
+spec-requirement > * { grid-column: 1 / -1; }   /* body children flow into rows 2,3,… below the id/priority row — NOT all pinned to row 2 (that overlapped a <details> rationale onto the body) */
+
+spec-requirement p:first-of-type { margin-top: 0; }
+spec-requirement details { margin-top: var(--s-2); font-size: 0.93rem; }
+spec-requirement summary {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  cursor: pointer;
+}
+spec-requirement summary:hover { color: var(--c-link); }
+
+/* ---------- spec-criterion — a measured claim, not an obligation (108-success-criteria, FR-015)
+   Clones spec-requirement's card verbatim (grid, priority pill, details/summary), with one
+   addition: the id chip also shows the actor, via attr() concatenation rather than a third
+   pseudo-element (only ::before/::after exist per element). This is what satisfies "legible at a
+   glance, no details block opened" — actor sits in the chip, thresholds sit in the already-visible
+   <p>, and only Meter/Falsified-by stay behind their <summary>. --- */
+spec-criterion {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  padding: var(--s-4) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  scroll-margin-top: var(--s-5);
+}
+spec-criterion:last-of-type { border-bottom: var(--rule-w) solid var(--c-border-soft); }
+spec-criterion::before {
+  content: attr(id) " · " attr(actor);
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: var(--fw-display);
+  color: var(--c-muted);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.2em 0.5em;
+  white-space: nowrap;
+  align-self: start;
+  justify-self: start;
+  line-height: 1.4;
+}
+spec-criterion::after {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  justify-self: start;
+  align-self: center;
+}
+spec-criterion[priority="must"]::after   { content: "MUST";   color: var(--c-must); }
+spec-criterion[priority="should"]::after { content: "SHOULD"; color: var(--c-should); }
+spec-criterion[priority="may"]::after    { content: "MAY";    color: var(--c-may); }
+spec-criterion > * { grid-column: 1 / -1; }
+
+spec-criterion p:first-of-type { margin-top: 0; }
+spec-criterion details { margin-top: var(--s-2); font-size: 0.93rem; }
+spec-criterion summary {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  cursor: pointer;
+}
+spec-criterion summary:hover { color: var(--c-link); }
+
+/* ---------- spec-decision — ADR card ---------------------- */
+spec-decision {
+  position: relative;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+spec-decision > h4:first-child {
+  margin-top: 0;
+  font-family: var(--font-serif);
+  font-weight: var(--fw-display);
+  font-size: 1.2rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+spec-decision dl { grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin-bottom: 0; }
+
+/* ---------- decision grounding — labelled row in the dl (REQ-LIFECYCLE-006) ----
+   Reads as a "Grounding → value" row aligned with Status / Context / Decision /
+   Consequences, not a floating corner badge. The two pseudo-elements are grid
+   items of the decision dl; `order` drops them to the dl's last row (label in
+   col 1, value in col 2). Attribute-driven — no per-decision markup. Quiet when
+   grounded; loud (ASSUMED / UNGROUNDED) when not — the visible-failure affordance. */
+spec-decision dl::before {
+  order: 1;
+  content: "Grounding";
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  padding-top: 0.2rem;
+}
+spec-decision dl::after {
+  order: 1;
+  align-self: start;
+  width: max-content;
+  font-weight: var(--fw-medium);
+}
+spec-decision[grounding="verified"] dl::after { content: "grounded"; color: #3f6a37; }
+spec-decision[grounding="spike"] dl::after    { content: "spike";    color: #b07d1a; }
+spec-decision[grounding="n-a"] dl::after      { content: "judgment"; color: var(--c-muted); }
+spec-decision[grounding="assumed"] dl::after  {
+  content: "ASSUMED";
+  color: #b07d1a; background: #fcf5e9;
+  font-weight: var(--fw-heavy);
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 0.1em 0.5em; border-radius: var(--r-sm);
+}
+/* No grounding declared (or an unknown value) — loudly broken. */
+spec-decision:not([grounding]) dl::after,
+spec-decision:not([grounding="verified"]):not([grounding="spike"]):not([grounding="assumed"]):not([grounding="n-a"]) dl::after {
+  content: "UNGROUNDED";
+  color: var(--c-salmon); background: #fdf3f1;
+  font-weight: var(--fw-heavy);
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 0.1em 0.5em; border-radius: var(--r-sm);
+}
+
+/* ---------- MADR Considered Options — optional, additive (050-stack-selection) --
+   A dt/dd pair inside spec-decision's existing dl. Entirely optional: a Nygard
+   card that omits it renders exactly as before (D-003 backward-compat). Reuses
+   the Consequences convention (inline + / − prose) rather than a nested
+   pros/cons sub-list, so it reads at the same density as the rest of the card
+   (P-5 calm density) — no JS, static list. */
+spec-decision .considered-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+spec-decision .considered-options li {
+  padding: var(--s-2) var(--s-3);
+  background: var(--c-surface-2);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  font-size: 0.92rem;
+}
+
+/* ---------- spec-slo — SLO-from-NFR card (047-slo-nfr-artifact) --
+   Scalars (target/objective/window/budgeting/signal) are attributes, not
+   markup (plan D-003), so they're surfaced with CSS content: attr() rather
+   than requiring JS — the card reads correctly with JS off (P-4; FR-001
+   "MUST degrade gracefully with JS disabled"). The element's own content is
+   the SLI description, rendered normally below the meta line. */
+spec-slo {
+  position: relative;
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-slo { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-slo::before {
+  content: "SLO for " attr(target) " — " attr(objective) " over " attr(window) " (" attr(budgeting) ")";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+}
+spec-slo[signal]::after {
+  content: attr(signal);
+  display: inline-block;
+  margin-top: var(--s-3);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- spec-contract — interface/contract declaration card (069-design-contract-section) --
+   Cloned line-for-line from spec-slo above. Scalars (shape/path/format/direction)
+   are attributes, not markup (D-001/D-003), surfaced with CSS content: attr()
+   rather than requiring JS — the card reads correctly with JS off (P-4; NFR-002
+   "MUST render with JavaScript disabled"). The element's own content is the
+   authored reasoning (boundaries, error shape), rendered normally below the
+   header line. */
+spec-contract {
+  position: relative;
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-contract { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-contract::before {
+  content: attr(shape);
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+}
+/* A declared interface (any shape but "none") composes path + format into the
+   header line — shape="none" has neither, so it stays a bare shape label. */
+spec-contract[path]::before {
+  content: attr(shape) " — " attr(path) " (" attr(format) ")";
+}
+spec-contract[direction]::after {
+  content: attr(direction);
+  display: inline-block;
+  margin-top: var(--s-3);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+/* Compatibility stance (077-event-schema-evolution, D-002/D-004). Only one ::after
+   exists per element, and an event-driven contract already uses it for the
+   [direction] badge above — so a card carrying BOTH direction= and compatibility=
+   needs a combined rule. Attribute-selector specificity resolves the collision:
+   [direction][compatibility] (two attributes) outranks [direction] alone (one),
+   so the combined content wins whenever a stance is recorded, with no ordering
+   trick required. The wording says "claims", never "is" or "verified" — FR-005
+   forbids the tool presenting an authored stance as a checked property. */
+spec-contract[compatibility]::after {
+  content: "producer claims " attr(compatibility) " compatibility (scope: " attr(compatibility-scope) ")";
+  display: inline-block;
+  margin-top: var(--s-3);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+spec-contract[direction][compatibility]::after {
+  content: attr(direction) " · producer claims " attr(compatibility) " compatibility (scope: " attr(compatibility-scope) ")";
+}
+
+/* ---------- spec-visual — visual surface declaration card (093-design-visual-section) --
+   Cloned from spec-contract above, for the same reason it was cloned from
+   spec-slo: the scalars (shape/tokens/screens/source) are attributes, not
+   markup, and CSS content: attr() surfaces every one of them with no script
+   running. That is not a nicety — NFR-002 requires 100% of the authored
+   content readable with scripting off, and attr() satisfies it by
+   construction rather than by effort.
+
+   The element's own content is the authored reasoning — what varies across
+   the surface and what does not — rendered normally below the header line. */
+spec-visual {
+  position: relative;
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-visual { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-visual::before {
+  content: attr(shape);
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+  overflow-wrap: anywhere;
+}
+/* A declared surface composes its paths into the header line. The token set is
+   the project's and the screens are this feature's, so the label says which is
+   which — the two are read by different people at different times.
+
+   Every composition below is wrapped in :where(), which zeroes the attribute
+   selectors' specificity so that ALL of these rules weigh the same and pure
+   source order decides which wins. That was already this block's intent — the
+   original [tokens-external] rule relied on it — but it only held while every
+   selector carried exactly one attribute. The variant grid
+   (2026-08-13-declare-the-variant-grid) added a second, and a two-attribute
+   selector outranks a one-attribute one: without :where(), a malformed
+   shape="none" that also named a grid would have rendered its path instead of
+   its claim, because the "none" rule would have lost on specificity despite
+   sitting last. Ordering is legible; a specificity ladder four rules deep is
+   not. `attr()` on an absent attribute yields an empty string, so each
+   combination needs its own rule rather than a shared separator. */
+spec-visual:where([tokens])::before {
+  content: "tokens " attr(tokens) " · screens " attr(screens);
+}
+spec-visual:where([tokens][variants])::before {
+  content: "tokens " attr(tokens) " · grid " attr(variants) " · screens " attr(screens);
+}
+/* A local set that only overrides a package must not read as though it owns the
+   whole scale — so these sit after the plain-token rules and win by order. */
+spec-visual:where([tokens-external])::before {
+  content: "tokens " attr(tokens) " extending " attr(tokens-external) " · screens " attr(screens);
+}
+spec-visual:where([tokens-external][variants])::before {
+  content: "tokens " attr(tokens) " extending " attr(tokens-external) " · grid " attr(variants) " · screens " attr(screens);
+}
+/* An explicit none is a recorded decision, not an empty card. Last, so it wins
+   over every path rule if a malformed declaration carries both — the shape rule
+   errors on that separately, and a reader should still see the claim. */
+spec-visual:where([shape="none"])::before {
+  content: "no visual surface";
+}
+/* Provenance, never authority (FR-006): where the design came from, said plainly
+   as a source rather than as a link. Nothing resolves it, so it is not one.
+
+   The coverage claim (FR-012) shares this slot, because the element has exactly
+   two and the header line is already spending the other. Same :where() and
+   same source-order rule as above: the combined rule sits last and wins. A
+   feature that records nothing renders nothing here, which is the point — an
+   absent claim is NOT RECORDED, and must not be drawn as though it said "all". */
+spec-visual:where([source], [contexts])::after {
+  content: "from " attr(source);
+  display: inline-block;
+  margin-top: var(--s-3);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+spec-visual:where([contexts])::after {
+  content: "addresses " attr(contexts);
+}
+spec-visual:where([source][contexts])::after {
+  content: "from " attr(source) " · addresses " attr(contexts);
+}
+
+/* ---------- spec-event / spec-field — what the interface reports (104) -----
+   A field carrying something a person TYPED must be visibly distinct, because
+   that is the single thing a privacy review scans for. A currency pair and an
+   amount are both numbers and are not the same risk, and a render that made
+   them look alike would defeat the reason the payload is typed at all.
+
+   The gate renders whether it is answered, since an unanswered one is the
+   state that matters. */
+spec-event {
+  display: block;
+  margin: var(--s-3) 0;
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--c-border-soft);
+  font-size: 0.9rem;
+}
+spec-event[name]::before {
+  content: attr(name);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-event[name][shipping]::before { content: attr(name) " · shipping"; }
+spec-event:not([name])::before { content: "MISSING EVENT NAME"; color: var(--c-deprecated, #b0392a); }
+/* An event with no fields carries no payload — a positive claim, and the one
+   place this family reads an absence that way. It says so rather than
+   rendering as an empty box, which would read as "not recorded". */
+spec-event:not(:has(spec-field))::after {
+  content: "carries no payload";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--c-muted);
+}
+spec-field {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-3);
+  font-size: 0.86rem;
+}
+spec-field[name][type]::before {
+  content: attr(name) " · " attr(type);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--c-muted);
+}
+spec-field[name]:not([type])::before { content: attr(name) " · MISSING TYPE"; color: var(--c-deprecated, #b0392a); }
+spec-field[from-user-input]::after {
+  content: "from user input";
+  display: inline-block;
+  margin-left: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-deprecated, #b0392a);
+  background: color-mix(in srgb, var(--c-deprecated, #b0392a) 10%, transparent);
+  padding: 0.1em 0.5em;
+  border-radius: var(--r-sm);
+}
+spec-consent-gate {
+  display: block;
+  margin: var(--s-3) 0;
+  padding: var(--s-2) var(--s-3);
+  border-left: 3px solid var(--c-deprecated, #b0392a);
+  font-size: 0.88rem;
+}
+spec-consent-gate[question]::before {
+  content: "gated on " attr(question) " — unanswered";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-deprecated, #b0392a);
+}
+/* An answer of "none" is an ANSWER. Rendering it like an unanswered gate would
+   erase a decision somebody made. */
+spec-consent-gate[question][answer]:not([answer=""])::before {
+  content: "gated on " attr(question) " — answered: " attr(answer);
+  color: var(--c-muted);
+}
+
+/* ---------- spec-copy-budget / spec-refusal — copy as a constraint (103) ---
+   The budget renders its UNIT, for the reason the cue offset does: a bare
+   number is ambiguous and would pass every structural assertion while being
+   unreadable.
+
+   A refusal must read as a PROHIBITION and not as an example. It sits next to
+   strings that are being described rather than forbidden, and mistaking one
+   for the other would have somebody ship the string the list exists to keep
+   out — so it is struck and labelled rather than merely coloured. */
+spec-copy-budget {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.9rem;
+}
+spec-copy-budget[element]::before {
+  content: attr(element);
+  display: inline-block;
+  min-width: 9rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-copy-budget[element][max][unit]::before {
+  content: attr(element) "  \2264 " attr(max) " " attr(unit);
+}
+spec-copy-budget[element][max][unit][lang]::before {
+  content: attr(element) "  \2264 " attr(max) " " attr(unit) " (" attr(lang) ")";
+}
+spec-copy-budget[max]:not([unit])::before { content: "MISSING UNIT"; color: var(--c-deprecated, #b0392a); }
+spec-refusal {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.9rem;
+  color: var(--c-text-soft);
+}
+spec-refusal[text]::before {
+  content: "never “" attr(text) "”";
+  display: inline-block;
+  margin-right: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  text-decoration: line-through;
+  color: var(--c-deprecated, #b0392a);
+}
+spec-refusal[text][context]::before {
+  content: "never “" attr(text) "” in " attr(context);
+}
+spec-refusal:empty::after { content: " REFUSED — NO REASON"; color: var(--c-deprecated, #b0392a); font-weight: var(--fw-bold); }
+spec-message-shape {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.9rem;
+}
+spec-message-shape[name][parts]::before {
+  content: attr(name) "  " attr(parts);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+/* ---------- spec-choreography / spec-cue — motion as a sequence (102) ------
+   A timeline read as rows, offset first. The offset carries its UNIT because a
+   bare number is ambiguous — 180 is milliseconds or frames or nothing — and a
+   render that dropped it would pass every structural assertion while being
+   unreadable.
+
+   The reduced-motion record is the only required record in this family, so it
+   renders as a statement rather than a footnote: someone scanning for it must
+   find it without reading the cues. */
+spec-choreography {
+  display: block;
+  margin: var(--s-5) 0;
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--c-border);
+}
+spec-choreography[id]::before {
+  content: attr(id);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-choreography[id][origin]::before { content: attr(id) " · from " attr(origin); }
+spec-choreography:not([origin])::before { content: "MISSING ORIGIN"; color: var(--c-deprecated, #b0392a); }
+spec-cue {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.9rem;
+}
+spec-cue[at]::before {
+  content: attr(at);
+  display: inline-block;
+  min-width: 5rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-cue[at][element]::before { content: attr(at) "  " attr(element); }
+spec-cue[at][element][duration]::before { content: attr(at) "  " attr(element) " · " attr(duration); }
+spec-cue:not([at])::before { content: "MISSING OFFSET"; color: var(--c-deprecated, #b0392a); }
+spec-reduced-motion {
+  display: block;
+  margin: var(--s-3) 0;
+  padding: var(--s-2) var(--s-3);
+  border-left: 3px solid var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 6%, transparent);
+  font-size: 0.88rem;
+}
+spec-reduced-motion::before {
+  content: "under reduced motion";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+}
+spec-reduced-motion:empty::before { content: "REDUCED MOTION — NOT RECORDED"; color: var(--c-deprecated, #b0392a); }
+
+/* ---------- spec-cstate / spec-transition — component behaviour (101) ------
+   The one thing this block must get right: a DECLINE must not look like a
+   declaration. The completeness rule's whole value is that a blank becomes a
+   question, and it dies quietly if a state somebody refused renders the same
+   as one they designed. So a decline is struck, muted, and labelled — three
+   signals, because one is a single point of failure. */
+spec-cstate {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.92rem;
+}
+spec-cstate[name]::before {
+  content: attr(name);
+  display: inline-block;
+  min-width: 9rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-cstate:not([name])::before { content: "MISSING NAME"; color: var(--c-deprecated, #b0392a); }
+spec-cstate[declined] { color: var(--c-muted); }
+spec-cstate[declined][name]::before {
+  content: attr(name);
+  text-decoration: line-through;
+  color: var(--c-muted);
+}
+spec-cstate[declined]::after {
+  content: "declined";
+  display: inline-block;
+  margin-left: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-deprecated, #b0392a);
+}
+/* A decline with no reason renders visibly broken without a rule running —
+   the two-guard posture this project takes everywhere (P-8). */
+spec-cstate[declined]:empty::after { content: "DECLINED — NO REASON"; }
+spec-transition {
+  display: block;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  font-size: 0.88rem;
+  color: var(--c-text-soft);
+}
+spec-transition[from][to]::before {
+  content: attr(from) " → " attr(to);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-transition[from][to][trigger]::before { content: attr(from) " → " attr(to) " · " attr(trigger); }
+
+/* ---------- spec-flow / spec-step / spec-branch — the journey (100) --------
+   A chain read top-to-bottom rather than a drawn diagram. Deliberate: a flow
+   drawn only as arrows carries its meaning in geometry, which a screen reader
+   cannot see (P-13). Every step's identity is text; the rule and the marker
+   are decoration on top of it.
+
+   The branch must read as a BRANCH and not as another step, or the failure
+   path — the half of a journey people skip — becomes invisible by looking
+   ordinary. It indents and turns, which is the one place geometry earns its
+   keep here. */
+spec-flow {
+  display: block;
+  margin: var(--s-5) 0;
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--c-border);
+}
+spec-flow[id]::before {
+  content: attr(id);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+}
+spec-step {
+  display: block;
+  position: relative;
+  padding: var(--s-2) 0 var(--s-2) var(--s-4);
+  font-size: 0.94rem;
+}
+spec-step::before {
+  content: attr(screen);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-step[screen][state]::before { content: attr(screen) " · " attr(state); }
+/* A declared boundary says so in words. Inferring it from a failed resolution
+   was rejected in design D-004; rendering it as an unlabelled gap would make
+   the same mistake visually. */
+spec-step[outward]::before {
+  content: "leaves the feature";
+  font-family: var(--font-sans);
+  font-style: italic;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+}
+spec-step:not([outward]):not([screen])::before { content: "MISSING SCREEN"; }
+spec-branch {
+  display: block;
+  margin-top: var(--s-2);
+  margin-left: var(--s-4);
+  padding-left: var(--s-3);
+  border-left: 2px dashed var(--c-deprecated, #b0392a);
+  font-size: 0.88rem;
+  color: var(--c-text-soft);
+}
+spec-branch::before {
+  content: "on failure";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-deprecated, #b0392a);
+}
+spec-branch[to]::after {
+  content: "→ " attr(to);
+  display: inline-block;
+  margin-left: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--c-muted);
+}
+
+/* ---------- spec-visual-view — the materialised projection (099) ------------
+   Sits INSIDE the declaration it belongs to, so it needs a visible seam rather
+   than a second card: a card inside a card reads as two claims about one thing.
+   Everything in it is generated, and the label says so — a reader who cannot
+   tell derived content from authored content will eventually edit the wrong
+   one, and editing this changes nothing. */
+spec-visual-view {
+  display: block;
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px dashed var(--c-border-soft);
+}
+spec-visual-view::before {
+  content: "generated from " attr(screens) " screen" / "";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+}
+spec-visual-view[screens="1"]::before { content: "generated from 1 screen" / ""; }
+spec-visual-view[truncated]::before { content: "generated — truncated" / ""; }
+spec-visual-view h4 {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  margin: var(--s-4) 0 var(--s-2);
+}
+spec-visual-view table { font-size: 0.86rem; }
+/* A render is evidence of a particular mode, so it must NOT be restyled to
+   follow the reader's theme — a diagram should, and the two look identical.
+   Bounded so a large capture cannot dominate the artifact it sits in. */
+spec-visual-view figure { margin: var(--s-4) 0; }
+spec-visual-view figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+}
+spec-visual-view figcaption {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--c-muted);
+  margin-top: var(--s-2);
+}
+
+/* ---------- spec-screen / spec-state / spec-annotation — the screen vocabulary
+   (095-visual-element-vocabulary) --------------------------------------------
+   Every scalar is an attribute surfaced with content: attr(), which is what
+   makes NFR-001 ("100% readable with scripting off") true by construction
+   rather than by effort — the same mechanism spec-contract and spec-slo use.
+
+   The visibly-broken affordance below clones spec-delta's MISSING OP. Two
+   guards for one gap is this project's standing posture and FR-008 asks for
+   both by name: the stylesheet catches a reader's eye, the rule catches a
+   pipeline. Neither is a fallback for the other, and they fail at different
+   moments for different people. */
+spec-screen {
+  position: relative;
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-screen { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-screen::before {
+  content: "screen " attr(id);
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+  overflow-wrap: anywhere;
+}
+spec-screen[serves]::before {
+  content: "screen " attr(id) " · serves " attr(serves);
+}
+
+/* A state reads as its own row inside the screen, with its origin stated. */
+spec-state {
+  display: block;
+  border-left: 2px solid var(--c-border-soft);
+  padding: var(--s-2) 0 var(--s-2) var(--s-4);
+  margin: var(--s-3) 0;
+}
+/* Named, not bare. The screen above it renders "screen <id>" and the annotation
+   below it renders "<target> · <role>", so an unlabelled token between the two
+   meant identical typography said "this is a state" in one place and "this is a
+   role" two lines down — legible only to someone who already knew. Inbox I-067. */
+spec-state::before {
+  content: "state " attr(id);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+/* The origin, composed. An authored state names none, and says so rather than
+   rendering an empty attr() — silence would read as a missing value. */
+spec-state[source="authored"]::after { content: "authored"; }
+spec-state[from]::after { content: attr(source) " from " attr(from); }
+spec-state[source]::after {
+  display: inline-block;
+  margin-top: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* An annotation typed by the accessibility tree IS an assertion — the role and
+   state below are the same tokens a test framework queries. One carrying
+   neither is prose, and renders as prose rather than as a failure: FR-006 is
+   explicit that a category with no accessibility analogue stays unchecked and
+   the vocabulary must not pretend otherwise. */
+spec-annotation {
+  display: block;
+  margin: var(--s-3) 0;
+  padding-left: var(--s-4);
+  border-left: 2px dotted var(--c-border-soft);
+  font-size: 0.94rem;
+}
+/* Four things now want to render and the element has two content slots
+   (095 FR-011/FR-012, applied change 2026-08-13-annotate-the-element). The
+   subject — what the annotation is ABOUT — leads the ::before line; the type
+   follows it; the citation and the broken label share ::after.
+
+   Every combination gets its own rule, wrapped in :where() so they all weigh
+   the same and source order alone decides. Two reasons, and the first is not
+   style: `attr()` on an absent attribute yields an EMPTY STRING, not nothing,
+   so a shared separator would render a dangling " · " on any annotation
+   missing the attribute after it. The second is that without :where() a
+   two-attribute selector would outrank a one-attribute one and the ordering
+   below would stop meaning what it reads as. This block has already paid for a
+   bug of exactly this kind once — see the note further down, which records that
+   it was caught by screenshotting a fixture and not by any test. */
+spec-annotation:where([role])::before {
+  content: attr(role);
+  display: inline-block;
+  margin-right: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-purple, var(--c-accent-deep));
+}
+spec-annotation:where([role][aria-state])::before {
+  content: attr(role) " · " attr(aria-state);
+}
+/* The subject leads, because "which control" is the question a reader arrives
+   with and the type is the answer's qualifier rather than its head. */
+spec-annotation:where([target])::before {
+  content: attr(target);
+  display: inline-block;
+  margin-right: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-purple, var(--c-accent-deep));
+}
+spec-annotation:where([target][role])::before {
+  content: attr(target) " · " attr(role);
+}
+spec-annotation:where([target][role][aria-state])::before {
+  content: attr(target) " · " attr(role) " · " attr(aria-state);
+}
+/* The layer is a grouping rather than a type, so it reads as a quiet tag on the
+   trailing line rather than competing with the subject for the leading one. */
+spec-annotation:where([cites], [layer])::after {
+  content: "see " attr(cites);
+  display: inline-block;
+  margin-left: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--c-muted);
+}
+spec-annotation:where([layer])::after {
+  content: attr(layer);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  font-weight: var(--fw-bold);
+}
+spec-annotation:where([layer][cites])::after {
+  content: attr(layer) " · see " attr(cites);
+}
+
+/* ---- visibly broken, without a rule running (FR-008) ---- */
+/* A layer outside the vocabulary is visibly broken without a rule running
+   (FR-008/FR-012). Deliberately NOT the disagreement case: whether a declared
+   layer contradicts the annotation's typing depends on which of several
+   implied layers apply, which is a set computation CSS cannot do — that one is
+   the rule's alone, and the stylesheet does not pretend otherwise. Shares
+   ::after with [cites] and [layer] above and sits later, so it wins by order. */
+spec-annotation:where([layer]:not([layer="structure"]):not([layer="behaviour"]):not([layer="requirement"]):not([layer="motion"]):not([layer="data"]):not([layer="accessibility"]):not([layer="tracking"]):not([layer="content"]):not([layer="emphasis"]))::after {
+  content: "UNKNOWN LAYER";
+}
+spec-screen:not([id])::before { content: "MISSING ID"; }
+spec-state:not([id])::before { content: "MISSING ID"; }
+spec-state:not([source])::after,
+spec-state:not([source="derived"]):not([source="field"]):not([source="authored"])::after {
+  content: "MISSING SOURCE";
+}
+spec-state[source="derived"]:not([from])::after,
+spec-state[source="field"]:not([from])::after {
+  content: "MISSING ORIGIN";
+}
+spec-screen:not([id])::before,
+spec-state:not([id])::before,
+spec-state:not([source])::after,
+spec-state:not([source="derived"]):not([source="field"]):not([source="authored"])::after,
+spec-state[source="derived"]:not([from])::after,
+spec-state[source="field"]:not([from])::after {
+  /* The typographic half is repeated here rather than inherited, because the
+     base ::after styling is scoped to spec-state[source] — a state carrying NO
+     source attribute never matches it, and rendered the broken label in body
+     serif while a state with a BAD source rendered it as a small-caps badge.
+     Two spellings of the same failure looked like two different failures.
+     Caught by screenshotting the fixture, not by a test. */
+  display: inline-block;
+  margin-top: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- the variant grid (096-visual-variant-grid) ----------------------
+   Axes resolve in DOCUMENT ORDER — there is no order attribute, because a
+   number could disagree with the markup and then a reader has to know which
+   wins. P-1 already makes source order reading order, so the grid reuses that
+   rather than adding a second ordering to keep consistent.
+
+   Three readings must stay distinct, which is the whole of FR-003 and FR-005:
+   a supported context, a DECLINED one (with its reason), and a baseline that
+   has never been verified. An absent cell is the fourth reading and is
+   deliberately not rendered at all — silence means nobody looked. */
+spec-variant-grid {
+  position: relative;
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-variant-grid { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-variant-grid::before {
+  content: "variant grid · axes resolve in the order declared";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+}
+
+spec-axis {
+  display: block;
+  margin: var(--s-4) 0;
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--c-border-soft);
+}
+spec-axis::before {
+  content: attr(name);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+spec-axis[selects]::before { content: attr(name) " — selects " attr(selects); }
+
+spec-context {
+  display: block;
+  margin: var(--s-2) 0 var(--s-2) var(--s-3);
+  font-size: 0.94rem;
+}
+spec-context::before {
+  content: attr(name);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+  margin-right: var(--s-2);
+}
+/* A DECLINE reads differently from a support — the requirement, not a nicety. */
+spec-context[declined]::before {
+  content: attr(name) " · declined";
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.1em 0.4em;
+  border-radius: var(--r-sm);
+  font-weight: var(--fw-bold);
+}
+spec-context[declined] { color: var(--c-text-soft); }
+
+spec-baseline {
+  display: block;
+  margin: var(--s-2) 0 var(--s-2) var(--s-4);
+}
+spec-baseline::before {
+  content: "designed " attr(designed) " · verified " attr(verified);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--fw-heavy);
+  color: var(--c-muted);
+  overflow-wrap: anywhere;
+}
+/* Never verified is a VALUE, and the gap must be visible rather than absent. */
+spec-baseline[verified="none"]::before {
+  content: "designed " attr(designed) " · NEVER VERIFIED";
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.1em 0.4em;
+  border-radius: var(--r-sm);
+}
+
+/* A combination somebody checked and found identical. Its presence is the
+   whole mechanism: it is what stops an absent cell meaning two things. */
+spec-same {
+  display: block;
+  margin: var(--s-3) 0;
+  padding-left: var(--s-4);
+  border-left: 2px dotted var(--c-border-soft);
+  font-size: 0.94rem;
+}
+spec-same::before {
+  content: "same as default · " attr(axes);
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--fw-heavy);
+  color: var(--c-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---- visibly broken, without a rule running ---- */
+spec-axis:not([name])::before { content: "MISSING NAME"; }
+spec-context:not([name])::before { content: "MISSING NAME"; }
+spec-baseline:not([verified])::before { content: "MISSING VERIFIED"; }
+spec-baseline:not([designed])::before { content: "MISSING DESIGNED"; }
+spec-axis:not([name])::before,
+spec-context:not([name])::before,
+spec-baseline:not([verified])::before,
+spec-baseline:not([designed])::before {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- spec-component — the component lifecycle (097) ------------------
+   The three properties render SEPARATELY. Collapsing them visually would undo
+   the independence the data model insists on: a vendored component can be
+   local or shared, an authored one either, and maturity varies across all of
+   them. A reader must be able to see which is which.
+
+   A wrapper shows what it wraps rather than a licence of its own — one record
+   of provenance exists, on the wrapped component, and the wrapper reads
+   through the reference. */
+spec-component {
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-4);
+  margin: var(--s-4) 0;
+}
+spec-component::before {
+  content: attr(name);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+spec-component::after {
+  content: attr(scope) " · " attr(maturity) " · " attr(origin);
+  display: inline-block;
+  margin-top: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+/* A wrapper is visibly not locally owned, which is the point of D-001. */
+spec-component[wraps]::after {
+  content: attr(scope) " · " attr(maturity) " · " attr(origin) " · wraps " attr(wraps);
+}
+/* A vendored component shows where it came from, because copying one in is a
+   licensing event and the record is the whole reason the field exists. */
+spec-component[origin="vendored"][license]::after {
+  content: attr(scope) " · " attr(maturity) " · vendored " attr(edition) " · " attr(license);
+}
+
+spec-component:not([name])::before { content: "MISSING NAME"; }
+spec-component[origin="vendored"]:not([license])::after { content: "VENDORED · MISSING LICENCE"; }
+spec-component:not([name])::before,
+spec-component[origin="vendored"]:not([license])::after {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- spec-token-set / spec-release — token set versioning (098) ------
+   The change class is rendered as the PRODUCER'S CLAIM, cloning the wording
+   spec-contract already uses for a compatibility stance. That is not house
+   style: breaking-change detection is mature for API contracts and effectively
+   absent for design tokens — hundreds of classified rules on one side, a
+   single diffing plugin on the other — so a surface presenting the class as
+   verified would assert something no mechanism establishes.
+
+   The bump policy is the element's own prose and renders normally beneath the
+   header, because a policy nobody reads at the moment of bumping is not a
+   policy. */
+spec-token-set {
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+}
+[data-theme="spectastic-vivid"] spec-token-set { border-top: var(--accent-bar-w) solid var(--c-accent-deep); }
+spec-token-set::before {
+  content: "token set " attr(version) " · binds forward from " attr(binds-from);
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-3);
+  overflow-wrap: anywhere;
+}
+/* An external base is recorded SEPARATELY — it moves on somebody else's
+   schedule, and folding two clocks into one number is the error this spec
+   exists to prevent, one level up. */
+spec-token-set[external-base]::after {
+  content: "extends " attr(external-base) ", versioned separately";
+  display: block;
+  margin-top: var(--s-3);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--fw-heavy);
+  color: var(--c-muted);
+  overflow-wrap: anywhere;
+}
+
+spec-release {
+  display: block;
+  margin: var(--s-3) 0;
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--c-border-soft);
+}
+spec-release::before {
+  content: attr(from) " → " attr(to);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+}
+/* Never "is", never "verified". The wording is the requirement. */
+spec-release[class]::after {
+  content: "producer claims " attr(class);
+  display: inline-block;
+  margin-top: var(--s-2);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-accent-deep);
+  background: color-mix(in srgb, var(--c-accent-deep) 12%, transparent);
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+spec-token-set:not([version])::before { content: "MISSING VERSION"; }
+spec-token-set:not([binds-from])::before { content: "MISSING FORWARD BINDING"; }
+spec-token-set:not([version])::before,
+spec-token-set:not([binds-from])::before {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.15em 0.6em;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- spec-contract-view — materialised contract projection (072-contract-embedded-view) --
+   The design system's FIRST height-bounded scroll container (a grep at design
+   time found zero max-height declarations anywhere in this file). Two
+   obligations travel with bounding, and BOTH belong on any future bounded
+   region that copies this pattern, not just the height:
+     1. Contain BOTH axes — overflow: auto is a single-value shorthand that
+        sets both overflow-x and overflow-y, so max-height bounds vertical
+        growth and the same declaration bounds horizontal growth from a long
+        unbroken line (paired with white-space: pre, which keeps that line
+        intact rather than wrapping it). A region that only contains one
+        axis reproduces the exact "presence ≠ containment" trap this repo
+        has shipped before (CLAUDE.md).
+     2. Keep it keyboard-reachable — a scrollable region a mouse user can
+        wheel through but a keyboard user cannot reach fails P-13. tabindex="0"
+        plus an accessible name (aria-label, set by the generator from the
+        declaration's path=) make the region a reachable, named scroll
+        target, not an invisible trap.
+   max-height is in rem (scales with the type ramp, not the viewport) per
+   design D-003. attr() can only read an element's OWN attributes, never a
+   parent's, so the label reads only "N lines[ · excerpt]" from this
+   element's own lines=/excerpt= — entirely via CSS, no JS, holding under
+   NFR-001's scripting-off requirement the same way spec-contract's header
+   line above does. The declared path is already visible one line up, in the
+   parent <spec-contract>'s own ::before header — repeating it here would be
+   the same fact said twice, not a second one. */
+spec-contract-view {
+  display: block;
+  margin-top: var(--s-4);
+  max-height: 16rem;
+  overflow: auto;
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  background: var(--c-bg);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  white-space: pre;
+  padding: var(--s-4);
+}
+/* A provisional view shows the PROPOSED contract, not the effective one
+   (072 FR-009). The rendered bytes are identical whichever copy they came
+   from, so without this a reader cannot tell a shape still under discussion
+   from one already in force — the same reasoning that puts "suggested — not
+   yet run" on a captured run block rather than trusting a reader to check.
+   Rendered via attr() so it needs no JavaScript. It outranks the plain
+   ::before below on SPECIFICITY — the attribute selector adds a class-level
+   weight — so source order is not what decides it, and moving either block
+   would not change the outcome. Stated because this stylesheet has been bitten
+   by the opposite assumption: two blocks were moved to :where() after a
+   multi-attribute selector silently outranked a composition that relied on
+   order. */
+spec-contract-view[provisional]::before {
+  content: "projection · " attr(lines) " lines · provisional, not yet promoted";
+  color: var(--c-accent-deep);
+}
+spec-contract-view[provisional] {
+  border-left: 3px solid var(--c-accent-deep);
+}
+
+spec-contract-view::before {
+  content: "projection · " attr(lines) " lines";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  white-space: normal;
+  margin-bottom: var(--s-3);
+}
+spec-contract-view[excerpt]::before {
+  content: "projection · " attr(lines) " lines · excerpt";
+}
+
+/* Evidence ledger — reuses base table styling; keep the status pills tidy. */
+table.evidence td:nth-child(3) { white-space: nowrap; }
+table.evidence code { font-size: 0.85em; word-break: break-all; }
+
+/* ---------- admonitions ----------------------------------- */
+spec-note, spec-warning, spec-question, spec-assumption, spec-tip, spec-example {
+  position: relative;
+  padding: var(--s-4) var(--s-5);
+  margin: var(--s-4) 0;
+  border-radius: var(--card-radius);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-left: var(--accent-bar-w) solid var(--c-muted);
+  max-width: var(--measure);
+}
+spec-note::before, spec-warning::before, spec-question::before,
+spec-assumption::before, spec-tip::before, spec-example::before {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  margin-bottom: var(--s-2);
+}
+spec-note         { border-left-color: var(--c-accent); }
+spec-note::before { content: "Note"; color: var(--c-accent-deep); }
+spec-warning      { border-left-color: var(--c-salmon); background: var(--c-warning-bg); }
+spec-warning::before { content: "Warning"; color: var(--c-salmon); }
+spec-question      { border-left-color: var(--c-purple); }
+spec-question::before { content: "Open question"; color: var(--c-purple); }
+spec-assumption    { border-left-color: #b08a3e; }
+spec-assumption::before { content: "Assumption"; color: #8a6a23; }
+spec-tip           { border-left-color: #3f6a37; }
+spec-tip::before   { content: "Tip"; color: #3f6a37; }
+spec-example       { border-left-color: var(--c-muted); }
+spec-example::before { content: "Example"; color: var(--c-muted); }
+spec-note > *:last-child, spec-warning > *:last-child, spec-question > *:last-child,
+spec-assumption > *:last-child, spec-tip > *:last-child, spec-example > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- spec-sidenote — margin note ------------------- */
+spec-sidenote {
+  display: inline-block;
+  vertical-align: baseline;
+  float: right;
+  clear: right;
+  width: 13rem;
+  margin: 0 -14rem var(--s-3) var(--s-4);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--c-muted);
+}
+@media (max-width: 1100px) {
+  spec-sidenote {
+    float: none;
+    display: block;
+    width: auto;
+    margin: var(--s-3) 0;
+    padding: var(--s-3) var(--s-4);
+    background: var(--c-surface);
+    border-left: 2px solid var(--c-border);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  }
+}
+
+/* ---------- spec-newthought — small-caps section opener -- */
+spec-newthought {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.95em;
+  font-weight: var(--fw-bold);
+}
+
+/* ---------- spec-tabs ------------------------------------- */
+spec-tabs {
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  margin: var(--s-5) 0;
+  max-width: var(--measure-wide);
+  overflow: hidden;
+}
+spec-tabs > [role="tablist"] {
+  display: flex;
+  background: var(--c-surface);
+  border-bottom: var(--rule-w) solid var(--c-border);
+}
+spec-tabs button[role="tab"] {
+  flex: 0 1 auto;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  padding: var(--s-3) var(--s-4);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+spec-tabs button[role="tab"][aria-selected="true"] {
+  color: var(--c-link);
+  border-bottom-color: var(--c-link);
+  background: var(--c-bg);
+}
+spec-tab { padding: var(--s-5); }
+spec-tab[hidden] { display: none; }
+spec-tab > *:last-child { margin-bottom: 0; }
+
+/* ---------- spec-diff ------------------------------------- */
+spec-diff {
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-3) 0;
+  margin: var(--s-5) 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-width: var(--measure-wide);
+}
+spec-diff ins, spec-diff del {
+  display: block;
+  text-decoration: none;
+  padding: 0 var(--s-4) 0 var(--s-5);
+  position: relative;
+  white-space: pre;
+}
+spec-diff ins { background: var(--c-diff-add); color: var(--c-diff-add-2); }
+spec-diff ins::before { content: "+"; position: absolute; left: var(--s-3); color: var(--c-diff-add-2); opacity: .7; }
+spec-diff del { background: var(--c-diff-rm); color: var(--c-diff-rm-2); }
+spec-diff del::before { content: "−"; position: absolute; left: var(--s-3); color: var(--c-diff-rm-2); opacity: .7; }
+spec-diff .hunk { color: var(--c-muted); padding: 0 var(--s-5); margin-top: var(--s-2); }
+
+/* ---------- spec-matrix — decision table ----------------- */
+spec-matrix { display: block; margin: var(--s-5) 0; }
+spec-matrix table { font-size: 0.88rem; }
+spec-matrix tr[data-winner] { background: var(--c-winner-bg); }
+spec-matrix tr[data-winner] td:first-child { font-weight: var(--fw-bold); }
+spec-matrix .score { font-family: var(--font-mono); text-align: right; }
+spec-matrix tfoot td { font-family: var(--font-mono); font-weight: var(--fw-bold); border-top: var(--rule-w) solid var(--c-border); }
+
+/* ---------- spec-tradeoff — sparkline bars --------------- */
+spec-tradeoff { display: grid; gap: var(--s-2); margin: var(--s-4) 0; max-width: var(--measure); }
+spec-tradeoff .row {
+  display: grid;
+  grid-template-columns: 8rem 1fr max-content;
+  gap: var(--s-3);
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+}
+spec-tradeoff .label { color: var(--c-muted); }
+spec-tradeoff .bar { background: var(--c-surface-2); border-radius: var(--r-sm); height: 0.55rem; overflow: hidden; }
+spec-tradeoff .bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-link));
+  border-radius: var(--r-sm);
+}
+spec-tradeoff .value { font-family: var(--font-mono); color: var(--c-muted); }
+
+/* ---------- spec-questions — open-question register ------ */
+spec-questions { display: block; margin: var(--s-5) 0; }
+spec-questions ol { padding-left: 0; list-style: none; counter-reset: q; max-width: var(--measure); }
+spec-questions li {
+  counter-increment: q;
+  padding: var(--s-3) 0 var(--s-3) 3rem;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  position: relative;
+}
+spec-questions li::before {
+  content: "Q" counter(q);
+  position: absolute; left: 0; top: var(--s-3);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-purple);
+  font-weight: var(--fw-medium);
+}
+
+/* ---------- spec-changelog ------------------------------- */
+spec-changelog { display: block; margin: var(--s-5) 0; }
+spec-changelog ol { list-style: none; padding-left: 0; }
+spec-changelog li {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--s-4);
+  padding: var(--s-2) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  font-size: 0.92rem;
+}
+/* Optional "version · date" meta cell (versioned artifacts record both, after the
+   reference). Works whether the entry uses <span class="rev">…<time></span> or a
+   bare <time> — the column auto-sizes either way. */
+spec-changelog .rev {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  white-space: nowrap;
+  padding-top: 0.15rem;
+}
+spec-changelog .rev b { font-weight: var(--fw-bold); color: var(--c-text-soft); }
+spec-changelog time {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  padding-top: 0.15rem;
+}
+
+/* ---------- spec-audience-map — "read this first" --------- */
+spec-audience-map {
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-4) var(--s-5);
+  margin: var(--s-5) 0;
+}
+spec-audience-map dl { grid-template-columns: 8rem 1fr; gap: var(--s-3) var(--s-4); margin: 0; }
+spec-audience-map dt { color: var(--c-link); font-family: var(--font-sans); }
+spec-audience-map dd { font-size: 0.92rem; }
+
+/* ---------- spec-conformance — auto-built index ----------- */
+spec-conformance { display: block; }
+spec-conformance ol { padding-left: 0; list-style: none; }
+spec-conformance li {
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  font-size: 0.92rem;
+}
+spec-conformance code {
+  font-size: 0.78rem;
+}
+
+/* ---------- spec-glossary --------------------------------- */
+spec-glossary { display: block; }
+spec-glossary dl { grid-template-columns: 12rem 1fr; }
+spec-glossary dt { color: var(--c-text); font-family: var(--font-serif); font-size: 1rem; text-transform: none; letter-spacing: 0; font-weight: var(--fw-medium); padding-top: 0; }
+
+/* ---------- spec-arch — annotated inline diagram --------- */
+spec-arch {
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--card-radius);
+  padding: var(--s-4);
+  margin: var(--s-4) 0;
+  max-width: var(--measure-wide);
+}
+spec-arch svg { display: block; margin: 0 auto; }
+
+/* ---------- spec-rule — RFC 2119 inline keyword ---------- */
+spec-rule {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-heavy);
+  font-size: 0.85em;
+  letter-spacing: 0.05em;
+  color: var(--c-must);
+}
+spec-rule[level="should"] { color: var(--c-should); }
+spec-rule[level="may"]    { color: var(--c-may); }
+
+/* ---------- spec-triage — debug/triage card -------------- */
+/* Two-tier shape (after Atlassian Postmortem-Lite + ADR + Y-statement):
+   header + 5 required fields = "card"; optional deep-dive in <details>.
+   Layer attribute drives the accent colour. */
+spec-triage {
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-left: 4px solid var(--c-muted);
+  border-radius: var(--card-radius);
+  padding: var(--s-4) var(--s-5);
+  margin: var(--s-5) 0;
+  box-shadow: var(--card-shadow);
+  max-width: var(--measure-wide);
+  scroll-margin-top: var(--s-5);
+}
+spec-triage[layer="spec"]         { border-left-color: var(--c-accent); }
+spec-triage[layer="plan"]         { border-left-color: var(--c-purple); }
+spec-triage[layer="implementation"]{ border-left-color: var(--c-muted); }
+spec-triage[layer="cross-spec"]   { border-left-color: var(--c-salmon); }
+spec-triage[layer="principles"]   { border-left-color: var(--c-link); }
+spec-triage[layer="platform"]     { border-left-color: #b08a3e; }
+spec-triage[layer="just-do"]      { border-left-color: #3f6a37; }
+spec-triage[layer="defer"]        { border-left-color: var(--c-muted); border-left-style: dashed; }
+spec-triage:not([layer])          { border-left-color: var(--c-muted-2); border-left-style: dotted; }
+
+spec-triage > header {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: var(--s-3);
+  align-items: baseline;
+  margin: 0 0 var(--s-3);
+}
+spec-triage > header h4 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: var(--fw-display);
+  font-size: 1.15rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+spec-triage > header .meta {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+spec-triage .layer-pill {
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+  color: var(--c-muted);
+}
+spec-triage[layer="spec"]         .layer-pill { color: var(--c-accent-deep); background: #e7f1f5; }
+spec-triage[layer="plan"]         .layer-pill { color: #5b4a85; background: #ede9f3; }
+spec-triage[layer="cross-spec"]   .layer-pill { color: var(--c-salmon); background: #fdf3f1; }
+spec-triage[layer="principles"]   .layer-pill { color: var(--c-link); background: #f4e8ee; }
+spec-triage[layer="platform"]     .layer-pill { color: #8a6a23; background: #f3eee3; }
+spec-triage[layer="just-do"]      .layer-pill { color: #3f6a37; background: #e2efde; }
+spec-triage[layer="defer"]        .layer-pill { color: var(--c-muted); background: var(--c-surface-2); }
+
+/* Unrouted card — no layer attribute set yet */
+spec-triage:not([layer]) .layer-pill::before { content: "UNROUTED"; }
+spec-triage:not([layer]) .layer-pill {
+  color: var(--c-danger);
+  background: var(--c-surface);
+  border: 1px dashed var(--c-muted-2);
+  letter-spacing: 0.1em;
+}
+
+/* Done state — a finished item kept as history. Two surfaces, one meaning
+   (REQ-CHANGE-009 widened REQ-CHANGE-005's original just-do-only scope): a
+   ticked-off just-do card in inbox.html, and a diagnostic triage card whose
+   fix has landed. The selectors were always element-wide, which is why both
+   render correctly; only the contract was narrower than the code. */
+spec-triage[data-status="done"] {
+  opacity: 0.65;
+}
+spec-triage[data-status="done"] > header h4 {
+  text-decoration: line-through;
+  text-decoration-color: var(--c-muted);
+}
+spec-triage[data-status="done"] > .headline,
+spec-triage[data-status="done"] > dl {
+  color: var(--c-muted);
+}
+spec-triage[data-status="done"] > header .meta::after {
+  content: "DONE";
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-sm);
+  background: #e2efde;
+  color: #3f6a37;
+  border: var(--rule-w) solid #c4dec0;
+  margin-left: 0.3em;
+}
+
+/* Rejected state — for inbox cards considered and decided against. Mirrors
+   data-status="done" treatment (muted body + struck title) but with a neutral
+   sand pill so REJECTED is legibly distinct from DONE. Per REQ-CHANGE-005. */
+spec-triage[data-status="rejected"] {
+  opacity: 0.65;
+}
+spec-triage[data-status="rejected"] > header h4 {
+  text-decoration: line-through;
+  text-decoration-color: var(--c-muted);
+}
+spec-triage[data-status="rejected"] > .headline,
+spec-triage[data-status="rejected"] > dl {
+  color: var(--c-muted);
+}
+spec-triage[data-status="rejected"] > header .meta::after {
+  content: "REJECTED";
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-muted);
+  border: var(--rule-w) solid var(--c-border-soft);
+  margin-left: 0.3em;
+}
+
+spec-triage .regen {
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-sm);
+  border: var(--rule-w) solid var(--c-border);
+}
+spec-triage .regen[data-result="pass"] { color: #3f6a37; background: #e2efde; border-color: #c4dec0; }
+spec-triage .regen[data-result="fail"] { color: #8a3a3a; background: #f6e3e3; border-color: #ecc9c9; }
+spec-triage .regen[data-result="pass"]::before { content: "regen ✓ "; }
+spec-triage .regen[data-result="fail"]::before { content: "regen ✗ "; }
+
+spec-triage > .headline {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--c-text);
+  margin: 0 0 var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: var(--rule-w) solid var(--c-border-soft);
+}
+
+spec-triage > dl {
+  grid-template-columns: 6.5rem 1fr;
+  gap: var(--s-1) var(--s-4);
+  margin: 0 0 var(--s-3);
+  font-size: 0.93rem;
+}
+spec-triage > dl dt { padding-top: 0.25em; font-size: 0.68rem; }
+spec-triage > dl dd { color: var(--c-text-soft); }
+
+spec-triage > details {
+  border: none;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  padding-top: var(--s-3);
+  margin-top: var(--s-3);
+}
+spec-triage > details > summary {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-muted);
+}
+spec-triage > details[open] > summary { color: var(--c-text-soft); }
+spec-triage > details > * + * { margin-top: var(--s-2); }
+spec-triage > details dl { grid-template-columns: 8rem 1fr; font-size: 0.9rem; }
+
+/* Triage log — stacks cards with thin dividers and a left timeline rail */
+spec-triage-log {
+  display: block;
+  margin: var(--s-5) 0;
+  max-width: var(--measure-wide);
+}
+spec-triage-log spec-triage { margin: 0 0 var(--s-3); }
+
+/* ---------- spec-change — change-proposal wrapper -------- */
+/* Container for a proposal. Holds intent / scope / approach / deltas in a single file,
+   with a first-class status pill and click-through target= anchors on each delta. */
+spec-change {
+  display: block;
+  margin: var(--s-5) 0 var(--s-7);
+  scroll-margin-top: var(--s-5);
+}
+spec-change > header {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  margin-bottom: var(--s-5);
+  border-bottom: var(--rule-w) solid var(--c-border-soft);
+}
+spec-change > header > h3,
+spec-change > header > h4 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: var(--fw-display);
+  font-size: 1.2rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--c-text);
+}
+spec-change > header .meta {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+/* status="…" pill on the change */
+spec-change[status]::before { /* invisible — status comes via <spec-status> */ }
+
+/* ---------- spec-delta — the unit of a proposed change --- */
+/* Mirrors <spec-requirement>'s gutter layout so reviewers parse it the same way.
+   Op attribute is the schema; missing/invalid op renders visibly broken. */
+spec-delta {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  gap: var(--s-1) var(--s-5);
+  align-items: start;
+  padding: var(--s-4) 0;
+  padding-left: var(--s-4);
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  border-left: var(--accent-bar-w) solid var(--c-muted);
+  scroll-margin-top: var(--s-5);
+  margin-left: -1rem;
+}
+spec-delta:last-of-type { border-bottom: var(--rule-w) solid var(--c-border-soft); }
+spec-delta::before {
+  content: attr(target);
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: var(--fw-display);
+  color: var(--c-muted);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.2em 0.5em;
+  white-space: nowrap;
+  align-self: start;
+  justify-self: start;
+  line-height: 1.4;
+}
+spec-delta:not([target])::before { content: "—"; opacity: 0.5; }
+spec-delta::after {
+  grid-column: 1;
+  grid-row: 2;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  justify-self: start;
+  padding-left: 0.6em;
+  margin-top: 0.15em;
+}
+spec-delta > * { grid-column: 2; }
+
+/* Op variants — left border + after-content */
+spec-delta[op="added"]    { border-left-color: #3f6a37; }
+spec-delta[op="added"]::after { content: "ADD"; color: #3f6a37; }
+spec-delta[op="modified"] { border-left-color: var(--c-accent); }
+spec-delta[op="modified"]::after { content: "MODIFY"; color: var(--c-accent-deep); }
+spec-delta[op="removed"]  { border-left-color: var(--c-salmon); }
+spec-delta[op="removed"]::after { content: "REMOVE"; color: var(--c-salmon); }
+spec-delta[op="renamed"]  { border-left-color: var(--c-purple); }
+spec-delta[op="renamed"]::after { content: "RENAME"; color: var(--c-purple); }
+/* Loudly broken when op is missing or unknown — visible failure beats silent */
+spec-delta:not([op])::after,
+spec-delta:not([op="added"]):not([op="modified"]):not([op="removed"]):not([op="renamed"])::after {
+  content: "MISSING OP";
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  padding: 0.1em 0.4em;
+  border-radius: var(--r-sm);
+}
+
+spec-delta p:first-of-type { margin-top: 0; }
+spec-delta > p,
+spec-delta > spec-requirement,
+spec-delta > spec-diff,
+spec-delta > dl,
+spec-delta > details { margin-bottom: var(--s-2); }
+
+/* Removed deltas: reason + migration as required attributes.
+   Auto-render the attributes; missing renders visibly broken via :not(). */
+spec-delta[op="removed"] > .reason,
+spec-delta[op="removed"]::part(reason),
+spec-delta[op="removed"][reason]::before { /* handled via custom rendering below */ }
+spec-delta[op="removed"]::part(missing) {
+  color: var(--c-salmon);
+  font-weight: var(--fw-bold);
+}
+/* Renamed: from / to display */
+spec-delta[op="renamed"] .from,
+spec-delta[op="renamed"] .to {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+spec-delta[op="renamed"] .arrow {
+  color: var(--c-muted);
+  margin: 0 0.4em;
+}
+
+/* Reason + Migration formatted block (used inside REMOVED and optionally MODIFIED) */
+spec-delta .reason-block,
+spec-delta .migration-block {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--s-1) var(--s-3);
+  margin-top: var(--s-2);
+  font-size: 0.92rem;
+}
+spec-delta .reason-block > .label,
+spec-delta .migration-block > .label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  padding-top: 0.25em;
+}
+
+/* Inline preview of the post-state requirement, nested */
+spec-delta spec-requirement {
+  margin-top: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px dotted var(--c-border-soft);
+  background: transparent;
+}
+
+/* Target link styling — the badge is clickable when wrapped in an <a> */
+spec-delta > a[href^="#"]:first-child {
+  display: none; /* invisible; rendered ::before badge IS the link target hint */
+}
+spec-delta[target] {
+  /* hover affordance suggesting the target is clickable */
+}
+spec-delta[target]:hover::before {
+  color: var(--c-link);
+  border-color: color-mix(in srgb, var(--c-link) 30%, var(--c-border-soft));
+  cursor: pointer;
+}
+
+/* ---------- spec-risk — adversarial risk pass finding ----- */
+/* Per REQ-CHANGE-004. Mirrors spec-delta's gutter layout. target= is required
+   (missing renders broken); status= controls the apply gate (only `identified`
+   blocks). ISO 31000 risk-register lineage. */
+
+spec-risk {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  gap: var(--s-1) var(--s-5);
+  align-items: start;
+  padding: var(--s-4) 0;
+  padding-left: var(--s-4);
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  border-left: var(--accent-bar-w) solid #b08a3e;
+  scroll-margin-top: var(--s-5);
+  margin-left: -1rem;
+}
+spec-risk:last-of-type { border-bottom: var(--rule-w) solid var(--c-border-soft); }
+
+spec-risk::before {
+  content: attr(target);
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: var(--fw-display);
+  color: var(--c-muted);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.2em 0.5em;
+  white-space: nowrap;
+  align-self: start;
+  justify-self: start;
+  line-height: 1.4;
+}
+spec-risk:not([target])::before {
+  content: "MISSING TARGET";
+  color: var(--c-salmon);
+  background: #fdf3f1;
+}
+
+spec-risk::after {
+  grid-column: 1;
+  grid-row: 2;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-heavy);
+  text-transform: uppercase;
+  justify-self: start;
+  padding-left: 0.6em;
+  margin-top: 0.15em;
+}
+
+spec-risk > * { grid-column: 2; }
+
+/* Status variants */
+spec-risk[status="identified"]              { border-left-color: #b08a3e; }
+spec-risk[status="identified"]::after       { content: "OPEN ⚠"; color: #b08a3e; }
+spec-risk[status="accepted"]                { border-left-color: var(--c-muted); }
+spec-risk[status="accepted"]::after         { content: "ACCEPTED"; color: var(--c-muted); }
+spec-risk[status="mitigated"]               { border-left-color: #3f6a37; }
+spec-risk[status="mitigated"]::after        { content: "MITIGATED"; color: #3f6a37; }
+spec-risk[status="rejected"]                { border-left-color: var(--c-purple); }
+spec-risk[status="rejected"]::after         { content: "REJECTED"; color: var(--c-purple); }
+spec-risk[status="rejected"] .claim         { text-decoration: line-through; opacity: 0.6; }
+spec-risk[status="no-value-found"]          { border-left-color: var(--c-muted-2); border-left-style: dashed; }
+spec-risk[status="no-value-found"]::after   { content: "∅ NO VALUE"; color: var(--c-muted); }
+
+/* Default to identified visual when status is missing or unknown — matches the
+   semantic default. Apply-gate still treats missing/unknown as `identified`. */
+spec-risk:not([status])::after,
+spec-risk:not([status="identified"]):not([status="accepted"]):not([status="mitigated"]):not([status="rejected"]):not([status="no-value-found"])::after {
+  content: "OPEN ⚠";
+  color: #b08a3e;
+}
+
+/* Inner content shape */
+spec-risk .claim {
+  font-family: var(--font-serif);
+  font-weight: var(--fw-display);
+  margin: 0;
+}
+spec-risk .citation {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  font-style: italic;
+  margin: var(--s-2) 0 0;
+}
+spec-risk .citation::before {
+  content: "↳ ";
+  color: var(--c-muted);
+  font-style: normal;
+}
+spec-risk .response {
+  margin-top: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px dotted var(--c-border-soft);
+  font-size: 0.92rem;
+}
+spec-risk .response::before {
+  content: "Response";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-1);
+}
+
+spec-risk-log { margin-top: var(--s-4); }
+
+
+/* ============================================================
+   SIZING DISCIPLINE — INVEST + DORA small-batches
+   Make spec size visible at authoring time. Make scope-cutting
+   feel like deferral rather than loss. No new lifecycle phase;
+   no new slash commands.
+   ============================================================ */
+
+/* ---------- spec-budget — live size gauge ---------------- */
+/* Auto-populated by spec.js. Attributes are the budgets:
+   <spec-budget words="1500" reqs="20" minutes="12"></spec-budget>
+   Each row colours green / amber / red as the actual approaches
+   or exceeds the budget. Default budgets if omitted: 1500/20/12. */
+spec-budget {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: var(--s-1) var(--s-4);
+  align-items: center;
+  margin: var(--s-5) 0;
+  padding: var(--s-3) var(--s-4);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--card-radius);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  max-width: var(--measure);
+}
+spec-budget::before {
+  content: "Budget";
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-1);
+}
+spec-budget .label { color: var(--c-muted); }
+spec-budget .bar {
+  background: var(--c-surface-2);
+  border-radius: var(--r-sm);
+  height: 0.5rem;
+  overflow: hidden;
+  position: relative;
+}
+spec-budget .bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4a8a3f, #6a8a3f);
+  border-radius: var(--r-sm);
+  transition: width .3s;
+}
+spec-budget .value { font-family: var(--font-mono); color: var(--c-muted); white-space: nowrap; }
+
+/* Colour bands by saturation */
+spec-budget .row[data-band="amber"] .bar > span {
+  background: linear-gradient(90deg, #b08a3e, #c9a44a);
+}
+spec-budget .row[data-band="amber"] .value { color: #8a6a23; }
+spec-budget .row[data-band="red"] .bar > span {
+  background: linear-gradient(90deg, var(--c-salmon), #c44a3a);
+}
+spec-budget .row[data-band="red"] .value { color: var(--c-salmon); font-weight: var(--fw-bold); }
+spec-budget .row {
+  display: contents;
+}
+spec-budget .hint {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  font-style: italic;
+  /* No margin-top — the grid's row gap (var(--s-1)) already handles vertical rhythm. */
+}
+spec-budget[data-overall="red"] .hint { color: var(--c-salmon); font-style: normal; font-weight: var(--fw-medium); }
+spec-budget[data-overall="amber"] .hint { color: #8a6a23; }
+
+/* ---------- spec-out-of-scope — deferral register --------- */
+/* Every excluded item MUST carry defer-to= pointing to a sibling
+   spec ID (or "TBD" if the slice doesn't exist yet). Items missing
+   defer-to render the visible "missing defer-to" warning. */
+spec-out-of-scope {
+  margin: var(--s-4) 0;
+  max-width: var(--measure);
+}
+spec-out-of-scope::before {
+  content: "Out of scope — deferred";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-muted);
+  margin-bottom: var(--s-2);
+}
+spec-out-of-scope ul { list-style: none; padding-left: 0; }
+spec-out-of-scope li {
+  padding: var(--s-3) 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+}
+spec-out-of-scope li:last-child { border-bottom: var(--rule-w) solid var(--c-border-soft); }
+/* Chip is an inline-block at the start of the item — NOT a grid/flex item, so
+   inline <code>/<a> in the description stay in the text flow (a grid container
+   would pull them into its column). The chip column auto-sizes, so long
+   defer-to values can't overflow into the text. */
+spec-out-of-scope li::before {
+  content: "→ " attr(defer-to);
+  display: inline-block;
+  margin-right: var(--s-3);
+  vertical-align: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-accent-deep);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.15em 0.5em;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+/* Missing defer-to = loudly broken */
+spec-out-of-scope li:not([defer-to])::before,
+spec-out-of-scope li[defer-to=""]::before {
+  content: "missing defer-to";
+  color: var(--c-salmon);
+  background: #fdf3f1;
+  border-color: #ecc9c9;
+  font-weight: var(--fw-bold);
+}
+spec-out-of-scope li[defer-to="TBD"]::before { color: var(--c-muted); }
+
+/* ---------- spec-parent — slice → epic reference --------- */
+/* Optional. When present, signals this spec is a slice of a
+   larger parent. Renders as a small chip in the header area. */
+spec-parent {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  color: var(--c-purple);
+  vertical-align: middle;
+  margin: 0 var(--s-1);
+}
+spec-parent::before {
+  content: "Slice of ";
+  color: var(--c-muted);
+}
+spec-parent a {
+  color: var(--c-purple);
+  border-bottom: var(--rule-w) solid color-mix(in srgb, var(--c-purple) 30%, transparent);
+}
+
+/* ---------- .invest — INVEST self-check block ------------ */
+/* A regular <dl class="invest"> inside the header. Six rows,
+   each <dt> starts with the letter; each <dd> is the claim
+   (with linked evidence for V and T). No new tag needed. */
+dl.invest {
+  grid-template-columns: 11rem 1fr;
+  gap: var(--s-1) var(--s-5);
+  margin: var(--s-4) 0 var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  background: var(--c-surface);
+  border-left: var(--accent-bar-w) solid var(--c-purple);
+  border-radius: 0 var(--r) var(--r) 0;
+  max-width: var(--measure);
+}
+dl.invest::before {
+  content: "INVEST self-check";
+  grid-column: 1 / -1;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  color: var(--c-purple);
+  margin-bottom: var(--s-2);
+}
+dl.invest dt {
+  color: var(--c-text);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  padding-top: 0;
+}
+dl.invest dt .letter {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: var(--fw-medium);
+  color: var(--c-purple);
+  margin-right: 0.4em;
+}
+dl.invest dd { font-size: 0.92rem; color: var(--c-text-soft); }
+dl.invest dd.fail {
+  color: var(--c-salmon);
+  font-weight: var(--fw-medium);
+}
+dl.invest dd::before {
+  content: "✓ ";
+  color: #3f6a37;
+  font-weight: var(--fw-bold);
+  margin-right: 0.3em;
+}
+dl.invest dd.fail::before {
+  content: "✗ ";
+  color: var(--c-salmon);
+}
+
+/* ---------- details / summary (collapsible) -------------- */
+details {
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  padding: var(--s-3) 0;
+  max-width: var(--measure-wide);
+}
+details + details { border-top: var(--rule-w) solid var(--c-border-soft); margin-top: -1px; }
+details > summary {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-text-soft);
+  list-style: none;
+  padding-left: 1.3rem;
+  position: relative;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before {
+  content: "▸";
+  position: absolute; left: 0; top: 0;
+  color: var(--c-muted);
+  transition: transform .15s;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details > *:not(summary) { margin-top: var(--s-3); }
+
+/* ---------- spec-task — tasks-artifact row ---------------- */
+/* Per REQ-LIFECYCLE-003. Grid columns: checkbox · id badge · parallel marker · description.
+   The id badge renders from attr(id) via ::before; the [P] pill from the boolean [parallel]
+   attribute via ::after. The checkbox is the single source of truth for completion state;
+   :has(input:checked) strikes through done items. No data-status, no class spans. */
+
+spec-task {
+  display: grid;
+  grid-template-columns: max-content max-content max-content 1fr;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0;
+  border-top: var(--rule-w) solid var(--c-border-soft);
+  align-items: baseline;
+}
+
+spec-task:last-of-type {
+  border-bottom: var(--rule-w) solid var(--c-border-soft);
+}
+
+spec-task > input[type="checkbox"] {
+  grid-column: 1;
+  transform: translateY(2px);
+  accent-color: var(--c-accent-deep);
+}
+
+spec-task::before {
+  content: attr(id);
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border-soft);
+  border-radius: var(--r-sm);
+  padding: 0.15em 0.5em;
+  align-self: baseline;
+}
+
+spec-task::after {
+  content: "·";
+  grid-column: 3;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--c-muted);
+  visibility: hidden;
+}
+
+spec-task[parallel]::after {
+  content: "[P]";
+  color: var(--c-accent-deep);
+  visibility: visible;
+}
+
+spec-task > div,
+spec-task > p {
+  grid-column: 4;
+}
+
+spec-task .path {
+  color: var(--c-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+/* :not(.retired) — a retired task is now CLOSED, so this rule reaches its
+   retirement note for the first time and struck the very line explaining why
+   the task was retired. Found by opening the page, not by any assertion: the
+   computed style on the label was correct and the note beside it was not. */
+spec-task:has(> input[type="checkbox"]:checked) > div:not(.retired),
+spec-task:has(> input[type="checkbox"]:checked) > p:not(.retired) {
+  text-decoration: line-through;
+  color: var(--c-muted);
+}
+
+.phase { margin-top: var(--s-6); }
+
+/* ---------- theme switcher (footer control) --------------- */
+/* Injected by spec.js next to the existing mode toggle. Calm, minimal native
+   <select> — no UI library, keyboard-friendly. */
+.theme-controls { display: inline-flex; align-items: center; gap: var(--s-2); margin-right: var(--s-3); }
+.theme-select {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--c-link);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 0.1em 0.4em;
+  cursor: pointer;
+}
+.theme-select:hover { border-color: var(--c-link); }
+
+/* ---------- Narrow-viewport defensive rules --------------- */
+/* On phones, the footer's inline theme toggle reads more clearly on its
+   own line below the separator-dot run. */
+@media (max-width: 480px) {
+  footer button[data-theme-toggle] {
+    display: block;
+    margin-top: var(--s-2);
+  }
+}
+
+/* ---------- Narrow viewports — containment (inbox I-055/I-058) --
+   A definition list is a two-column grid whose label column is max-content, so
+   it never shrinks: at phone width a long <dt> pushed the value column past the
+   viewport and the page scrolled sideways. Measured across 227 artifacts, an
+   uncontained <dd> was the widest offender in 92 of the 138 that overflowed.
+   Collapsing to one column below the reading measure fixes them all at once,
+   and leaves every wider viewport untouched. Long unbreakable tokens — a path
+   in <code>, a bare URL — are the remaining 42. */
+@media (max-width: 700px) {
+  dl { grid-template-columns: 1fr; gap: var(--s-1) 0; }
+  /* The scoped overrides outrank the bare `dl` selector, so each is collapsed
+     by name rather than by hoping specificity falls the right way. */
+  spec-decision dl, spec-audience-map dl, spec-glossary dl,
+  spec-triage > details dl,
+  /* The card's OWN dl, not only the one inside its <details>. Its 6.5rem label
+     column plus a long Fix path is the single widest thing in the estate, and
+     it was missed here because the nested selector reads as though it covered
+     the card. 091 REQ-FORMAT-007. */
+  spec-triage > dl { grid-template-columns: 1fr; }
+  spec-meta { grid-template-columns: 1fr; gap: var(--s-1) 0; }
+  spec-run, spec-toggle, spec-exercise, spec-tests, spec-demo,
+  spec-observed-endpoint, spec-observed-signals { grid-template-columns: 1fr; }
+  dt { margin-top: var(--s-2); }
+  dt:first-child { margin-top: 0; }
+  dd { margin-left: 0; }
+  code, a { overflow-wrap: anywhere; }
+  /* A file path is one unbroken token with no spaces, so nothing above wraps
+     it — `packages/cli/src/commands/{plan,principles,spec,…}` measured 405 px
+     inside a 390 px viewport. Break it anywhere rather than let one <span>
+     set the page width. */
+  .path, spec-diff, kbd, samp { overflow-wrap: anywhere; word-break: break-word; }
+  /* A task title is often a bare identifier — `test_init_empty_dir_creates_
+     eight_commands` measured 396 px — and underscores are not break
+     opportunities, so it wraps nowhere and sets the page width on its own.
+     `anywhere` rather than `break-word` deliberately: only the former is
+     considered when a grid or flex track computes its min-content size, which
+     is the number that actually decides whether the column can shrink. It
+     breaks a word only when one genuinely does not fit, so ordinary prose is
+     untouched. */
+  /* Enumerating tags lost a race with the vocabulary: every new custom element
+     is another name to remember, and `spec-reduced-motion` holding a
+     placeholder token was the one that made the point. Apply it to everything
+     inside `main` instead, and exclude `pre` and its contents — a code block
+     must SCROLL rather than wrap, since rewrapping code changes what it says.
+     `anywhere` breaks a word only when one genuinely does not fit, so prose is
+     untouched, and unlike `break-word` it is counted in a grid or flex track's
+     min-content size — which is the number deciding whether a column can
+     shrink at all. */
+  main *:not(pre):not(pre *) { overflow-wrap: anywhere; }
+  /* Pill rows are flex and default to nowrap, so three pills and a long label
+     push past the edge together instead of stacking. */
+  spec-triage > header .meta,
+  spec-change > header .meta,
+  .meta { flex-wrap: wrap; }
+  /* `max-content` columns are the remaining cause, and they cannot shrink by
+     definition — that is what the keyword means. A task row declares three of
+     them plus a 1fr, and a triage header pins its meta column, so a long task
+     title or a wide pill row sets the page width no matter what wraps inside.
+     Collapse both: the checkbox keeps its own column because it is genuinely
+     fixed-width, and everything else takes the remaining space. */
+  /* Collapsing to two columns did NOT work, and the reason is worth keeping:
+     the id (::before) and the [P] marker (::after) are explicitly placed in
+     columns 2 and 3, and the content in column 4 — so a two-column template
+     leaves three items addressing tracks that no longer exist, and the grid
+     creates implicit ones to hold them. The template shrinks; the grid does
+     not. Instead keep three short columns for the markers, which all fit
+     comfortably, and drop the content to its own full-width row. */
+  spec-task { grid-template-columns: max-content max-content 1fr; }
+  spec-task > div,
+  spec-task > p { grid-column: 1 / -1; grid-row: 2; }
+  spec-triage > header { grid-template-columns: 1fr; }
+  /* A grid or flex item defaults to min-width:auto, which floors it at its
+     content's intrinsic width — so an unbreakable token inside one still
+     pushes the track wider than the viewport even once the columns collapse. */
+  spec-task > *, spec-triage > header > * { min-width: 0; }
+  /* Same failure, one element over. `spec-criterion::before` composes
+     `attr(id) " · " attr(actor)`, and an actor is a phrase — "reader with
+     reduced motion enabled" — not a short id like the requirement chip it was
+     cloned from. In an `auto` track it cannot shrink, so it pushed
+     templates/spec.html 102px past a 390px viewport (108/FR-015). Give the
+     chip its own full-width row here and let it wrap. */
+  spec-criterion { grid-template-columns: max-content 1fr; }
+  spec-criterion::before {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    /* The chip is nowrap at full width, which is right for a short id — but the
+       actor is a phrase, and nowrap makes the track unshrinkable. Let it wrap here. */
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  spec-criterion::after { grid-column: 1; grid-row: 2; }
+  spec-criterion > * { grid-column: 1 / -1; }
+  spec-criterion > *, spec-criterion::before { min-width: 0; }
+  /* The same min-width:auto floor again, on a <dl>'s own grid items. A <dd>
+     holding a <spec-diff> is floored at that diff's intrinsic width — its
+     lines are `white-space: pre` and do not wrap — so the dd measured 896px
+     inside a 305px dl and pushed a triage log 550px past a 390px viewport.
+     The diff already carries `overflow-x: auto`; it just needed a parent that
+     was allowed to be narrower than it. */
+  dl > dt, dl > dd { min-width: 0; }
+}
+
+/* ---------- Theme/mode cross-fade (FR-008, optional) ------ */
+/* A short, calm fade when the theme or mode changes. Disabled for users who
+   prefer reduced motion. Weights are not transitioned — only colour/structure. */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  spec-tldr, spec-decision, spec-note, spec-warning, spec-question,
+  spec-assumption, spec-tip, spec-example, spec-arch, spec-audience-map,
+  spec-triage, spec-change, spec-tabs, spec-requirement,
+  pre, code, th, td, spec-status, spec-pill, spec-badge, .theme-select {
+    transition: background-color .35s ease, border-color .35s ease, color .35s ease;
+  }
+}
+
+/* ---------- Print ----------------------------------------- */
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  main, .doc { padding: 0; max-width: none; }
+  a { color: #000; border-bottom-color: #888; }
+  spec-tabs > [role=tablist] { display: none; }
+  spec-tab[hidden] { display: block !important; }
+  spec-tab::before { content: attr(label); display: block; font-weight: var(--fw-bold); margin-bottom: 0.5em; }
+  details { border: none; }
+  details:not([open]) > *:not(summary) { display: block; }
+  spec-requirement::after { font-size: 0.7em; }
+}
+
+/* ---------- spec-rice — RICE value gauge (spec 028-dependency-ordering) ---------- */
+/* Authored as bare attributes (reach/impact/confidence/effort); spec.js computes
+   the value. With JS off it renders nothing — RICE is supplementary metadata, so
+   the spec still reads (P-4). A malformed block is flagged loudly. */
+spec-rice {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-radius: var(--card-radius);
+  padding: var(--s-2) var(--s-4);
+  margin: var(--s-4) 0;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+}
+spec-rice .rice-score {
+  font-family: var(--font-mono);
+  font-weight: var(--fw-bold);
+  color: var(--c-accent-deep);
+}
+spec-rice .rice-parts { color: var(--c-muted); }
+spec-rice[data-rice="malformed"] { border-color: var(--c-salmon); }
+spec-rice[data-rice="malformed"]::after {
+  content: " malformed <spec-rice>";
+  color: var(--c-salmon);
+  font-style: italic;
+}
+
+/* ---------- spec-split — the slicer's split proposal (spec 029-value-ranked-slicer) ---------- */
+/* A derived, appended proposal section: candidate children (RICE-ranked, R-002-ordered),
+   a coverage partition, and the split / don't-split verdict. Static HTML (P-1/P-4); the
+   embedded <spec-rice> gauges are decorated by their own block. */
+spec-split {
+  display: block;
+  background: var(--c-surface);
+  border: var(--rule-w) solid var(--c-border);
+  border-left: 3px solid var(--c-accent);
+  border-radius: var(--card-radius);
+  padding: var(--s-5) var(--s-6);
+  margin: var(--s-6) 0;
+}
+spec-split > header { margin-bottom: var(--s-4); }
+spec-split[data-verdict="dont-split"] { border-left-color: var(--c-salmon); }
+spec-split .verdict {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-bold);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+spec-split[data-verdict="split"] .verdict { color: var(--c-accent-deep); }
+spec-split[data-verdict="dont-split"] .verdict { color: var(--c-salmon); }
+spec-split .child-count {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--c-muted);
+}
+spec-split .coverage-ok { color: var(--c-accent-deep); font-weight: var(--fw-bold); }
+spec-split .coverage-gap { color: var(--c-salmon); font-weight: var(--fw-bold); }
+
+/* ---------- Selection ------------------------------------- */
+::selection { background: var(--c-gold); color: var(--c-text); }
+
+/* ---------------------------------------------------------------------------
+   A retired task (088 REQ-CHANGE-010).
+
+   Deliberately NOT the DONE treatment. A superseded task is not a completion —
+   it is work that stopped being owed because a later change reversed or moved
+   the decision behind it, and rendering it like a finished task would claim a
+   result nobody produced. So: struck and muted like a rejected triage card,
+   which is the closest existing meaning (closed without a fix), never the DONE
+   pill's colour.
+
+   The retirement note stays at full weight while the task body fades. What a
+   reader needs from a retired task is not what it said but which change
+   retired it, and muting the pointer along with the body would hide the one
+   line worth reading.
+   ------------------------------------------------------------------------- */
+spec-task[data-status="superseded"] {
+  opacity: 0.6;
+}
+spec-task[data-status="superseded"] > div {
+  text-decoration: line-through;
+  text-decoration-color: var(--c-muted);
+  color: var(--c-muted);
+}
+spec-task[data-status="superseded"] > input[type="checkbox"] {
+  /* Shown, and closed. The box answers "is this owed?" — no — and the pill
+     below answers "was the work done?" — no, it was retired. Hiding it was the
+     right call while a retired task could not be ticked, because an empty box
+     would have read as owed; now the box carries the honest answer and hiding
+     it would remove the only thing saying the task is settled. */
+  opacity: 0.55;
+}
+/* The RETIRED pill, replacing the hidden box as the at-a-glance distinction.
+   Only the unusual closure earns one: 17 of 2,383 tasks are retired, so a pill
+   on every closed task would be roughly eighteen hundred badges carrying no
+   information — the chrome a required field already demonstrates elsewhere,
+   reading "none" in 50 of 61 verify views. Done is the ordinary case and the
+   closed box already says it. Matches the DONE/REJECTED pills on triage cards
+   (REQ-CHANGE-010, REQ-LIFECYCLE-003). */
+spec-task[data-status="superseded"] > div:not(.retired)::after,
+spec-task[data-status="superseded"] > p:not(.retired)::after {
+  content: "RETIRED";
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  padding: 0.1em 0.5em;
+  border-radius: var(--r-sm);
+  background: #efe9de;
+  color: #6b5f4a;
+  border: var(--rule-w) solid #ddd2bf;
+  margin-left: 0.5em;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: 0.08em;
+}
+spec-task[data-status="superseded"] > .retired {
+  opacity: 1;
+  text-decoration: none;
+  color: var(--c-text-soft);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  margin: var(--s-1) 0 0;
+}
+
+/* ---------- spec-subtraction — what a change takes away ---------------- */
+/* REQ-CHANGE-011. An EMPTY register is the answer "this removes nothing", not
+   an omission — so it must read as a deliberate, quiet statement rather than a
+   gap. 44 of this estate's 123 proposals are ADD-only, so the empty case is the
+   common one and gets the least ink: a single muted line via ::after, no box,
+   no pill. Entries, when they exist, are the thing worth reading. */
+spec-subtraction {
+  display: block;
+  margin: var(--sp-4) 0;
+  padding-left: var(--sp-3);
+  border-left: var(--rule-w) solid var(--c-rule);
+}
+spec-subtraction:empty::after,
+spec-subtraction > ul:empty::after {
+  content: "Removes nothing.";
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  font-style: italic;
+}
+spec-subtraction > ul {
+  margin: 0;
+}
+spec-subtraction > ul > li {
+  margin-bottom: var(--sp-2);
+}

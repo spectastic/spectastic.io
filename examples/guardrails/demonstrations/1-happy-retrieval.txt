@@ -1,0 +1,5 @@
+# Demo 1 — happy-path retrieval surfaces ADR-0007
+$ spectastic adrs --for src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java
+002-downstream-consumers/D-007  [block]  archunit:only_the_persistence_adapter_touches_data_access_apis, semgrep:no_sql_write_to_positions_outside_adapter
+  governs: src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java
+Wrote demonstrations/1-retrieval-log.json

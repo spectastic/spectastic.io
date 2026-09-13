@@ -1,0 +1,30 @@
+# Demo 3 — forced bypass caught at MERGE, explained for the reviewer (native content detector + `--explain`)
+$ spectastic verdict --changed docs/priya-pr/PositionReconciliationJob.java --explain
+VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at docs/priya-pr/PositionReconciliationJob.java:20
+  docs/priya-pr/PositionReconciliationJob.java → UPDATE\s+positions
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+Scope: repo-local — evaluated 2 decisions from this checkout. Decisions owned by other repositories are not evaluated.
+
+Explanation (advisory — the decision and the code, so you can act):
+
+── D-007 · ADR-0007 — only the persistence adapter touches the data store ──
+  Rule no_sql_write_to_positions_outside_adapter · docs/priya-pr/PositionReconciliationJob.java:20
+
+  Offending — the change the gate flagged:
+      17|   public void reconcile(CustodianFile file) throws Exception {
+      18|     for (CustodianRecord record : file.records()) {
+      19|       try (PreparedStatement ps =
+  >   20|           db.prepareStatement("UPDATE positions SET quantity = ? WHERE instrument = ?")) {
+      21|         ps.setLong(1, record.quantity());
+      22|         ps.setString(2, record.instrument());
+      23|         ps.executeUpdate();
+
+  Why it is a violation — the decision that governs this code:
+    Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+
+    Context. Spec FR-004 requires a single emitter; the emission guarantee is only as strong as the boundary around the write. The domain reason is settlement consistency (KB-0001@2026-09-13): the book and its consumers must never diverge silently. Decision. Only xyz.briancorbin.pk.hex.persistence may reach the data-access APIs or write the positions store; enforced by an ArchUnit boundary rule now, a Semgrep content rule for the residual SQL case (added when JDBC arrives, feature 003), and a DB grant as the operational backstop (D-008). Consequences. + Every position change provably emits the event; a new writer fails the gate. − Legitimate new persistence code lives in the adapter package or extends the scope through a recorded amendment.
+    Open the full decision: specs/002-downstream-consumers/design.html#D-007  (spectastic://briancorbin/position-keeper-guardrails/decision/002-downstream-consumers/D-007)
+
+  Sanctioned path — where this pattern is permitted instead:
+    src/**/persistence/**
+Wrote demonstrations/3-verdict.json

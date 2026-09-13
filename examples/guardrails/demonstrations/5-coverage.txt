@@ -1,0 +1,5 @@
+# Demo 5 — coverage report (D-008 is a none-with-reason DB grant)
+$ spectastic adrs --coverage
+decision coverage: 1/2 active decisions carry an executable check (50%)
+  excused (none-with-reason): 1
+  uncovered: 0

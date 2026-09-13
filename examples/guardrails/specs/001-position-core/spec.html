@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Position keeping core · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+<header>
+  <p class="small-caps">Specification · 001-position-core</p>
+  <h1>Position keeping core</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">A hexagonal position keeper: trade events in, positions out, idempotent on tradeId.</p>
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec ID</b>     <span>001-position-core</span>
+    <b>Owner</b>       <span>Position Keeping team</span>
+    <b>Reviewers</b>   <span>—</span>
+    <b>Created</b>     <span><time datetime="2024-02-05">05 Feb 2024</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v1.0.0</a></span>
+    <b>Smallest demoable</b><span>Booking a trade updates the position; re-booking the same tradeId does not double-count.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+  <spec-budget words="600" reqs="6" minutes="5"></spec-budget>
+  <spec-tldr><p>The domain core: apply trade events to positions, idempotent on tradeId, behind ports so persistence is swappable. JDK-only domain, in-memory repository for this first milestone. The ports-and-adapters shape here is what lets a later feature (002) make the adapter the single writer.</p></spec-tldr>
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>A self-contained feature in the position-keeper timeline.</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcomes contract; the mechanism is the design's.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a>.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Plan derivable.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>4 requirements.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Observable via its success criterion.</dd>
+  </dl>
+  <spec-audience-map><dl>
+    <dt>Exec / PM</dt>   <dd>§<a href="#context">Context</a>, §<a href="#success">Success criteria</a>.</dd>
+    <dt>Reviewer</dt>    <dd>§<a href="#requirements">Requirements</a>, §<a href="#questions">Open questions</a>.</dd>
+    <dt>Implementer</dt> <dd>§<a href="#requirements">Requirements</a>, §<a href="#data">Data model</a>.</dd>
+  </dl></spec-audience-map>
+</header>
+
+<section id="context"><h2>1 · Context</h2><p>A position keeper turns a stream of trade events into current positions. It must be idempotent (a redelivered trade cannot double-count) and keep the domain free of infrastructure so persistence can change later. This is the base every other feature builds on.</p></section>
+<section id="scenarios"><h2>2 · User scenarios &amp; testing</h2><p><strong>A trade updates a position.</strong> Booking a buy of 100 sets the position to 100.</p><p><strong>Idempotent on tradeId.</strong> Re-booking the same tradeId leaves the position at 100.</p></section>
+<section id="requirements"><h2>3 · Requirements</h2>
+<spec-requirement id="FR-001" priority="must">Applying a trade event MUST update the instrument’s position by the trade quantity.</spec-requirement>
+<spec-requirement id="FR-002" priority="must">Applying a trade event whose <code>tradeId</code> was already applied MUST NOT change the position (idempotent).</spec-requirement>
+<spec-requirement id="FR-003" priority="must">The domain MUST be reachable only through ports; the repository is an adapter behind a port.</spec-requirement>
+<spec-requirement id="NFR-001" priority="must">The domain MUST depend on the JDK only — no framework, no persistence library imported into the core.</spec-requirement>
+<spec-out-of-scope>
+<ul>
+  <li defer-to="002-downstream-consumers"><strong>Emitting events to consumers</strong> — the next feature.</li>
+  <li defer-to="003-jdbc-persistence"><strong>Durable persistence</strong> — in-memory here; JDBC later.</li>
+</ul>
+</spec-out-of-scope>
+</section>
+<section id="data"><h2>4 · Data model</h2><dl>
+  <dt>Position</dt><dd>an instrument and a signed quantity; the running sum of applied trades.</dd>
+  <dt>Trade event</dt><dd>an instrument, a signed quantity, and a unique <code>tradeId</code> (the idempotency key).</dd>
+</dl></section>
+<section id="success"><h2>5 · Success criteria</h2>
+<spec-criterion id="SC-001" priority="must" actor="a trader" validates="FR-001,FR-002" method="test">
+Booking a trade updates the position, and re-booking the same <code>tradeId</code> leaves it unchanged.
+<details><summary>Observed at</summary><p>A unit test applying a trade, then the same trade again.</p></details>
+</spec-criterion>
+<spec-criterion id="SC-002" priority="must" actor="a maintainer" validates="FR-003,NFR-001" method="test">
+The domain compiles with no import of any framework or persistence library.
+<details><summary>Observed at</summary><p>An ArchUnit rule asserting the core package imports only JDK + domain types.</p></details>
+</spec-criterion>
+</section>
+<section id="assumptions"><h2>6 · Assumptions</h2><ul><li>Fits the hexagonal shape established in 001.</li></ul></section>
+<section id="questions"><h2>7 · Open questions</h2><p>None outstanding.</p></section>
+<section id="conformance"><h2>8 · Conformance index</h2><spec-conformance></spec-conformance></section>
+<section id="changelog"><h2>9 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2024-02-05">05 Feb 2024</time><span>Accepted — the hexagonal core with an in-memory repo; ports-and-adapters and a JDK-only domain.</span></li>
+</ol></spec-changelog></section>
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

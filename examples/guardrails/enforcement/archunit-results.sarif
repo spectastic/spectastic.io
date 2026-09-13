@@ -1,0 +1,19 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "ArchUnit", "rules": [{ "id": "only_the_persistence_adapter_touches_data_access_apis" }] } },
+      "results": [
+        {
+          "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+          "level": "error",
+          "message": { "text": "xyz.briancorbin.pk.recon.PositionReconciliationJob accesses java.sql from outside the persistence adapter" },
+          "locations": [
+            { "physicalLocation": { "artifactLocation": { "uri": "docs/priya-pr/PositionReconciliationJob.java" }, "region": { "startLine": 15 } } }
+          ]
+        }
+      ]
+    }
+  ]
+}

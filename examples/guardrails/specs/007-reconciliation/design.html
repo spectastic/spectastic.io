@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Nightly reconciliation · Design</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+<header>
+  <p class="small-caps">Design · 007-reconciliation</p>
+  <h1>Nightly reconciliation</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">How we will build it — the happy path, which acknowledges ADR-0007 and corrects through the use case.</p>
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">007-reconciliation</a></span>
+    <b>Owner</b>      <span>Ops Engineering</span>
+    <b>Branch</b>     <span><code>feat/nightly-reconciliation</code></span>
+    <b>Created</b>    <span><time datetime="2026-09-13">13 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+  <spec-tldr>
+    <p>The job reads the custodian file and the current store (through the persistence adapter's read side), computes deltas, and
+    applies each correction <em>through the position use case</em> — so every correction emits <code>PositionChanged</code>. This
+    plan touches the persistence package, so retrieval surfaces <strong>ADR-0007</strong>; the plan acknowledges it and resolves
+    to route corrections through the use case rather than writing the store.</p>
+  </spec-tldr>
+</header>
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>The reconciliation stays on the sanctioned path: reads via the adapter, writes via the use case. No new writer of the
+positions store, so ADR-0007 holds by construction.</p>
+<h3>Governing decisions acknowledged</h3>
+<p>This plan's surface touches the persistence package, governed by <strong>002-downstream-consumers/D-007</strong> (ADR-0007 —
+only the persistence adapter touches the data store; every position change must emit PositionChanged). The plan honours it:
+corrections are applied through the position use case (which emits the event), and the only persistence-package addition is a
+<em>read-side</em> snapshot reader that uses the existing adapter — it adds no new writer. Retrieval:
+<code>spectastic adrs --for src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java</code> returns D-007; this section
+is its acknowledgment.</p>
+</section>
+
+<section id="tech-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language / runtime</dt><dd>Java 21, hexagonal.</dd>
+  <dt>Architecture</dt><dd>A scheduled job in the application layer; reads via the adapter, writes via the use case.</dd>
+</dl>
+</section>
+
+<section id="data">
+<h2>3 · Data model &amp; contracts</h2>
+<p>No external contract. The job consumes the custodian file (instrument, quantity) and emits corrections as ordinary use-case
+calls carrying a reconciliation <code>tradeId</code>.</p>
+</section>
+
+<section id="grounding">
+<h2>5 · Grounding &amp; evidence</h2>
+<table>
+  <thead><tr><th>Claim</th><th>Source</th><th>Status</th><th>Finding</th></tr></thead>
+  <tbody>
+    <tr><td>ADR-0007 governs the positions store and this plan touches it</td><td><code>002-downstream-consumers/design.html#D-007</code></td><td>verified</td><td>Scope <code>src/**/persistence/**</code>; the snapshot reader lives there, so the decision is in-scope and acknowledged.</td></tr>
+    <tr><td>Reconciliation is against the custodian's settled snapshot; drift lives in the settlement window</td><td>Settlement domain — <code>KB-0001@2026-09-13</code></td><td>verified</td><td>The book is trade-date, the custodian settlement-date; the delta the job corrects is exactly that window's drift.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="approach">
+<h2>6 · Approach</h2>
+<p>A scheduled job parses the custodian file, reads current quantities through a persistence-package snapshot reader (using the
+existing adapter, not a new writer), computes per-instrument deltas, and applies each as a use-case correction carrying the run's
+<code>tradeId</code>. Every correction therefore emits <code>PositionChanged</code>, and ADR-0007's boundary is untouched.</p>
+</section>
+
+<section id="alternatives">
+<h2>7 · Alternatives considered</h2>
+<table>
+  <thead><tr><th>Option</th><th>Emits events</th><th>Honours ADR-0007</th><th>Simple</th><th>Score</th></tr></thead>
+  <tbody>
+    <tr data-winner><td>Correct through the use case (chosen)</td><td>✓</td><td>✓</td><td>✓</td><td>9</td></tr>
+    <tr><td>Write the positions table directly (the bypass)</td><td>✗ silent</td><td>✗ violates ADR-0007</td><td>✓ fast</td><td>1</td></tr>
+  </tbody>
+</table>
+<p>The direct write is faster and is exactly what the guardrail exists to stop — it is the bypass the demonstrations exercise.</p>
+</section>
+
+<section id="decisions">
+<h2>8 · Decisions</h2>
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Corrections flow through the position use case</h4>
+  <p><b>Context.</b> Reconciliation touches positions, governed by 002-downstream-consumers/D-007; the domain rationale is
+  settlement-window drift (<code>KB-0001@2026-09-13</code>). <b>Decision.</b> Apply every correction through the use case
+  (emitting the event); read the current store through the adapter; add no new writer. <b>Consequences.</b> + ADR-0007 holds;
+  Risk/P&amp;L/audit see every correction. − One event per corrected instrument (fine at end-of-day volumes).</p>
+</spec-decision>
+</section>
+
+<section id="structure">
+<h2>9 · Project structure</h2>
+<pre><code>src/xyz/briancorbin/pk/hex/recon/ReconciliationJob.java             # the job (application layer)
+src/xyz/briancorbin/pk/hex/recon/CustodianFileParser.java           # parse the EOD file
+src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  # read current positions via the adapter (read-only)</code></pre>
+</section>
+
+<section id="risks">
+<h2>10 · Risks &amp; mitigations</h2>
+<spec-risk-log>
+<spec-risk status="mitigated" target="FR-002">
+  <h4>A future maintainer optimises by writing the store directly</h4>
+  <p>Likelihood medium, impact high. Mitigation: ADR-0007's merge verdict catches a direct <code>UPDATE positions</code> outside the adapter — the demonstrations prove it.</p>
+</spec-risk>
+</spec-risk-log>
+</section>
+
+<section id="complexity"><h2>11 · Complexity tracking</h2><p>None.</p></section>
+<section id="open-questions"><h2>12 · Open questions</h2><p>None outstanding.</p></section>
+<section id="changelog"><h2>13 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-13">13 Sep 2026</time><span>Design drafted (happy path) — corrections through the use case; acknowledges ADR-0007 (002-downstream-consumers/D-007); grounds settlement-window drift in KB-0001. The demonstrations also exercise a bypass variant (caught at plan) and a direct-write commit (caught at merge).</span></li>
+</ol></spec-changelog></section>
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Examples — spectastic</title>
-<meta name="description" content="Worked examples built end to end with spectastic — including an over-engineered tic-tac-toe with six AI opponents, driven through the full lifecycle.">
+<meta name="description" content="Worked examples built end to end with spectastic — an over-engineered tic-tac-toe with six AI opponents, a Java portfolio engine, knowledge-corpus grounding, and an architectural guardrail that kills a bypassing PR at design and at merge.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -243,6 +243,41 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill">Knowledge corpus</span><span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Change management</span><span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 38%,transparent)">Rust</span><span style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">● Applied</span></div>
         <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:12px 0 0">As of when?</h2>
         <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.56;color:var(--ink-soft);margin:9px 0 0;max-width:52ch">A cash balance is a question about time. Point-in-time IBOR/ABOR snapshots grounded on a settlement corpus — then US equities move <span style="color:var(--ink)">T+2 → T+1</span>, the corpus supersedes its edition, and a <span style="color:var(--ink)">propose → apply</span> change re-grounds the spec. A Rust engine, proven by <span style="color:var(--ink)">cargo test</span>; includes a live as-of timeline across the 28 May 2024 cutover.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <span class="btn-primary">Read the build →</span>
+          <span class="btn-secondary">▷ Show me</span>
+        </div>
+      </div>
+    </div>
+  </a>
+
+  <!-- FEATURED: guardrails (Priya's PR — architectural governance) -->
+  <a href="example-guardrails.html" style="text-decoration:none;color:inherit;display:block;margin-top:16px">
+    <div class="feature card" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:30px 32px">
+      <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true" style="flex:0 0 auto;font-family:'Lato',sans-serif">
+        <!-- the positions store -->
+        <rect x="96" y="52" width="46" height="46" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4"/>
+        <text x="119" y="72" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--ink-soft)">positions</text>
+        <line x1="104" y1="80" x2="134" y2="80" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <line x1="104" y1="88" x2="134" y2="88" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <!-- the boundary: the persistence adapter's scope -->
+        <rect x="86" y="10" width="60" height="130" rx="10" fill="none" stroke="var(--crimson)" stroke-width="1.6" stroke-dasharray="4 4"/>
+        <text x="116" y="24" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--crimson)">D-007 · block</text>
+        <!-- the sanctioned route: through the adapter, emits the event -->
+        <line x1="10" y1="60" x2="92" y2="60" stroke="var(--green)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M88 55 L96 60 L88 65 Z" fill="var(--green)"/>
+        <text x="12" y="52" font-size="8" font-weight="700" fill="var(--green)">use case →</text>
+        <circle cx="119" cy="120" r="7" fill="var(--sea)"/><text x="119" y="123" text-anchor="middle" font-size="7" font-weight="900" fill="#fff">ev</text>
+        <!-- the bypass: a direct write, stopped at the boundary -->
+        <line x1="10" y1="104" x2="78" y2="104" stroke="var(--salmon)" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 5"/>
+        <text x="12" y="120" font-size="8" font-weight="700" fill="var(--salmon)">UPDATE positions</text>
+        <line x1="80" y1="95" x2="92" y2="113" stroke="var(--salmon)" stroke-width="3" stroke-linecap="round"/>
+        <line x1="92" y1="95" x2="80" y2="113" stroke="var(--salmon)" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill">Architectural guardrails</span><span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">Engineering governance</span><span class="pill" style="color:var(--salmon);border-color:color-mix(in srgb,var(--salmon) 38%,transparent)">Java</span><span style="font-family:'Lato',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">● Killed twice</span></div>
+        <h2 style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:12px 0 0">Priya's PR</h2>
+        <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.56;color:var(--ink-soft);margin:9px 0 0;max-width:52ch">An agent-authored PR writes to the positions table directly, bypassing the adapter that emits the audit events — exactly what a two-year-old ADR forbade. Nobody remembered; it was never surfaced. Watch a decision recorded as <em>data</em> — scope, enforcement, posture, reason — catch it at <span style="color:var(--ink)">design</span> and again at <span style="color:var(--ink)">merge</span>, deterministically, then explain why and ask one question. Includes a route-the-change switch and the real <span style="color:var(--ink)">verdict</span> going red.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
           <span class="btn-primary">Read the build →</span>
           <span class="btn-secondary">▷ Show me</span>

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>[SCREEN_NAME] · Screen</title>
+<link rel="stylesheet" href="../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<script src="../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Screen · [SPEC_ID]</p>
+  <h1>[SCREEN_NAME]</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    [ONE_LINE — what a person is doing on this screen.]
+  </p>
+</header>
+
+<section id="screen">
+<h2>1 · The screen and its states</h2>
+
+<!-- One <spec-screen> per file, under the feature's visual/ directory.
+
+     Every state records where it came from, because a derived state and an
+     authored one are different claims: one is owed by the contract, the other
+     exists because somebody thought of it.
+
+       source="derived"  from="400 404 422"   several responses, ONE state
+       source="field"    from="Rate.asOf"     from a field, not a response
+       source="authored"                      no contract implies it
+
+     A `from` carrying more than one value IS the record of a collapse — there
+     is no separate attribute to forget.
+
+     Contract-derived states are a FLOOR, not a ceiling. Nothing here checks a
+     contract file's responses, so a clean validate means every state says where
+     it came from; it does not mean none was forgotten. -->
+
+<spec-screen id="[SCREEN_ID]" name="[THE_NAME_THIS_SCREEN_IS_ADDRESSED_BY]" serves="[US1 US2 — the scenarios this screen answers]">
+  <p>[WHAT_VARIES — what changes on this screen and what does not.]</p>
+
+  <spec-state id="[STATE_ID]" source="[derived|field|authored]" from="[WHAT_IT_CAME_FROM]">
+    <p>[WHAT_A_PERSON_SEES in this state.]</p>
+
+    <!-- Typed by the accessibility tree, so the annotation IS an assertion —
+         these are the tokens a test framework already queries. An annotation
+         with no accessibility analogue (visual emphasis, brand rationale)
+         carries neither role nor state, stays prose, and stays unchecked. -->
+    <!-- target= names the control this annotation is ABOUT. Nothing resolves
+         it — there is no element inventory, deliberately — so it is provenance
+         for a reader and for a later measurement, in whatever names the build
+         actually uses. An annotation about the whole state names nothing.
+
+         layer= is the grouping it belongs to: structure, behaviour,
+         requirement, motion, data, accessibility, tracking, content or
+         emphasis. Where the annotation is also typed by the accessibility tree
+         and the two disagree, that is reported rather than resolved — neither
+         is reliably the one to keep. Where nothing types it, any layer is
+         legal, which is how the categories with no accessibility analogue are
+         said at all. -->
+    <spec-annotation target="[ELEMENT_OR_OMIT]" layer="[LAYER_OR_OMIT]" role="[ROLE]" aria-state="[STATE]">
+      <p>[WHAT_THIS_PART_DOES — not a restatement of a requirement.]</p>
+    </spec-annotation>
+
+    <!-- A render is EVIDENCE, never a dependency. Its absence is not a gap and
+         nothing checks for one, so declare one only when there is an image
+         worth looking at. src= names a committed file — never an inline data
+         URI, which the artifact content policy rejects outright. contexts= is
+         the grid cell it was captured in, in the same axis=context grammar the
+         grid itself uses; omit it and the render is evidence of the state it
+         sits in and nothing narrower. -->
+    <spec-render src="[RENDER_PATH_OR_OMIT_THE_ELEMENT]" contexts="[AXIS_CONTEXT_PAIRS_OR_OMIT]"></spec-render>
+
+    <!-- A layer with no accessibility analogue: nothing implies a layer here,
+         so declaring one is the only way to say which it is. It stays prose and
+         stays unchecked, which is the honest position rather than a gap. -->
+    <spec-annotation target="[ELEMENT]" layer="tracking">
+      <p>[WHAT_IS_EMITTED_AND_WHAT_IT_CARRIES.]</p>
+    </spec-annotation>
+
+    <!-- Reference a requirement rather than copying it: a copy is a second
+         thing to drift. -->
+    <spec-annotation cites="[FR-NNN]">
+      <p>[WHAT_THIS_PART_DOES.]</p>
+    </spec-annotation>
+  </spec-state>
+</spec-screen>
+
+<!-- What the interface reports (104-tracking-plan). Declared beside the
+     element that emits it, for the reason a state sits beside its screen: a
+     separate plan drifts from the interface, which is why every analytics plan
+     in the field is out of date.
+
+     Every field carries a TYPE — "carries the pair" is prose; a named field
+     with a type is something a privacy reviewer can answer yes or no to. Mark
+     `from-user-input` on anything a person typed: a currency pair is a choice
+     from a list and an amount is not, and they are not the same risk even when
+     both are numbers.
+
+     An event with NO fields carries no payload. That is a positive claim and
+     the one place this vocabulary reads an absence that way — an empty payload
+     is the safest kind, and the shape must not push you into inventing a field
+     to look complete.
+
+     Nothing here emits anything, and nothing reads a declaration as evidence
+     that an event ships. The gate is what makes writing this early safe: an
+     answer of "none" is an ANSWER, not an absence. -->
+<spec-consent-gate question="[OPEN_QUESTION_ID]" answer="[ANSWER_OR_EMPTY_WHILE_UNANSWERED]"></spec-consent-gate>
+<spec-event name="[EVENT_NAME]">
+  <spec-field name="[FIELD]" type="[TYPE]"></spec-field>
+  <spec-field name="[FIELD]" type="[TYPE]" from-user-input></spec-field>
+</spec-event>
+
+<!-- Copy as a design constraint (103-content-budgets). A layout is designed
+     against copy of a particular length, and the copy usually arrives later
+     from somebody who never saw the layout.
+
+     A budget is per element CLASS — "card title", not one particular card
+     title — and carries a number and a unit, because characters and words give
+     different answers. Nothing is ever checked against real copy: the strings
+     live in a localisation system or a draft, and a check that read only what
+     it could reach would report clean while the rest overflowed.
+
+     A refusal names a string the product will not ship, with a reason, and
+     optionally the context it applies in — "Error" is unacceptable to a user
+     and fine in a log line.
+
+     Voice stays prose. It is the part that genuinely resists structure, and a
+     schema for it would be one nobody can satisfy and no check can read. -->
+<spec-copy-budget element="[ELEMENT_CLASS]" max="[NUMBER]" unit="[characters|words]" lang="[SOURCE_LANGUAGE_OR_OMIT]"></spec-copy-budget>
+<spec-refusal text="[THE_STRING]" context="[WHERE_IT_IS_REFUSED_OR_OMIT]">[WHY_THIS_IS_NOT_SHIPPED.]</spec-refusal>
+<spec-message-shape name="[SHAPE_NAME]" parts="[WHAT_A_MESSAGE_OF_THIS_SHAPE_CARRIES]"></spec-message-shape>
+
+<!-- Motion as a sequence (102-motion-choreography). A token says one element
+     changes; an entrance is several elements moving in a declared ORDER, and
+     no token expresses an order.
+
+     Every offset is measured from the choreography's origin and never from the
+     cue before it — so inserting a cue cannot silently move the ones after it,
+     which is the late edit nobody re-reviews. Two cues may share an offset;
+     that is deliberate simultaneity and nothing reports it.
+
+     <spec-reduced-motion> is REQUIRED, and it is the only required record in
+     this vocabulary. Elsewhere silence means nobody asked; here a sequence a
+     user cannot escape is a defect for people who get motion sick, and the
+     platform already exposes the preference.
+
+     duration= and easing= may name a token or state a raw value. Neither is
+     resolved — most projects have no motion scale yet, and requiring one would
+     make this unusable on day one. -->
+<spec-choreography id="[CHOREOGRAPHY_ID]" origin="[WHAT_THE_OFFSETS_ARE_MEASURED_FROM]">
+  <spec-reduced-motion>[WHAT_HAPPENS_WHEN_THE_USER_ASKS_FOR_LESS_MOTION.]</spec-reduced-motion>
+  <spec-cue element="[WHAT_MOVES]" at="[OFFSET_WITH_UNIT]" duration="[TOKEN_OR_RAW_OR_OMIT]" easing="[TOKEN_OR_RAW_OR_OMIT]"></spec-cue>
+  <spec-cue element="[WHAT_MOVES]" at="[OFFSET_WITH_UNIT]"></spec-cue>
+</spec-choreography>
+
+<!-- A component's own behaviour (101-component-interaction-states). Distinct
+     from a screen's states: these are driven by interaction — there is no
+     status code for hover — and they live on the component so a control used
+     by ten screens has one focus ring rather than ten.
+
+     Every expected interaction state must be DECLARED or DECLINED. A decline
+     carries its reason as content, and a state that is simply absent is
+     reported — that is the whole mechanism: a blank becomes a question rather
+     than a silence.
+
+     Two escapes, so nothing has to decline nine states one at a time: mark the
+     component `non-interactive` (a divider, a rule), or declare its origin as
+     `consumed`, whose states belong to whoever wrote it. -->
+<spec-component name="[COMPONENT_NAME]" scope="[feature|project]" maturity="[STATUS]" origin="[authored|vendored|consumed]">
+  <spec-cstate name="resting"></spec-cstate>
+  <spec-cstate name="hover"></spec-cstate>
+  <spec-cstate name="focus-visible"></spec-cstate>
+  <spec-cstate name="pressed"></spec-cstate>
+  <spec-cstate name="disabled"></spec-cstate>
+  <spec-cstate name="loading" declined>[WHY_THIS_STATE_DOES_NOT_APPLY.]</spec-cstate>
+  <spec-cstate name="success"></spec-cstate>
+  <spec-cstate name="error"></spec-cstate>
+  <spec-cstate name="empty"></spec-cstate>
+  <spec-transition from="resting" to="hover" trigger="[WHAT_CARRIES_IT]"></spec-transition>
+</spec-component>
+
+<!-- A journey through the screens this feature declares (100-screen-flows).
+     Steps resolve in the order they are WRITTEN — there is no order attribute,
+     because a number is a second ordering able to disagree with the markup.
+
+     A step names a screen this document declares, or is marked `outward` when
+     it goes somewhere this feature does not own. Outward is declared and never
+     inferred from a step that failed to resolve, so a typo stays
+     distinguishable from a boundary.
+
+     <spec-branch> records what happens when a step cannot complete — the half
+     of a flow that usually goes unwritten. Its absence means NOT RECORDED,
+     never that no failure is possible, so nothing reports a journey without
+     one. A cycle is ordinary: a screen may appear more than once.
+
+     Delete this whole block for a single-screen feature with no route worth
+     writing down — most features. -->
+<spec-flow id="[FLOW_ID]">
+  <spec-step screen="[SCREEN_ID]" state="[STATE_ID_OR_OMIT]"></spec-step>
+  <spec-step screen="[SCREEN_ID]">
+    <spec-branch to="[WHERE_IT_GOES_INSTEAD]">[WHAT_MAKES_THIS_STEP_FAIL.]</spec-branch>
+  </spec-step>
+  <spec-step outward>[WHERE_IT_LEAVES_FOR — a destination this feature does not declare.]</spec-step>
+</spec-flow>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  [SPEC_ID] · [SCREEN_NAME] · authored [CREATED_DATE]
+</footer>
+
+</main>
+<script src="../assets/spec.js"></script>
+</body>
+</html>
