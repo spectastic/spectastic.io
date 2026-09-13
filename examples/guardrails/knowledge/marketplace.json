@@ -1,0 +1,13 @@
+{
+  "name": "briancorbin/position-keeper-guardrails",
+  "owner": {
+    "name": "briancorbin"
+  },
+  "plugins": [
+    {
+      "name": "settlement-domain",
+      "source": "./settlement-domain",
+      "description": "Domain knowledge imported from position-keeper-guardrails."
+    }
+  ]
+}

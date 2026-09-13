@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Priya's PR — a two-year-old decision, and the PR that didn't read it · a worked example</title>
+<meta name="description" content="A spectastic worked example: an agent-authored PR writes to the positions table directly, bypassing the adapter that emits the audit events — exactly what a two-year-old ADR forbade. The guardrail, not anyone's memory, catches it: once at plan, once at merge, deterministically, with no model on the verdict path. Live: route the change three ways and watch where it dies.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,400..500&family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f6f5f1;--bg-raised:#fcfbf8;--bg-sunken:#eeece6;
+  --ink:#353534;--ink-soft:#67655f;--ink-faint:#9b988f;
+  --rule:rgba(53,53,52,.12);--rule-strong:rgba(53,53,52,.24);
+  --crimson:#5f023e;--sea:#04a5bb;--purple:#7558b2;--salmon:#e1624f;--gold:#ffd09c;
+  --spec-1:#5f023e;--spec-2:#960462;--spec-3:#e1624f;--spec-4:#e0a23c;
+  --spec-5:#3f6a37;--spec-6:#04a5bb;--spec-7:#00758f;--spec-8:#7558b2;
+  --green:#3f6a37;--deny:#c0432f;--amber:#b07d1a;
+  --shadow:rgba(53,53,52,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#1b1917;--bg-raised:#252220;--bg-sunken:#141210;
+  --ink:#e9e4da;--ink-soft:#a6a097;--ink-faint:#736d64;
+  --rule:rgba(233,228,218,.14);--rule-strong:rgba(233,228,218,.28);
+  --crimson:#e98cb6;--sea:#42cadd;--purple:#b29bdf;--salmon:#f08a79;--gold:#ffd09c;
+  --spec-1:#e98cb6;--spec-2:#e85aab;--spec-3:#f08a79;--spec-4:#ffd09c;
+  --spec-5:#8fb56a;--spec-6:#42cadd;--spec-7:#2bb0c4;--spec-8:#b29bdf;
+  --green:#8fb56a;--deny:#f08a79;--amber:#d69f4c;
+  --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;min-height:100vh;transition:background .5s,color .5s}
+::selection{background:var(--gold);color:#353534}
+.lnk{color:var(--ink-soft);text-decoration:none;transition:color .2s}
+.lnk:hover{color:var(--ink)}
+.lnk-crimson{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule-strong);transition:border-color .2s}
+.lnk-crimson:hover{border-color:var(--crimson)}
+.lnk-tinted{color:var(--ink-soft);text-decoration:none;padding:5px 0;display:block;transition:color .2s}
+.lnk-tinted:hover{color:var(--crimson)}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:border-color .2s}
+.icon-btn:hover{border-color:var(--ink-soft)}
+.back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink-soft);font-family:'Lato',sans-serif;font-size:.82rem;transition:color .2s}
+.back-link:hover{color:var(--ink)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--bg);background:var(--ink);padding:12px 22px;border-radius:999px;text-decoration:none;border:none;cursor:pointer;transition:transform .2s}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:'Lato',sans-serif;font-weight:700;font-size:.88rem;color:var(--ink);border:1px solid var(--rule-strong);padding:12px 22px;border-radius:999px;text-decoration:none;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--ink-soft)}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
+.step > *,.card-grid > *{min-width:0}
+.step-num{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--bg);background:var(--crimson);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.term{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:.79rem;color:var(--ink-soft);line-height:1.75;overflow-x:auto}
+.term .ln{white-space:pre}
+.code{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:10px;padding:15px 18px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink);line-height:1.7;overflow-x:auto;white-space:pre;tab-size:2}
+.code .c{color:var(--ink-faint);font-style:italic}
+.code .k{color:var(--purple)}
+.code .s{color:var(--green)}
+.code .t{color:var(--sea)}
+.code .a{color:var(--crimson)}
+.code .hl{display:inline-block;width:100%;background:color-mix(in srgb,var(--deny) 14%,transparent);border-left:3px solid var(--deny);margin-left:-18px;padding-left:15px}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 38%,transparent);padding:2px 8px;border-radius:999px}
+.seg{font-family:'Lato',sans-serif;font-size:.8rem;font-weight:700;border:1px solid var(--rule-strong);background:var(--bg-raised);color:var(--ink-soft);padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .18s}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink);overflow-wrap:anywhere}
+.artifact-links{overflow-wrap:anywhere}
+
+/* ---- decision card (faithful reproduction of the extended spec-decision) ---- */
+.decision{position:relative;min-width:0;background:var(--bg-raised);border:1px solid var(--rule);border-radius:14px;padding:20px 22px;box-shadow:0 8px 24px var(--shadow)}
+.decision h4{margin:0;font-family:'Fraunces',serif;font-weight:560;font-size:1.1rem;letter-spacing:-.01em;color:var(--ink);padding-right:5.5rem}
+.decision dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;margin:14px 0 0}
+.decision dt{font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);padding-top:.18rem}
+.decision dd{margin:0;min-width:0;overflow-wrap:anywhere;font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft)}
+.decision dd strong{color:var(--ink)}
+.decision code{font-family:'IBM Plex Mono',monospace;font-size:.84em;color:var(--ink)}
+.decision .badge{font-family:'Lato',sans-serif;font-weight:600;font-size:.9rem}
+.decision[data-grounding="verified"] .badge{color:var(--green);font-weight:700}
+.decision[data-grounding="verified"] .badge::after{content:"grounded"}
+.decision[data-grounding="assumed"] .badge{color:#b07d1a;background:#fcf5e9;font-weight:900;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;padding:.12em .55em;border-radius:4px}
+.decision[data-grounding="assumed"] .badge::after{content:"ASSUMED"}
+.decision .posture{position:absolute;top:18px;right:18px;font-family:'Lato',sans-serif;font-weight:900;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);border-radius:3px;padding:3px 8px}
+.decision .posture.block{background:var(--deny)}
+.decision .posture.warn{background:var(--amber)}
+.decision .rule{display:inline-block;word-break:break-all;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink);background:var(--bg-sunken);border:1px solid var(--rule);border-radius:5px;padding:2px 7px;margin:2px 4px 2px 0}
+.decision .rule .tool{color:var(--purple)}
+.decision .reason{font-style:italic;color:var(--ink)}
+
+/* ---- the route widget ---- */
+.route-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.route-pane{background:var(--bg-sunken);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;min-width:0}
+.route-pane .lbl{font-family:'Lato',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+.route-pane .code,.route-pane .term{border:none;background:transparent;padding:0;font-size:.74rem}
+.route-pane .code{white-space:pre-wrap;overflow-wrap:anywhere}
+.route-pane .code .hl{margin-left:0;padding-left:6px}
+.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+.stage{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;background:var(--bg-raised);transition:border-color .2s,background .2s}
+.stage .sname{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink);font-weight:600}
+.stage .sverb{font-family:'Lato',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-top:2px}
+.stage .sres{font-family:'Source Serif 4',serif;font-size:.84rem;line-height:1.35;margin-top:7px;color:var(--ink-soft)}
+.stage[data-state="ok"]{border-color:color-mix(in srgb,var(--green) 50%,transparent);background:color-mix(in srgb,var(--green) 7%,var(--bg-raised))}
+.stage[data-state="ok"] .sres{color:var(--green)}
+.stage[data-state="fail"]{border-color:color-mix(in srgb,var(--deny) 55%,transparent);background:color-mix(in srgb,var(--deny) 8%,var(--bg-raised))}
+.stage[data-state="fail"] .sres{color:var(--deny);font-weight:600}
+.stage[data-state="skip"]{opacity:.55}
+.stage[data-state="teach"]{border-color:color-mix(in srgb,var(--purple) 50%,transparent);background:color-mix(in srgb,var(--purple) 7%,var(--bg-raised))}
+.stage[data-state="teach"] .sres{color:var(--purple)}
+.verdict-line{font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;margin-top:16px;color:var(--ink)}
+.verdict-line.ok{color:var(--green)}
+.verdict-line.fail{color:var(--deny)}
+
+/* ---- timeline ---- */
+.tline{position:relative;margin-top:22px;padding-left:22px;border-left:2px solid var(--rule-strong)}
+.tline .ev{position:relative;padding:0 0 18px}
+.tline .ev::before{content:"";position:absolute;left:-29px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--bg-raised);border:2px solid var(--rule-strong)}
+.tline .ev.adr::before{background:var(--crimson);border-color:var(--crimson)}
+.tline .ev.now::before{background:var(--deny);border-color:var(--deny)}
+.tline .ev.gap::before{display:none}
+.tline .ev.gap{padding:4px 0 22px;font-style:italic;color:var(--ink-faint);font-size:.9rem}
+.tline .when{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink-faint)}
+.tline .what{font-family:'Source Serif 4',serif;font-size:.98rem;color:var(--ink-soft);margin-top:1px}
+.tline .what strong{color:var(--ink)}
+
+/* ---- rubric table ---- */
+.rub{width:100%;border-collapse:collapse;font-size:.86rem;min-width:560px}
+.rub th{font-family:'Lato',sans-serif;font-weight:700;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:10px 14px;background:var(--bg-sunken)}
+.rub td{padding:9px 14px;border-top:1px solid var(--rule);font-family:'Source Serif 4',serif;color:var(--ink-soft);vertical-align:top}
+.rub .v{font-family:'Lato',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.rub .v.full{color:var(--green)}.rub .v.partial{color:var(--amber)}.rub .v.no{color:var(--deny)}
+
+@media (max-width: 820px){
+  .doc-layout{grid-template-columns:1fr !important}
+  .sidenav-wrap{position:static !important;display:none !important}
+  .card-grid{grid-template-columns:1fr !important}
+  .route-grid{grid-template-columns:1fr}
+  .stages{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 600px){
+  .topnav{gap:14px;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .topnav::-webkit-scrollbar{display:none}
+  .topnav a,.topnav button{flex:0 0 auto;white-space:nowrap}
+  .nav-eyebrow{display:none}
+  .stages{grid-template-columns:1fr}
+}
+</style>
+<style>/* scroll-driven spectrum header mark */.navMark{transform:rotate(calc(var(--sp,0) * 360deg));transform-origin:center}@media (prefers-reduced-motion:reduce){.navMark{transform:none}}</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spec-logo" viewBox="0 0 100 100">
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-1)" transform="rotate(0 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-2)" transform="rotate(45 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-3)" transform="rotate(90 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-4)" transform="rotate(135 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-5)" transform="rotate(180 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-6)" transform="rotate(225 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-7)" transform="rotate(270 50 50)"/>
+    <path d="M50 50 L43.5 18 Q50 10.5 56.5 18 Z" fill="var(--spec-8)" transform="rotate(315 50 50)"/>
+  </symbol>
+</svg>
+
+<header style="position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--rule)">
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="examples.html" class="back-link">
+      <span style="font-size:1rem">←</span>
+      <span style="display:flex;align-items:baseline;gap:1px">
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink)">spectastic</span>
+        <svg class="navMark" width="12" height="12" aria-hidden="true" style="overflow:visible;flex:0 0 auto;align-self:flex-start;margin-left:2px;margin-top:1px"><use href="#spec-logo"/></svg>
+      </span>
+      <span class="nav-eyebrow" style="font-family:'Lato',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-left:8px">Examples</span>
+    </a>
+    <div class="topnav" style="display:flex;align-items:center;gap:18px">
+      <a href="docs.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Docs</a>
+      <a href="knowledge.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Knowledge</a>
+      <a href="ex.html" class="lnk" style="font-family:'Lato',sans-serif;font-size:.82rem">Extended</a>
+      <a href="#show-me" class="lnk-crimson" style="font-family:'Lato',sans-serif;font-size:.82rem">Show me</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="doc-layout" style="max-width:1080px;margin:0 auto;padding:56px 32px 96px;display:grid;grid-template-columns:200px 1fr;gap:56px;align-items:start">
+
+  <nav class="sidenav-wrap" style="position:sticky;top:84px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">On this page</div>
+    <a href="#overview" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Priya's PR</a>
+    <a href="#timeline" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The distance</a>
+    <a href="#decision" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The decision</a>
+    <a href="#show-me" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Show me</a>
+    <a href="#killed" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">Killed twice</a>
+    <a href="#residual" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The residual</a>
+    <a href="#rubric" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The rubric</a>
+    <a href="#honest" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">What it can't see</a>
+    <a href="#artifacts" class="lnk-tinted" style="font-family:'Source Serif 4',serif;font-size:.98rem">The artifacts</a>
+  </nav>
+
+  <main style="min-width:0">
+    <div style="font-family:'Lato',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)">Worked example · architectural guardrails · engineering governance</div>
+    <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)">Priya's PR</h1>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.14rem;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:18px 0 0">An agent-authored PR adds a nightly job that writes to the positions table <em>directly</em> — bypassing the adapter that emits the audit events. The code is clean, the tests pass, a reviewer new to the team approves it. A two-year-old ADR forbade exactly this; its author had left; nobody current remembered. <strong style="color:var(--ink)">The ADR was in the repository. It was never surfaced.</strong> This example records that decision as <em>data</em> — scope, enforcement, posture, reason — and lets the guardrail, not anyone's memory, catch the PR: once at <span class="mono" style="color:var(--sea)">design</span>, once at <span class="mono" style="color:var(--sea)">merge</span>, with no model on the verdict path.</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">
+      <span class="pill">Architectural guardrails</span>
+      <span class="pill" style="color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)">Java · hexagonal</span>
+      <span class="pill" style="color:var(--deny);border-color:color-mix(in srgb,var(--deny) 42%,transparent)">Killed twice</span>
+      <span class="pill" style="color:var(--purple);border-color:color-mix(in srgb,var(--purple) 38%,transparent)">No model on the verdict</span>
+      <span class="pill" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 42%,transparent)">Standard profile</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:26px">
+      <a href="#show-me" class="btn-primary">▷ &nbsp;Show me</a>
+      <a href="#decision" class="btn-secondary">Read the decision →</a>
+    </div>
+
+    <!-- overview -->
+    <div id="overview" style="scroll-margin-top:80px;margin-top:40px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:24px 26px">
+      <div style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)">Why it's a governance problem, not a review problem</div>
+      <p style="font-family:'Source Serif 4',serif;font-size:1.02rem;line-height:1.58;color:var(--ink-soft);margin:8px 0 0">The scenario is Theo Valmis's, from <a href="https://www.oreilly.com/radar/architectural-guardrails-for-ai-generated-code/" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:.98em">Architectural Guardrails for AI-Generated Code</a>. He names the failure <strong style="color:var(--ink)">architectural drift</strong> — code that individually looks fine but collectively pulls the codebase away from where the team agreed it should go — and makes two claims that bite. First, an instruction file like <span class="mono">CLAUDE.md</span> is <em>the right instinct at the wrong resolution</em>: free text with no precedence, no lifecycle, no enforcement. Second, a second model reviewing the PR cannot fix this, because it shares the first model's blind spot — <em>&ldquo;two probabilistic passes over the same blind spot are not one deterministic pass with sight.&rdquo;</em> What's needed is a decision that is <strong style="color:var(--ink)">retrievable by path</strong>, <strong style="color:var(--ink)">injected before writing</strong>, and <strong style="color:var(--ink)">enforced by a script</strong> — not an agent, not retrieval-as-verdict, not AI-reviews-AI. <span style="color:var(--ink)">spectastic's own principle P-8 says the same thing: guarantees live in the kernel or CI.</span></p>
+    </div>
+
+    <!-- timeline -->
+    <h2 id="timeline" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The distance</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A securities <strong style="color:var(--ink)">position keeper</strong> — seven features, scaffolded by <span class="mono">spectastic init --profile standard</span> and driven through the verbs. The decision that matters was born in feature 2 as the answer to a requirement, not as governance ceremony: <em>what guarantees every position change emits an event?</em> Then five features and two and a half years go by without anyone mentioning it.</p>
+
+    <div class="tline">
+      <div class="ev"><div class="when">05 Feb 2024 · 001-position-core</div><div class="what">Ports-and-adapters; a JDK-only domain. Positions are idempotent on <span class="mono">tradeId</span>.</div></div>
+      <div class="ev adr"><div class="when">11 Mar 2024 · 002-downstream-consumers</div><div class="what"><strong>ADR-0007 is written.</strong> Risk and P&amp;L need a <span class="mono">PositionChanged</span> event on every move, so FR-004 requires a single emitter — and the design records <span class="mono">D-007</span>: only the persistence adapter touches the data store. An ArchUnit fitness function ships with it; a DB grant (<span class="mono">D-008</span>) is the operational backstop.</div></div>
+      <div class="ev"><div class="when">20 May 2024 · 003-jdbc-persistence</div><div class="what">Real SQL arrives. ADR-0007 is <strong>amended</strong> with a Semgrep content rule for the case a type-graph rule can't see.</div></div>
+      <div class="ev gap">Three merges that never mention it — 004-query-endpoint (Aug 2024) · 005-instrument-refdata (Nov 2024) · 006-health-check (Feb 2025). The author moves on.</div>
+      <div class="ev now"><div class="when">13 Sep 2026 · 007-reconciliation</div><div class="what"><strong>&ldquo;Add a nightly job that corrects positions from the custodian file.&rdquo;</strong> The naive implementation writes corrected quantities straight into <span class="mono">positions</span> — fast, clean, and exactly what ADR-0007 forbids. This is the request that tests whether the guardrail still holds.</div></div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:6px 0 0">The git history is narrated (<span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">docs/timeline.md</span>); the specs, the decision record, the enforcement rules and every command output are real and committed.</p>
+
+    <!-- decision -->
+    <h2 id="decision" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The decision — recorded as data</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A Nygard card with prose Context / Decision / Consequences is a decision <em>log</em>. What makes it a <em>governance</em> record is the structured half: a <strong style="color:var(--ink)">scope</strong> a tool can retrieve by, a <strong style="color:var(--ink)">posture</strong> that says block or warn, <strong style="color:var(--ink)">enforcement</strong> rule-ids that join a detector's finding back to the decision, and a <strong style="color:var(--ink)">reason</strong> that lives once — here — and is never re-typed into the enforcer's own message channel, where it would drift.</p>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:20px" class="card-grid">
+      <div class="decision" data-grounding="verified">
+        <span class="posture block">block</span>
+        <h4>D-007 · ADR-0007 — only the persistence adapter touches the data store</h4>
+        <dl>
+          <dt>Grounding</dt> <dd><span class="badge"></span> · <code>KB-0001@2026-09-13</code></dd>
+          <dt>Status</dt>    <dd><strong>accepted</strong> · review by 2027-03-11</dd>
+          <dt>Scope</dt>     <dd><code>src/**/persistence/**</code><br><code>xyz.briancorbin.pk.hex.persistence..</code></dd>
+          <dt>Enforcement</dt> <dd><span class="rule"><span class="tool">archunit</span> only_the_persistence_adapter_touches_data_access_apis</span><span class="rule"><span class="tool">semgrep</span> no_sql_write_to_positions_outside_adapter</span></dd>
+          <dt>Reason</dt>    <dd class="reason">Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.</dd>
+          <dt>Decision</dt>  <dd>Only <code>xyz.briancorbin.pk.hex.persistence</code> may reach the data-access APIs or write the positions store.</dd>
+        </dl>
+      </div>
+      <div class="decision" data-grounding="assumed">
+        <span class="posture warn">warn</span>
+        <h4>D-008 · DB-grant backstop for the positions table</h4>
+        <dl>
+          <dt>Grounding</dt> <dd><span class="badge"></span></dd>
+          <dt>Status</dt>    <dd><strong>accepted</strong></dd>
+          <dt>Scope</dt>     <dd><code>db/**</code></dd>
+          <dt>Enforcement</dt> <dd><strong>none</strong>, with reason — a database GRANT restricts writes on <code>positions</code> to the adapter's role. Operational; no static check exists, so it is recorded as unenforceable rather than pretended.</dd>
+          <dt>Reason</dt>    <dd class="reason">Even if a static rule is evaded, the database itself refuses a write to positions from any role but the adapter's.</dd>
+        </dl>
+      </div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:14px 0 0">Two accepted decisions, one honest gap. D-008 carries no executable check and <em>says so</em> — which is what lets the coverage report count it as excused rather than silently uncovered.</p>
+
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:24px 0 6px"><span style="font-family:'IBM Plex Mono',monospace">specs/002-downstream-consumers/design.html</span> — the record as authored</div>
+    <div class="code"><span class="t">&lt;spec-decision</span> <span class="k">id</span>=<span class="s">"D-007"</span> <span class="k">grounding</span>=<span class="s">"verified"</span> <span class="k">status</span>=<span class="s">"accepted"</span> <span class="k">posture</span>=<span class="s">"block"</span> <span class="k">review-by</span>=<span class="s">"2027-03-11"</span><span class="t">&gt;</span>
+  <span class="t">&lt;spec-scope&gt;</span>
+    <span class="t">&lt;spec-path&gt;</span>src/**/persistence/**<span class="t">&lt;/spec-path&gt;</span>
+    <span class="t">&lt;spec-module&gt;</span>xyz.briancorbin.pk.hex.persistence..<span class="t">&lt;/spec-module&gt;</span>
+  <span class="t">&lt;/spec-scope&gt;</span>
+  <span class="t">&lt;spec-enforcement&gt;</span>
+    <span class="t">&lt;spec-rule</span> <span class="k">tool</span>=<span class="s">"archunit"</span> <span class="k">id</span>=<span class="s">"only_the_persistence_adapter_touches_data_access_apis"</span>
+               <span class="k">run</span>=<span class="s">"./gradlew test --tests *DataAccessRulesTest"</span><span class="t">&gt;&lt;/spec-rule&gt;</span>
+    <span class="t">&lt;spec-rule</span> <span class="k">tool</span>=<span class="s">"semgrep"</span> <span class="k">id</span>=<span class="s">"no_sql_write_to_positions_outside_adapter"</span>
+               <span class="k">pattern</span>=<span class="s">"UPDATE\s+positions"</span> <span class="k">allowed-in</span>=<span class="s">"src/**/persistence/**"</span><span class="t">&gt;&lt;/spec-rule&gt;</span>
+  <span class="t">&lt;/spec-enforcement&gt;</span>
+  <span class="t">&lt;spec-reason&gt;</span>Every position change must emit PositionChanged so Risk, P&amp;L, and the audit
+    trail stay consistent; a direct write to the position store bypasses the emission
+    and the audit hooks that live in the adapter.<span class="t">&lt;/spec-reason&gt;</span>
+  <span class="t">&lt;h4&gt;</span>D-007 · ADR-0007 — only the persistence adapter touches the data store<span class="t">&lt;/h4&gt;</span>
+  <span class="t">&lt;p&gt;</span><span class="c">…Context / Decision / Consequences prose, as any Nygard card…</span><span class="t">&lt;/p&gt;</span>
+<span class="t">&lt;/spec-decision&gt;</span></div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.86rem;color:var(--ink-faint);margin:7px 0 0">→ A <span class="mono" style="font-size:.9em;color:var(--ink-soft)">decision-well-formed</span> rule in <span class="mono" style="font-size:.9em;color:var(--ink-soft)">spectastic validate</span> rejects an illegal status or posture, an accepted blocking decision with no scope, and an enforcement that is neither ≥1 rule nor exactly one <span class="mono" style="font-size:.9em;color:var(--ink-soft)">none</span> with a reason. Absent metadata leaves an older card exactly as it was. The decision is addressable: <span class="mono" style="font-size:.9em;color:var(--ink-soft)">spectastic://briancorbin/position-keeper-guardrails/decision/002-downstream-consumers/D-007</span>.</p>
+
+    <!-- show me -->
+    <h2 id="show-me" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Show me</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The same reconciliation request, routed three ways. Pick a route and watch which stage the change reaches — and where it dies. The outputs are the real commands' real output against the committed repo.</p>
+
+    <div style="margin-top:22px;background:var(--bg-raised);border:1px solid var(--rule);border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-family:'Lato',sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);margin-right:6px">Route the change</span>
+        <button class="seg" data-route="happy" aria-pressed="true">Through the use case</button>
+        <button class="seg" data-route="plan" aria-pressed="false">Write the table — in the design</button>
+        <button class="seg" data-route="merge" aria-pressed="false">Write the table — committed to a branch</button>
+      </div>
+      <p id="routeBlurb" style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:14px 0 0"></p>
+
+      <div class="stages" id="stages">
+        <div class="stage" data-stage="retrieve"><div class="sname">adrs --for</div><div class="sverb">retrieve · aid</div><div class="sres"></div></div>
+        <div class="stage" data-stage="plan"><div class="sname">validate</div><div class="sverb">design gate</div><div class="sres"></div></div>
+        <div class="stage" data-stage="merge"><div class="sname">verdict</div><div class="sverb">merge gate</div><div class="sres"></div></div>
+        <div class="stage" data-stage="teach"><div class="sname">--explain --teach</div><div class="sverb">teach · advisory</div><div class="sres"></div></div>
+      </div>
+      <div class="verdict-line" id="verdictLine"></div>
+
+      <div class="route-grid">
+        <div class="route-pane"><div class="lbl" id="leftLbl"></div><div class="code" id="leftPane"></div></div>
+        <div class="route-pane"><div class="lbl" id="rightLbl"></div><div class="term" id="rightPane"></div></div>
+      </div>
+
+      <p style="font-family:'Source Serif 4',serif;font-size:.84rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:16px 0 0">Two gates, one aid. Retrieval and injection <em>help</em> the agent get it right; the design constraint and the merge verdict are the guarantee — scripts that run and stop, reconstructable from disk, with no model anywhere on the path. The gate's answer is identical whether or not the agent read what was injected.</p>
+    </div>
+
+    <!-- killed twice -->
+    <h2 id="killed" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">Killed twice</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The layer is six stages — author → register → retrieve → inject → gate → teach — and the PR dies at two independent points. Both are deterministic. The second one also tells the author exactly why, and where to go instead.</p>
+
+    <div style="margin-top:24px;display:flex;flex-direction:column;gap:0">
+      <div class="step">
+        <div class="step-num" style="background:var(--sea)">1</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Retrieval surfaces the decision — by path, to a log</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Before writing, the agent (or the human) asks which decisions govern the paths about to change. The answer is a glob match over every active decision's scope — no embeddings, no ranking, the same paths always return the same decisions — and it writes a retrieval log so the plan's view can be diffed against the merge's.</p>
+          <div class="term" style="margin-top:12px">
+            <div><span style="color:var(--green)">$</span> spectastic adrs --for <span style="color:var(--sea)">src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java</span></div>
+            <div><span style="color:var(--crimson)">002-downstream-consumers/D-007</span>&nbsp; [<span style="color:var(--deny)">block</span>]&nbsp; archunit:only_the_persistence_adapter_touches_data_access_apis, semgrep:no_sql_write_to_positions_outside_adapter</div>
+            <div>&nbsp;&nbsp;governs: src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java</div>
+            <div style="color:var(--ink-faint)">Wrote .spectastic/adr-retrieval.json</div>
+          </div>
+          <p style="font-family:'Source Serif 4',serif;font-size:.88rem;line-height:1.5;color:var(--ink-faint);margin:10px 0 0">The same block — id, coordinate, reason — is injected into the <span class="mono" style="font-size:.9em;color:var(--ink-soft)">design</span> and <span class="mono" style="font-size:.9em;color:var(--ink-soft)">tasks</span> prompts, fenced as <em>data to account for</em>, never an instruction the tool obeys. It's an aid: an advisory prompt cannot be a guarantee, so nothing downstream assumes it was read.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--deny)">2</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Death at design — the plan constraint</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">A draft design's project-structure tree is its declared surface. If that surface touches a path governed by an accepted decision from <em>another</em> spec, the design must acknowledge it — by coordinate — or <span class="mono">spectastic validate</span> fails at the standard profile and up. spectastic has no diff at design time, only prose; this is a nudge where the PR should die in the happy path, and it binds forward-only (a new decision never retroactively fails the ninety-seven designs that shipped before it).</p>
+          <div class="term" style="margin-top:12px">
+            <div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">'specs/**/*.html'</span> &nbsp;<span style="color:var(--ink-faint)"># the 007 design touches src/**/persistence/** and says nothing about D-007</span></div>
+            <div style="color:var(--ink)">specs/007-reconciliation/design.html</div>
+            <div>&nbsp;&nbsp;1:1&nbsp; <span style="color:var(--deny)">error</span>&nbsp; this plan's surface touches "src/**/persistence/**", governed by decision</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 002-downstream-consumers/D-007, which it does not acknowledge&nbsp; <span style="color:var(--ink-faint)">plan-constraint</span></div>
+            <div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Acknowledge the decision by referencing 002-downstream-consumers/D-007 (its coordinate tail)</div>
+            <div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; in this design, or narrow the project-structure tree so it does not touch that path.</div>
+            <div style="color:var(--deny)">1 error, 0 warnings</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--deny)">3</div>
+        <div style="padding-bottom:24px">
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Death at merge — the verdict</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Skip spec and design entirely; commit <span class="mono">PositionReconciliationJob</span> straight to a branch. The merge gate judges the actual diff against the decisions governing it and composes a verdict — <span class="mono">{decision, rule, reason, file:line, source → target}</span> — persisted as plain JSON that reconstructs from the changed file and the decision record. Exit 1. The verdict kernel's transitive imports carry zero child-process modules: running a foreign command is not something it <em>can</em> do.</p>
+          <div class="term" style="margin-top:12px">
+            <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">docs/priya-pr/PositionReconciliationJob.java</span></div>
+            <div><span style="color:var(--deny);font-weight:600">VIOLATION</span> <span style="color:var(--crimson)">002-downstream-consumers/D-007</span> [no_sql_write_to_positions_outside_adapter] at docs/priya-pr/PositionReconciliationJob.java:<span style="color:var(--ink)">20</span></div>
+            <div>&nbsp;&nbsp;docs/priya-pr/PositionReconciliationJob.java → UPDATE\s+positions</div>
+            <div>&nbsp;&nbsp;Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct</div>
+            <div>&nbsp;&nbsp;write to the position store bypasses the emission and the audit hooks that live in the adapter.</div>
+            <div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout. Decisions owned by other repositories are not evaluated.</div>
+            <div style="color:var(--ink-faint)">Wrote .spectastic/verdict.json</div>
+            <div><span style="color:var(--deny)">exit 1</span></div>
+          </div>
+          <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:14px 0 6px"><span style="font-family:'IBM Plex Mono',monospace">.spectastic/verdict.json</span> — the artifact any CI or any tool's hook can read</div>
+          <div class="code">{
+  <span class="k">"at"</span>: <span class="s">"2026-09-13T20:25:32.587Z"</span>,
+  <span class="k">"scope"</span>: <span class="s">"repo-local"</span>,
+  <span class="k">"decisionsEvaluated"</span>: <span class="t">2</span>,
+  <span class="k">"changed"</span>: [<span class="s">"docs/priya-pr/PositionReconciliationJob.java"</span>],
+  <span class="k">"violations"</span>: [{
+    <span class="k">"decisionId"</span>: <span class="s">"D-007"</span>,  <span class="k">"specId"</span>: <span class="s">"002-downstream-consumers"</span>,
+    <span class="k">"ruleId"</span>: <span class="s">"no_sql_write_to_positions_outside_adapter"</span>,
+    <span class="k">"reason"</span>: <span class="s">"Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; …"</span>,
+    <span class="k">"file"</span>: <span class="s">"docs/priya-pr/PositionReconciliationJob.java"</span>,  <span class="k">"line"</span>: <span class="t">20</span>,
+    <span class="k">"detector"</span>: <span class="s">"content"</span>,
+    <span class="k">"source"</span>: <span class="s">"docs/priya-pr/PositionReconciliationJob.java"</span>,  <span class="k">"target"</span>: <span class="s">"UPDATE\\s+positions"</span>
+  }]
+}</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--purple)">4</div>
+        <div>
+          <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">A failure teaches — the explanation, then one question</h3>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">A terse <span class="mono">VIOLATION</span> line tells a reviewer <em>what fired</em>; it still sends them off to read the ADR. <span class="mono">--explain</span> renders each violation to the clarity floor of a triage card — the offending code in context, the decision made readable, the sanctioned path — composed entirely from the decision record and the changed file. <span class="mono">--teach</span> adds one Socratic question templated from the decision's reason, and never proposes a fix. Both are output-only: the exit code and the artifact are byte-identical with or without them.</p>
+          <div class="term" style="margin-top:12px;font-size:.74rem">
+            <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">docs/priya-pr/PositionReconciliationJob.java</span> --explain --teach</div>
+            <div style="color:var(--ink-faint)">VIOLATION 002-downstream-consumers/D-007 … <em>(as above)</em></div>
+            <div>&nbsp;</div>
+            <div style="color:var(--ink)">Explanation (advisory — the decision and the code, so you can act):</div>
+            <div>&nbsp;</div>
+            <div style="color:var(--crimson)">── D-007 · ADR-0007 — only the persistence adapter touches the data store ──</div>
+            <div>&nbsp;&nbsp;Rule no_sql_write_to_positions_outside_adapter · docs/priya-pr/PositionReconciliationJob.java:20</div>
+            <div>&nbsp;</div>
+            <div style="color:var(--ink)">&nbsp;&nbsp;Offending — the change the gate flagged:</div>
+            <div class="ln">      17|   public void reconcile(CustodianFile file) throws Exception {</div>
+            <div class="ln">      18|     for (CustodianRecord record : file.records()) {</div>
+            <div class="ln">      19|       try (PreparedStatement ps =</div>
+            <div class="ln" style="color:var(--deny)">  &gt;   20|           db.prepareStatement("UPDATE positions SET quantity = ? WHERE instrument = ?")) {</div>
+            <div class="ln">      21|         ps.setLong(1, record.quantity());</div>
+            <div class="ln">      22|         ps.setString(2, record.instrument());</div>
+            <div class="ln">      23|         ps.executeUpdate();</div>
+            <div>&nbsp;</div>
+            <div style="color:var(--ink)">&nbsp;&nbsp;Why it is a violation — the decision that governs this code:</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct write to</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;the position store bypasses the emission and the audit hooks that live in the adapter.</div>
+            <div>&nbsp;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">Context.</span> Spec FR-004 requires a single emitter; the emission guarantee is only as strong as the boundary around</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;the write. The domain reason is settlement consistency (KB-0001@2026-09-13): the book and its consumers must never</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;diverge silently. <span style="color:var(--ink)">Decision.</span> Only xyz.briancorbin.pk.hex.persistence may reach the data-access APIs or write the</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;positions store … <span style="color:var(--ink)">Consequences.</span> + Every position change provably emits the event; a new writer fails the gate.</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;− Legitimate new persistence code lives in the adapter package or extends the scope through a recorded amendment.</div>
+            <div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;Open the full decision: specs/002-downstream-consumers/design.html#D-007</div>
+            <div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;(spectastic://briancorbin/position-keeper-guardrails/decision/002-downstream-consumers/D-007)</div>
+            <div>&nbsp;</div>
+            <div style="color:var(--ink)">&nbsp;&nbsp;Sanctioned path — where this pattern is permitted instead:</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green)">src/**/persistence/**</span></div>
+            <div>&nbsp;</div>
+            <div style="color:var(--purple)">Teaching follow-up (advisory — reason for yourself, this is not a fix):</div>
+            <div>&nbsp;&nbsp;· Decision 002-downstream-consumers/D-007 exists so that: Every position change must emit PositionChanged … — this change</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;has docs/priya-pr/PositionReconciliationJob.java reaching UPDATE\s+positions. <span style="color:var(--ink)">What makes that necessary here,</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">rather than the path the decision intends?</span></div>
+          </div>
+          <p style="font-family:'Source Serif 4',serif;font-size:.88rem;line-height:1.5;color:var(--ink-faint);margin:10px 0 0">The reason appears in the ADR, in the verdict, in the explanation and in the question — and it is stored <em>once</em>. Delete it from the enforcer's <span class="mono" style="font-size:.9em;color:var(--ink-soft)">.because()</span> and nothing here changes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- residual -->
+    <h2 id="residual" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The residual — detector and explainer, split</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">spectastic is a Node CLI. It does not reimplement ArchUnit or Semgrep, and it never executes them. For language-agnostic rules — a path boundary, a forbidden pattern — it runs its own deterministic content detector. For a type-graph rule it <em>ingests</em> the ecosystem enforcer's SARIF and joins the rule-id back to the decision. Either way spectastic owns the one thing no architecture-test tool provides: the composition <span class="mono">rule-id ↔ decision-id ↔ reason ↔ location</span>.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px" class="card-grid">
+      <div style="background:var(--bg-raised);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:14px;padding:18px 20px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green)">The sanctioned writer · silent</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px"><span class="mono">JdbcPositionRepositoryAdapter</span> runs the <em>identical</em> <span class="mono">UPDATE positions</span> — and emits <span class="mono">PositionChanged</span> in the same transaction. It sits inside <span class="mono">src/**/persistence/**</span>, the rule's <span class="mono">allowed-in</span>, so the content detector says nothing.</p>
+        <div class="term" style="font-size:.72rem">
+          <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">src/…/persistence/JdbcPositionRepositoryAdapter.java</span></div>
+          <div style="color:var(--green)">verdict: no governance violations in the changed paths.</div>
+          <div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout.</div>
+          <div><span style="color:var(--green)">exit 0</span></div>
+        </div>
+      </div>
+      <div style="background:var(--bg-raised);border:1px solid color-mix(in srgb,var(--purple) 35%,transparent);border-radius:14px;padding:18px 20px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple)">ArchUnit's finding · ingested, never run</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.94rem;line-height:1.5;color:var(--ink-soft);margin:8px 0 10px">CI runs the fitness function and emits SARIF. spectastic reads it, maps <span class="mono">only_the_persistence_adapter_touches_data_access_apis</span> to D-007, and composes the <em>same</em> reason — a second violation, from a detector spectastic didn't write.</p>
+        <div class="term" style="font-size:.72rem">
+          <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">docs/priya-pr/…Job.java</span> --enforcer-output <span style="color:var(--sea)">enforcement/archunit-results.sarif</span></div>
+          <div><span style="color:var(--deny);font-weight:600">VIOLATION</span> 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at …Job.java:20</div>
+          <div><span style="color:var(--deny);font-weight:600">VIOLATION</span> 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at …Job.java:15</div>
+          <div>&nbsp;&nbsp;…Job.java → only_the_persistence_adapter_touches_data_access_apis</div>
+          <div>&nbsp;&nbsp;Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; …</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:24px 0 6px">The blind spot, made visible — <span style="font-family:'IBM Plex Mono',monospace">spectastic adrs --coverage</span></div>
+    <div class="term">
+      <div><span style="color:var(--green)">$</span> spectastic adrs --coverage</div>
+      <div>decision coverage: <span style="color:var(--ink)">1/2</span> active decisions carry an executable check (50%)</div>
+      <div>&nbsp;&nbsp;excused (none-with-reason): <span style="color:var(--amber)">1</span> &nbsp;<span style="color:var(--ink-faint)"># D-008 — the DB grant, operational, honestly unenforceable</span></div>
+      <div>&nbsp;&nbsp;uncovered: <span style="color:var(--green)">0</span></div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.88rem;line-height:1.5;color:var(--ink-faint);margin:10px 0 0">This is the number that would have made &ldquo;the ADR governing positions has no check&rdquo; visible <em>before</em> the incident. It counts a wired rule-id, not a green run — present is not the same as live, and the report says so.</p>
+
+    <!-- rubric -->
+    <h2 id="rubric" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The rubric, scored twice</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">Before building the layer, spectastic scored itself against Valmis's rubric under a harsh bar — a row is <em>full</em> only against a committed passing test — and came out <strong style="color:var(--ink)">2 full · 5 partial · 3 does-not</strong>. The Priya PR would have passed. After seven specs and this example: <strong style="color:var(--ink)">9 full · 1 partial · 0</strong>, with the one partial kept on purpose.</p>
+    <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow-x:auto">
+      <table class="rub">
+        <thead><tr><th>#</th><th>Rubric item</th><th>Was</th><th>Now</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Structured decision corpus — precedence, lifecycle, supersedes</td><td><span class="v partial">partial</span></td><td><span class="v full">full</span></td><td>The extended <span class="mono">&lt;spec-decision&gt;</span>; overlapping scopes without <span class="mono">supersedes</span> are reported, never silently resolved.</td></tr>
+          <tr><td>2</td><td>Reliable retrieval — path-scoped, deterministic, logged</td><td><span class="v no">does not</span></td><td><span class="v full">full</span></td><td><span class="mono">adrs --for</span> + the retrieval log.</td></tr>
+          <tr><td>3</td><td>Context injection before writing</td><td><span class="v no">does not</span></td><td><span class="v partial">partial</span></td><td>Real, tested injection into design and tasks; at the code-writing moment it is an advisory nudge, because an advisory prompt cannot be a guarantee. Kept partial on purpose.</td></tr>
+          <tr><td>4</td><td>Deterministic CI enforcement, decision-traceable</td><td><span class="v partial">partial</span></td><td><span class="v full">full</span></td><td>The plan constraint and the merge verdict.</td></tr>
+          <tr><td>5</td><td>Not an agent</td><td><span class="v partial">partial</span></td><td><span class="v full">full</span></td><td>A test asserts the verdict kernel imports zero child-process modules.</td></tr>
+          <tr><td>6</td><td>Not RAG-as-verdict</td><td><span class="v partial">partial</span></td><td><span class="v full">full</span></td><td>A gate-independence test: injection never changes the verdict.</td></tr>
+          <tr><td>7</td><td>Not AI-reviews-AI</td><td><span class="v full">full</span></td><td><span class="v full">full</span></td><td>Unchanged — the critic recommends, the deterministic gate decides.</td></tr>
+          <tr><td>8</td><td>Not vendor-locked</td><td><span class="v full">full</span></td><td><span class="v full">full</span></td><td>A Node CLI and plain JSON; <span class="mono">AGENTS.md</span> points at the commands and restates no ADR.</td></tr>
+          <tr><td>9</td><td>Enforcement coverage is visible</td><td><span class="v no">does not</span></td><td><span class="v full">full</span></td><td><span class="mono">adrs --coverage</span>.</td></tr>
+          <tr><td>10</td><td>A failure teaches</td><td><span class="v partial">partial</span></td><td><span class="v full">full</span></td><td>Reason composition, <span class="mono">--explain</span>, <span class="mono">--teach</span>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">Items 9 and 10 are spectastic's additions to the rubric. Building the layer also taught two things the rubric doesn't name: a governance layer needs <em>forward-only binding</em> — a new decision binds work in flight, not history — and &ldquo;a failure teaches&rdquo; has two halves, the data and the rendering; full data behind a one-line render reads as done and is not.</p>
+
+    <!-- honest -->
+    <h2 id="honest" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">What it can't see</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">A guardrail that overstates its reach is a guardrail nobody should trust. Three boundaries, recorded in the tool rather than in the marketing.</p>
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px">
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:16px 18px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)">The verdict is repo-local, and says so</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Retrieval reads this checkout's <span class="mono">specs/*/design.html</span>; a decision's scope is a repo-relative glob. Split the estate into services and a decision in the position-keeper repo is invisible to a verdict in Priya's repo. So a green verdict carries <span class="mono">"scope": "repo-local"</span> and the count of decisions it evaluated — a repo-local green, reconstructable as exactly that, never misread as an estate-wide guarantee.</p>
+      </div>
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:16px 18px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)">Wrong service is a placement question, not an enforcement one</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">Database-per-service saves you from the wrong thing. Per-service grants stop Priya <em>reaching into</em> the position store; nothing stops her <em>rebuilding</em> its responsibility inside the repo her team knows. That's a boundary duplication, not a bypass — Conway's Law operating as designed — and it is invisible to every mechanical check for a <em>correct</em> reason. spectastic keeps it where the industry does: a design-time, human-confirmed suggestion, never a merge gate.</p>
+      </div>
+      <div style="background:var(--bg-raised);border:1px solid var(--rule);border-radius:12px;padding:16px 18px">
+        <div style="font-family:'Lato',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)">Injection is an aid; the gate is the guarantee</div>
+        <p style="font-family:'Source Serif 4',serif;font-size:.95rem;line-height:1.5;color:var(--ink-soft);margin:6px 0 0">The governing decisions are injected before writing — but a prompt is a channel the model may ignore, and spectastic has watched a weaker model ignore one. Injection improves the odds the gate stays quiet. The gate fires regardless, and a test proves its answer is the same whether or not the block was injected.</p>
+      </div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:14px 0 0">Also honest: the Java is representative of the target architecture, not a full Gradle build. The point is not that a project compiles — it is that a decision recorded as data, two and a half years before a request that tests it, is surfaced and enforced deterministically.</p>
+
+    <!-- artifacts -->
+    <h2 id="artifacts" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The artifacts</h2>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:12px 0 0">The <a href="https://github.com/spectastic/example-position-keeper-guardrails" target="_blank" rel="noopener" class="lnk-crimson" style="font-family:inherit;font-size:.98em"><span class="mono" style="color:inherit">position-keeper-guardrails</span> repo</a>, bundled here: seven specs, the decision record, the sanctioned writer and the bypass, the enforcement rules, and the seven demonstrations with their committed output. Every artifact passes <span class="mono">spectastic validate</span>.</p>
+    <div style="margin-top:20px;border:1px solid var(--rule);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--bg-raised)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/guardrails/specs/002-downstream-consumers/design.html" style="color:var(--crimson);text-decoration:none">002 · the decision</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Where ADR-0007 was born — FR-004, D-007 with scope / enforcement / reason, D-008 the excused backstop</span><div class="artifact-links" style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/guardrails/specs/002-downstream-consumers/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/guardrails/specs/002-downstream-consumers/design.html" style="color:var(--sea);text-decoration:none">design</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/guardrails/specs/007-reconciliation/design.html" style="color:var(--crimson);text-decoration:none">007 · the request</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The reconciliation spec and its happy-path design — the one that acknowledges D-007 and routes through the use case</span><div class="artifact-links" style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/guardrails/specs/007-reconciliation/spec.html" style="color:var(--sea);text-decoration:none">spec</a> · <a href="examples/guardrails/specs/007-reconciliation/design.html" style="color:var(--sea);text-decoration:none">design</a> · <a href="examples/guardrails/docs/timeline.md" style="color:var(--sea);text-decoration:none">timeline</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/guardrails/docs/priya-pr/PositionReconciliationJob.java" style="color:var(--deny);text-decoration:none">↳ the bypass</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">Priya's PR — the direct <span class="mono" style="font-size:.9em">UPDATE positions</span>, next to the sanctioned writer it should have gone through</span><div class="artifact-links" style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/guardrails/docs/priya-pr/PositionReconciliationJob.java" style="color:var(--sea);text-decoration:none">PositionReconciliationJob.java</a> · <a href="examples/guardrails/src/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java" style="color:var(--sea);text-decoration:none">JdbcPositionRepositoryAdapter.java</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule)"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="examples/guardrails/enforcement/DataAccessRulesTest.java" style="color:var(--purple);text-decoration:none">enforcement/</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The detectors — the ArchUnit fitness function, the Semgrep content rule, the SARIF spectastic ingests</span><div class="artifact-links" style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/guardrails/enforcement/DataAccessRulesTest.java" style="color:var(--sea);text-decoration:none">ArchUnit</a> · <a href="examples/guardrails/enforcement/semgrep-positions.yaml" style="color:var(--sea);text-decoration:none">Semgrep</a> · <a href="examples/guardrails/enforcement/archunit-results.sarif" style="color:var(--sea);text-decoration:none">SARIF</a></div></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;padding:14px 18px"><code style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;flex:0 0 13rem"><a href="https://github.com/spectastic/example-position-keeper-guardrails/tree/main/demonstrations" target="_blank" rel="noopener" style="color:var(--amber);text-decoration:none">▷ demonstrations/</a></code><div style="flex:1;min-width:0"><span style="font-family:'Source Serif 4',serif;font-size:.96rem;color:var(--ink-soft)">The seven behaviors, each reproducible from the repo root, with committed output · <a href="https://github.com/spectastic/example-position-keeper-guardrails" target="_blank" rel="noopener" style="color:var(--amber);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--amber) 45%,transparent)">the whole repo on GitHub&nbsp;↗</a></span><div class="artifact-links" style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint)"><a href="examples/guardrails/demonstrations/2-plan-bypass.txt" style="color:var(--sea);text-decoration:none">2 · plan</a> · <a href="examples/guardrails/demonstrations/3-merge-bypass.txt" style="color:var(--sea);text-decoration:none">3 · merge</a> · <a href="examples/guardrails/demonstrations/3-verdict.json" style="color:var(--sea);text-decoration:none">verdict.json</a> · <a href="examples/guardrails/demonstrations/4-residual.txt" style="color:var(--sea);text-decoration:none">4 · residual</a> · <a href="examples/guardrails/demonstrations/5-coverage.txt" style="color:var(--sea);text-decoration:none">5 · coverage</a> · <a href="examples/guardrails/demonstrations/7-teaching.txt" style="color:var(--sea);text-decoration:none">7 · teaching</a></div></div></div>
+    </div>
+    <p style="font-family:'Source Serif 4',serif;font-style:italic;font-size:.9rem;color:var(--ink-faint);margin:14px 0 0">These are the real, rendered artifacts — the same files <span class="mono" style="font-style:normal;font-size:.9em">spectastic validate</span> checks and the same repo the commands above ran against; the excerpts are drawn from them.</p>
+
+    <div style="margin-top:56px;padding-top:26px;border-top:1px solid var(--rule);display:flex;gap:18px;flex-wrap:wrap">
+      <a href="#show-me" class="btn-primary">▷ &nbsp;Show me</a>
+      <a href="https://github.com/spectastic/example-position-keeper-guardrails" target="_blank" rel="noopener" class="btn-secondary">View source on GitHub&nbsp;↗</a>
+      <a href="examples.html" class="btn-secondary">← All examples</a>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function syncIcons(){
+    const dark = root.dataset.theme === 'dark';
+    toggle.querySelector('.theme-sun').style.display = dark ? '' : 'none';
+    toggle.querySelector('.theme-moon').style.display = dark ? 'none' : '';
+  }
+  try {
+    const saved = localStorage.getItem('spectastic-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch(e){}
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('spectastic-theme', next); } catch(e){}
+    syncIcons();
+  });
+})();
+
+// The route widget — the same reconciliation request routed three ways. The
+// panes are the real command output against the committed repo; nothing is
+// simulated except the choice of route.
+(function(){
+  const REASON = 'Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.';
+  const PRIYA = [
+    '<span class="c">// docs/priya-pr/PositionReconciliationJob.java — outside the adapter package</span>',
+    '<span class="k">package</span> xyz.briancorbin.pk.recon;',
+    '',
+    '<span class="k">public final class</span> <span class="t">PositionReconciliationJob</span> {',
+    '  <span class="k">private final</span> <span class="t">Connection</span> db;',
+    '',
+    '  <span class="k">public void</span> <span class="t">reconcile</span>(<span class="t">CustodianFile</span> file) <span class="k">throws</span> Exception {',
+    '    <span class="k">for</span> (<span class="t">CustodianRecord</span> record : file.records()) {',
+    '      <span class="k">try</span> (<span class="t">PreparedStatement</span> ps =',
+    '<span class="hl">          db.prepareStatement(<span class="s">"UPDATE positions SET quantity = ? WHERE instrument = ?"</span>)) {</span>',
+    '        ps.setLong(1, record.quantity());',
+    '        ps.setString(2, record.instrument());',
+    '        ps.executeUpdate();   <span class="c">// no PositionChanged. Risk, P&amp;L, audit never hear.</span>',
+    '      }',
+    '    }',
+    '  }',
+    '}'
+  ].join('\n');
+  const HAPPY_DESIGN = [
+    '<span class="c">&lt;!-- specs/007-reconciliation/design.html · §1 Principles check --&gt;</span>',
+    '<span class="t">&lt;h3&gt;</span>Governing decisions acknowledged<span class="t">&lt;/h3&gt;</span>',
+    '<span class="t">&lt;p&gt;</span>This plan\'s surface touches the persistence package, governed by',
+    '<span class="a">002-downstream-consumers/D-007</span> (ADR-0007 — only the persistence adapter',
+    'touches the data store). The plan honours it: corrections are applied',
+    'through the position use case (which emits the event), and the only',
+    'persistence-package addition is a read-side snapshot reader that uses',
+    'the existing adapter — it adds no new writer.<span class="t">&lt;/p&gt;</span>',
+    '',
+    '<span class="c">&lt;!-- §9 Project structure — the declared surface --&gt;</span>',
+    'src/xyz/briancorbin/pk/hex/recon/ReconciliationJob.java',
+    'src/xyz/briancorbin/pk/hex/recon/CustodianFileParser.java',
+    'src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  <span class="c"># read-only</span>'
+  ].join('\n');
+  const PLAN_DESIGN = [
+    '<span class="c">&lt;!-- specs/007-reconciliation/design.html · the same design, acknowledgment stripped --&gt;</span>',
+    '<span class="t">&lt;h2&gt;</span>1 · Principles check<span class="t">&lt;/h2&gt;</span>',
+    '<span class="t">&lt;p&gt;</span>The reconciliation reads the store and writes corrected quantities.<span class="t">&lt;/p&gt;</span>',
+    '',
+    '<span class="c">&lt;!-- no "Governing decisions acknowledged" section.</span>',
+    '<span class="c">     "002-downstream-consumers/D-007" appears nowhere in the file. --&gt;</span>',
+    '',
+    '<span class="c">&lt;!-- §9 Project structure — the declared surface, unchanged --&gt;</span>',
+    'src/xyz/briancorbin/pk/hex/recon/ReconciliationJob.java',
+    'src/xyz/briancorbin/pk/hex/recon/CustodianFileParser.java',
+    'src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  <span class="c"># touches the governed path</span>'
+  ].join('\n');
+
+  const T = s => s; // terminal lines are authored as HTML
+  const ROUTES = {
+    happy: {
+      blurb: 'The design acknowledges D-007 by coordinate and routes every correction through the position use case — which emits the event. Retrieval surfaced the decision; the design constraint is satisfied; nothing in the diff writes the store from outside the adapter.',
+      stages: { retrieve:['ok','D-007 surfaced for the persistence path'], plan:['ok','acknowledged · no findings'], merge:['ok','no violations · exit 0'], teach:['skip','nothing to teach'] },
+      verdict: ['ok','✓ Merges. Every correction emits PositionChanged.'],
+      left: ['The design — what was written', HAPPY_DESIGN],
+      right: ['What the gates said', [
+        '<div><span style="color:var(--green)">$</span> spectastic adrs --for <span style="color:var(--sea)">src/…/persistence/CustodianSnapshotReader.java</span></div>',
+        '<div><span style="color:var(--crimson)">002-downstream-consumers/D-007</span> [<span style="color:var(--deny)">block</span>] archunit:…, semgrep:…</div>',
+        '<div>&nbsp;&nbsp;governs: src/…/persistence/CustodianSnapshotReader.java</div>',
+        '<div>&nbsp;</div>',
+        '<div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">\'specs/**/*.html\'</span></div>',
+        '<div style="color:var(--green)">✓ no findings</div>',
+        '<div>&nbsp;</div>',
+        '<div><span style="color:var(--green)">$</span> spectastic verdict &nbsp;<span style="color:var(--ink-faint)"># git diff --cached HEAD</span></div>',
+        '<div style="color:var(--green)">verdict: no governance violations in the changed paths.</div>',
+        '<div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout.</div>',
+        '<div><span style="color:var(--green)">exit 0</span></div>'
+      ].join('')]
+    },
+    plan: {
+      blurb: 'The agent skipped retrieval (or ignored what was injected) and drafted a design that writes the table. Its declared surface touches src/**/persistence/** — governed by an accepted decision from another spec — and never acknowledges it. The design gate fails before a line of code exists.',
+      stages: { retrieve:['skip','not run — or ignored'], plan:['fail','plan-constraint · error'], merge:['skip','never reached'], teach:['skip','—'] },
+      verdict: ['fail','✕ Dies at design. The plan cannot be accepted.'],
+      left: ['The design — the acknowledgment removed', PLAN_DESIGN],
+      right: ['What the gate said', [
+        '<div><span style="color:var(--green)">$</span> spectastic validate <span style="color:var(--sea)">\'specs/**/*.html\'</span></div>',
+        '<div style="color:var(--ink)">specs/007-reconciliation/design.html</div>',
+        '<div>&nbsp;&nbsp;1:1&nbsp; <span style="color:var(--deny)">error</span>&nbsp; this plan\'s surface touches "src/**/persistence/**",</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; governed by decision 002-downstream-consumers/D-007,</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; which it does not acknowledge&nbsp; <span style="color:var(--ink-faint)">plan-constraint</span></div>',
+        '<div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Acknowledge the decision by referencing 002-downstream-consumers/D-007</div>',
+        '<div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (its coordinate tail) in this design, or narrow the project-structure</div>',
+        '<div style="color:var(--ink-faint)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tree so it does not touch that path.</div>',
+        '<div style="color:var(--deny)">1 error, 0 warnings</div>',
+        '<div><span style="color:var(--deny)">exit 1</span></div>'
+      ].join('')]
+    },
+    merge: {
+      blurb: 'No spec, no design — the job is committed straight to a branch. The merge gate judges the actual diff against the decisions governing it: a content detector finds UPDATE positions outside the sanctioned path, joins it to D-007, and composes the verdict from the decision\'s own reason. Then it explains, and asks one question.',
+      stages: { retrieve:['skip','skipped entirely'], plan:['skip','no design to gate'], merge:['fail','VIOLATION D-007 · exit 1'], teach:['teach','explained + one question'] },
+      verdict: ['fail','✕ Dies at merge — and the author learns why, and where to go instead.'],
+      left: ['The PR — what was committed', PRIYA],
+      right: ['What the gate said', [
+        '<div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">docs/priya-pr/PositionReconciliationJob.java</span> --explain --teach</div>',
+        '<div><span style="color:var(--deny);font-weight:600">VIOLATION</span> <span style="color:var(--crimson)">002-downstream-consumers/D-007</span> [no_sql_write_to_positions_outside_adapter]</div>',
+        '<div>&nbsp;&nbsp;at docs/priya-pr/PositionReconciliationJob.java:<span style="color:var(--ink)">20</span></div>',
+        '<div>&nbsp;&nbsp;…Job.java → UPDATE\\s+positions</div>',
+        '<div>&nbsp;&nbsp;' + REASON + '</div>',
+        '<div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout.</div>',
+        '<div>&nbsp;</div>',
+        '<div style="color:var(--crimson)">── D-007 · ADR-0007 — only the persistence adapter touches the data store ──</div>',
+        '<div style="color:var(--ink)">&nbsp;&nbsp;Offending — the change the gate flagged:</div>',
+        '<div class="ln">      19|       try (PreparedStatement ps =</div>',
+        '<div class="ln" style="color:var(--deny)">  &gt;   20|           db.prepareStatement("UPDATE positions SET quantity = ? …</div>',
+        '<div class="ln">      21|         ps.setLong(1, record.quantity());</div>',
+        '<div style="color:var(--ink)">&nbsp;&nbsp;Why it is a violation — the decision that governs this code:</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;' + REASON + ' <span style="color:var(--ink-faint)">… Context / Decision / Consequences …</span></div>',
+        '<div style="color:var(--ink)">&nbsp;&nbsp;Sanctioned path — where this pattern is permitted instead:</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green)">src/**/persistence/**</span></div>',
+        '<div>&nbsp;</div>',
+        '<div style="color:var(--purple)">Teaching follow-up (advisory — reason for yourself, this is not a fix):</div>',
+        '<div>&nbsp;&nbsp;· Decision 002-downstream-consumers/D-007 exists so that: … — this change has …Job.java reaching UPDATE\\s+positions.</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">What makes that necessary here, rather than the path the decision intends?</span></div>',
+        '<div style="color:var(--ink-faint)">Wrote .spectastic/verdict.json</div>',
+        '<div><span style="color:var(--deny)">exit 1</span></div>'
+      ].join('')]
+    }
+  };
+
+  const btns = [...document.querySelectorAll('.seg[data-route]')];
+  const stages = document.getElementById('stages');
+  const blurb = document.getElementById('routeBlurb');
+  const vline = document.getElementById('verdictLine');
+  const leftLbl = document.getElementById('leftLbl'), leftPane = document.getElementById('leftPane');
+  const rightLbl = document.getElementById('rightLbl'), rightPane = document.getElementById('rightPane');
+
+  function render(key){
+    const r = ROUTES[key];
+    btns.forEach(b => b.setAttribute('aria-pressed', b.dataset.route === key));
+    blurb.textContent = r.blurb;
+    for (const [name, [state, text]] of Object.entries(r.stages)) {
+      const el = stages.querySelector(`[data-stage="${name}"]`);
+      el.dataset.state = state;
+      el.querySelector('.sres').textContent = text;
+    }
+    vline.className = 'verdict-line ' + r.verdict[0];
+    vline.textContent = r.verdict[1];
+    leftLbl.textContent = r.left[0]; leftPane.innerHTML = r.left[1];
+    rightLbl.textContent = r.right[0]; rightPane.innerHTML = r.right[1];
+  }
+  btns.forEach(b => b.addEventListener('click', () => render(b.dataset.route)));
+  render('happy');
+})();
+</script>
+<script>
+/* scroll-driven spectrum: header mark rotates with page progress */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root=document.documentElement, ticking=false;
+  function onScroll(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=window.scrollY||0, max=root.scrollHeight-window.innerHeight;
+      root.style.setProperty('--sp', (max>0?Math.min(y/max,1):0).toFixed(4));
+      ticking=false;
+    });
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# ADR-0007's content rule (002-downstream-consumers/D-007), added when JDBC
+# arrived (feature 003). Catches a direct write to positions from outside the
+# adapter — the residual case the ArchUnit type-graph rule cannot see.
+rules:
+  - id: no_sql_write_to_positions_outside_adapter
+    languages: [java]
+    severity: ERROR
+    message: >
+      Direct write to positions outside the persistence adapter violates ADR-0007
+      (002-downstream-consumers/D-007). Route the change through the position use
+      case so it emits PositionChanged.
+    paths:
+      exclude: ["src/**/persistence/**"]
+    patterns:
+      - pattern-regex: 'UPDATE\s+positions'

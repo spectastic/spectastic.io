@@ -1,0 +1,5 @@
+# Demo 2 — forced bypass caught at PLAN
+The draft 007 design touches src/**/persistence/** but omits the ADR-0007 acknowledgment.
+$ spectastic validate   # standard profile; the plan-stage constraint is a folded scan
+
+  [2m1:1[22m  [31merror[39m  this plan's surface touches "src/**/persistence/**", governed by decision 002-downstream-consumers/D-007, which it does not acknowledge  [2mplan-constraint[22m

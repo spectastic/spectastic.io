@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-13T17:19:25.764Z",
+  "paths": [
+    "src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java"
+  ],
+  "governing": [
+    {
+      "coordinate": "spectastic://position-keeper-guardrails/decision/002-downstream-consumers/D-007",
+      "specId": "002-downstream-consumers",
+      "id": "D-007",
+      "matchedPaths": [
+        "src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java"
+      ]
+    }
+  ]
+}

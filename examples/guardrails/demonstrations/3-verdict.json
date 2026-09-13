@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-13T20:34:10.398Z",
+  "scope": "repo-local",
+  "decisionsEvaluated": 2,
+  "changed": [
+    "docs/priya-pr/PositionReconciliationJob.java"
+  ],
+  "violations": [
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "no_sql_write_to_positions_outside_adapter",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "docs/priya-pr/PositionReconciliationJob.java",
+      "detector": "content",
+      "line": 20,
+      "source": "docs/priya-pr/PositionReconciliationJob.java",
+      "target": "UPDATE\\s+positions"
+    }
+  ]
+}

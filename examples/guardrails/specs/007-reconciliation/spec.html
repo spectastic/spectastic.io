@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Nightly reconciliation · Specification</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+<header>
+  <p class="small-caps">Specification · 007-reconciliation</p>
+  <h1>Nightly reconciliation</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    "Add a nightly job that corrects positions from the custodian file." The request that, two years and five features after
+    ADR-0007 was written, tests whether the guardrail still holds.</p>
+  <spec-meta>
+    <b>Status</b>      <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Spec ID</b>     <span>007-reconciliation</span>
+    <b>Owner</b>       <span>Ops Engineering</span>
+    <b>Reviewers</b>   <span>Position Keeping team</span>
+    <b>Created</b>     <span><time datetime="2026-09-13">13 Sep 2026</time></span>
+    <b>Principles</b><span><a href="../../principles.html">v1.0.0</a></span>
+    <b>Smallest demoable</b><span>The nightly job reads the custodian file, computes deltas, and corrects each position through the position use case, so every correction emits PositionChanged.</span>
+    <b>Read time</b>   <span data-reading-time></span>
+  </spec-meta>
+  <spec-budget words="900" reqs="6" minutes="7"></spec-budget>
+  <spec-tldr>
+    <p>A nightly job reconciles the position store against the custodian's end-of-day file, correcting drift. It touches
+    positions — the surface ADR-0007 governs — so the guardrail requires it to correct through the position use case (which emits
+    <code>PositionChanged</code>), never by writing the store directly. This spec is the setup for the seven demonstrations: the
+    same request, driven the right way and several wrong ways, against a decision written long before anyone thought about
+    reconciliation.</p>
+  </spec-tldr>
+  <dl class="invest">
+    <dt><span class="letter">I</span> Independent</dt> <dd>Builds on the position core (001) and the adapter (003).</dd>
+    <dt><span class="letter">N</span> Negotiable</dt>  <dd>Outcomes contract; the file format and schedule are the design's.</dd>
+    <dt><span class="letter">V</span> Valuable</dt>    <dd>Unlocks <a href="#SC-001">SC-001</a> — positions stay reconciled to the custodian of record.</dd>
+    <dt><span class="letter">E</span> Estimable</dt>   <dd>Plan derivable; the use case and store already exist.</dd>
+    <dt><span class="letter">S</span> Small</dt>       <dd>One job, one file, deltas through the use case. Six requirements.</dd>
+    <dt><span class="letter">T</span> Testable</dt>    <dd>Every requirement observable via a corrected position and its emitted event.</dd>
+  </dl>
+  <spec-audience-map><dl>
+    <dt>Exec / PM</dt>   <dd>§<a href="#context">Context</a>, §<a href="#success">Success criteria</a>.</dd>
+    <dt>Reviewer</dt>    <dd>§<a href="#requirements">Requirements</a>, §<a href="#questions">Open questions</a>.</dd>
+    <dt>Implementer</dt> <dd>§<a href="#requirements">Requirements</a>, §<a href="#data">Data model</a>.</dd>
+  </dl></spec-audience-map>
+</header>
+
+<section id="context">
+<h2>1 · Context</h2>
+<p>Positions drift from the custodian's records — a corporate action booked late, a settlement fail. The custodian sends an
+end-of-day file; a nightly job must bring the store into line. The naive implementation writes the corrected quantities straight
+into the positions table, which is fast, clean, and exactly what ADR-0007 forbids: a direct write bypasses the
+<code>PositionChanged</code> emission, so Risk, P&amp;L, and the audit trail never learn the position moved. The reconciliation
+must correct <em>through the use case</em>, emitting an event per correction.</p>
+</section>
+
+<section id="scenarios">
+<h2>2 · User scenarios &amp; testing</h2>
+<p><strong>A drifted position is corrected — audibly.</strong> The custodian file shows a quantity that differs from the store;
+the job computes the delta and applies it through the position use case, which emits <code>PositionChanged</code>. Risk and P&amp;L
+see the correction.</p>
+<p><strong>No direct write.</strong> The job never touches the positions table directly; the correction path is the same adapter
+every other mutation uses.</p>
+</section>
+
+<section id="requirements">
+<h2>3 · Requirements</h2>
+<spec-requirement id="FR-001" priority="must">The job MUST read the custodian end-of-day file and compute, per instrument, the delta between the custodian quantity and the stored quantity.</spec-requirement>
+<spec-requirement id="FR-002" priority="must">Each correction MUST be applied through the position use case, so every corrected position emits a <code>PositionChanged</code> event — the job MUST NOT write the position store directly. (This is what ADR-0007 governs.)</spec-requirement>
+<spec-requirement id="FR-003" priority="must">A correction MUST carry a synthetic <code>tradeId</code> identifying the reconciliation run, so consumers stay idempotent and the audit trail attributes the change.</spec-requirement>
+<spec-requirement id="FR-004" priority="should">The job SHOULD be re-runnable for the same custodian file without double-correcting (idempotent on the run's <code>tradeId</code>).</spec-requirement>
+<spec-requirement id="NFR-001" priority="must">A reconciliation run MUST leave the store and the emitted events consistent: no position is corrected without a matching event.</spec-requirement>
+<spec-out-of-scope>
+<ul>
+  <li defer-to="TBD-custodian-file-transport"><strong>How the custodian file arrives</strong> (SFTP, drop) — an ops concern.</li>
+  <li defer-to="TBD-recon-alerting"><strong>Alerting on large drift</strong> — a later observability feature.</li>
+</ul>
+</spec-out-of-scope>
+</section>
+
+<section id="data">
+<h2>4 · Data model</h2>
+<dl>
+  <dt>Custodian record</dt><dd>An instrument and the custodian's settled end-of-day quantity — the source of truth to reconcile against.</dd>
+  <dt>Correction</dt><dd>A delta applied through the use case, carrying a reconciliation <code>tradeId</code>; it emits an event.</dd>
+</dl>
+</section>
+
+<section id="success">
+<h2>5 · Success criteria</h2>
+<spec-criterion id="SC-001" priority="must" actor="the Risk desk" validates="FR-001,FR-002,NFR-001" method="test">
+After a reconciliation run over a file with drift, every corrected position has emitted a <code>PositionChanged</code> event that
+Risk observed, and the store matches the custodian quantities.
+<details><summary>Observed at</summary><p>An integration test running the job over a fixture custodian file and asserting one event per correction.</p></details>
+</spec-criterion>
+<spec-criterion id="SC-002" priority="should" actor="an operator" validates="FR-003,FR-004" method="test">
+Re-running the job over the same custodian file produces no second correction (idempotent on the run's <code>tradeId</code>).
+<details><summary>Observed at</summary><p>A test running the job twice over one file and asserting a single correction per instrument.</p></details>
+</spec-criterion>
+</section>
+
+<section id="assumptions"><h2>6 · Assumptions</h2><ul>
+  <li>The position use case (001) accepts an externally-supplied <code>tradeId</code> for attribution.</li>
+  <li>Reconciliation is against the custodian's settled snapshot (<code>KB-0001@2026-09-13</code>): the book is trade-date, the custodian is settlement-date, and the window between them is where drift lives.</li>
+</ul></section>
+<section id="questions"><h2>7 · Open questions</h2><p>None outstanding — the correction path (through the use case) is dictated by ADR-0007.</p></section>
+<section id="conformance"><h2>8 · Conformance index</h2><spec-conformance></spec-conformance></section>
+<section id="changelog"><h2>9 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-13">13 Sep 2026</time><span>Drafted — the reconciliation request. Its design (and the seven demonstrations) test whether ADR-0007, written in feature 002, still holds after five intervening features.</span></li>
+</ol></spec-changelog></section>
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>
