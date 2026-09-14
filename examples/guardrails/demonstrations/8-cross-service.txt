@@ -1,0 +1,20 @@
+# Demo 8 — ownership, not layering: a NON-OWNER service touches the store from its own adapter (spec 119)
+# The consumer repo is demonstrations/8-consumer-service (project acme/reconciliation-service). It carries a verbatim
+# copy of D-007 — the federated read is deferred, so the decision must be present in the checkout — and a textbook
+# persistence adapter that writes the positions store. A path rule would call it sanctioned. It is not the owner.
+$ cd demonstrations/8-consumer-service
+$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java
+VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at src/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
+  src/acme/recon/hex/persistence/PositionRepositoryAdapter.java → UPDATE\s+positions
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+Scope: repo-local — evaluated 1 decision from this checkout. Decisions owned by other repositories are not evaluated.
+Wrote ../8-verdict.json
+exit: 1
+
+# Same file, same decision — but with the OWNER identity in spectastic.json: the path rule applies and the adapter is sanctioned.
+$ sed -i "" "s#acme/reconciliation-service#briancorbin/position-keeper-guardrails#" spectastic.json
+$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java
+verdict: no governance violations in the changed paths.
+Scope: repo-local — evaluated 1 decision from this checkout. Decisions owned by other repositories are not evaluated.
+Wrote ../8-verdict-as-owner.json
+exit: 0

@@ -96,6 +96,7 @@ function (ADR-0007) so no later feature can add a second writer without failing 
   <spec-scope>
     <spec-path>src/**/persistence/**</spec-path>
     <spec-module>xyz.briancorbin.pk.hex.persistence..</spec-module>
+    <spec-resource coordinate="spectastic://briancorbin/position-keeper-guardrails/datastore/positions" owner="briancorbin/position-keeper-guardrails" allowed-in="src/**/persistence/**"></spec-resource>
   </spec-scope>
   <spec-enforcement>
     <spec-rule tool="archunit" id="only_the_persistence_adapter_touches_data_access_apis" run="./gradlew test --tests *DataAccessRulesTest"></spec-rule>
@@ -109,7 +110,10 @@ function (ADR-0007) so no later feature can add a second writer without failing 
   the positions store; enforced by an ArchUnit boundary rule now, a Semgrep content rule for the residual SQL case (added when
   JDBC arrives, feature 003), and a DB grant as the operational backstop (D-008). <b>Consequences.</b> + Every position change
   provably emits the event; a new writer fails the gate. − Legitimate new persistence code lives in the adapter package or
-  extends the scope through a recorded amendment.</p>
+  extends the scope through a recorded amendment. <b>Amended 13 Sep 2026.</b> The decision now also names the
+  <em>store</em> it governs and its <em>owner</em> — <code>spectastic://briancorbin/position-keeper-guardrails/datastore/positions</code>,
+  owned by this service — so that in any <em>other</em> service a touch of the store is a violation even when cleanly layered in
+  that service's own adapter: the defect there is ownership, not layering.</p>
 </spec-decision>
 
 <spec-decision id="D-008" grounding="assumed" status="accepted" posture="warn">
@@ -144,6 +148,7 @@ enforcement/semgrep-positions.yaml          # the Semgrep content rule for D-007
 <section id="complexity"><h2>11 · Complexity tracking</h2><p>None beyond the layered enforcement, which is the point rather than accidental complexity.</p></section>
 <section id="open-questions"><h2>12 · Open questions</h2><p>None outstanding.</p></section>
 <section id="changelog"><h2>13 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-13">13 Sep 2026</time><span>D-007 amended with a resource scope (spectastic 119): the decision names the positions store by coordinate and this service as its owner, so a non-owner service's touch — however well layered — is a violation. The owner-side verdict is unchanged (demonstrations 1–7 reproduce byte-identically); demonstration 8 exercises the non-owner case.</span></li>
   <li><time datetime="2024-03-11">11 Mar 2024</time><span>Design accepted — the adapter becomes the single writer + emitter; ADR-0007 (D-007) authored with its ArchUnit fitness function, plus the DB-grant backstop (D-008). Grounds the emission guarantee in settlement consistency (KB-0001).</span></li>
 </ol></spec-changelog></section>
 </main>
