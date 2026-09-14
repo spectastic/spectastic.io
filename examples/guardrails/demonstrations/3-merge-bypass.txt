@@ -3,7 +3,7 @@ $ spectastic verdict --changed docs/priya-pr/PositionReconciliationJob.java --ex
 VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at docs/priya-pr/PositionReconciliationJob.java:20
   docs/priya-pr/PositionReconciliationJob.java → UPDATE\s+positions
   Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
-Scope: repo-local — evaluated 2 decisions from this checkout. Decisions owned by other repositories are not evaluated.
+Scope: repo-local — evaluated 2 decisions from this checkout. A decision not present in this checkout is not evaluated.
 
 Explanation (advisory — the decision and the code, so you can act):
 

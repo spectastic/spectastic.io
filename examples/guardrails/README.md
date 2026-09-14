@@ -1,6 +1,6 @@
 # position-keeper-guardrails
 
-A worked example proving spectastic's **architectural guardrails** (meta-repo specs 112–119) on a
+A worked example proving spectastic's **architectural guardrails** (meta-repo specs 112–120) on a
 realistic securities position keeper. It was **scaffolded by `spectastic init` and driven through the
 spectastic verbs** — this is a real downstream project, not a hand-placed set of artifacts.
 
