@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Downstream consumers · Design (consumer copy)</title></head>
+<body>
+<main>
+<h1>ADR-0007 — as seen from acme/reconciliation-service</h1>
+<p>A hand-copied projection of the position-keeper's D-007 into a <em>consuming</em> service's checkout.
+Today the verdict reads only this repository's <code>specs/*/design.html</code> (the federated read is
+deferred), so the decision is carried here verbatim; the resource scope's <code>owner</code> is what makes the
+verdict owner-aware. This service is <strong>not</strong> the owner.</p>
+<section id="decisions">
+<spec-decision id="D-007" grounding="verified" status="accepted" posture="block" review-by="2027-03-11">
+  <spec-scope>
+    <spec-path>src/**/persistence/**</spec-path>
+    <spec-module>xyz.briancorbin.pk.hex.persistence..</spec-module>
+    <spec-resource coordinate="spectastic://briancorbin/position-keeper-guardrails/datastore/positions" owner="briancorbin/position-keeper-guardrails" allowed-in="src/**/persistence/**"></spec-resource>
+  </spec-scope>
+  <spec-enforcement>
+    <spec-rule tool="archunit" id="only_the_persistence_adapter_touches_data_access_apis" run="./gradlew test --tests *DataAccessRulesTest"></spec-rule>
+    <spec-rule tool="semgrep" id="no_sql_write_to_positions_outside_adapter" pattern="UPDATE\s+positions" allowed-in="src/**/persistence/**"></spec-rule>
+  </spec-enforcement>
+  <spec-reason>Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.</spec-reason>
+  <h4>D-007 · ADR-0007 — only the persistence adapter touches the data store</h4>
+  <p><b>Context.</b> Spec FR-004 requires a single emitter; the emission guarantee is only as strong as the boundary around the
+  write. The domain reason is settlement consistency (<code>KB-0001@2026-09-13</code>): the book and its consumers must never
+  diverge silently. <b>Decision.</b> Only <code>xyz.briancorbin.pk.hex.persistence</code> may reach the data-access APIs or write
+  the positions store; enforced by an ArchUnit boundary rule now, a Semgrep content rule for the residual SQL case (added when
+  JDBC arrives, feature 003), and a DB grant as the operational backstop (D-008). <b>Consequences.</b> + Every position change
+  provably emits the event; a new writer fails the gate. − Legitimate new persistence code lives in the adapter package or
+  extends the scope through a recorded amendment. <b>Amended 13 Sep 2026.</b> The decision now also names the
+  <em>store</em> it governs and its <em>owner</em> — <code>spectastic://briancorbin/position-keeper-guardrails/datastore/positions</code>,
+  owned by this service — so that in any <em>other</em> service a touch of the store is a violation even when cleanly layered in
+  that service's own adapter: the defect there is ownership, not layering.</p>
+</spec-decision>
+</section>
+</main>
+</body></html>
