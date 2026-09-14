@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-14T00:27:16.258Z",
+  "at": "2026-09-14T02:31:30.546Z",
   "scope": "repo-local",
   "decisionsEvaluated": 2,
   "changed": [
@@ -13,6 +13,7 @@
       "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
       "file": "docs/priya-pr/PositionReconciliationJob.java",
       "detector": "content",
+      "cause": "path",
       "line": 20,
       "source": "docs/priya-pr/PositionReconciliationJob.java",
       "target": "UPDATE\\s+positions"

@@ -1,7 +1,7 @@
 # Demonstrations — the eight behaviors, against feature 7
 
 Every command is reproducible from the repo root. The outputs here are real tool output, committed so a
-reader can check every claim offline. The guardrail tooling is specs 112–119 of the spectastic meta-repo.
+reader can check every claim offline. The guardrail tooling is specs 112–120 of the spectastic meta-repo.
 
 | # | Behavior | Evidence |
 |---|----------|----------|
@@ -12,7 +12,7 @@ reader can check every claim offline. The guardrail tooling is specs 112–119 o
 | 5 | Coverage report — the DB grant is a `none`-with-reason | `5-coverage.txt` |
 | 6 | Vendor neutrality — the verdict is a plain artifact | `6-vendor-neutrality.md` |
 | 7 | Teaching on failure — the explanation, then one Socratic question, never a fix | `7-teaching.txt`, `7-verdict.json` |
-| 8 | **Ownership, not layering** — a non-owner service's well-layered write to the store is flagged; the owner's is not | `8-cross-service.txt`, `8-verdict.json`, `8-verdict-as-owner.json`, [`8-consumer-service/`](8-consumer-service/) |
+| 8 | **Ownership, not layering** — a non-owner service's well-layered write is flagged with `cause: "ownership"`, explained and taught as an ownership question; the owner's is not | `8-cross-service.txt`, `8-verdict.json`, `8-verdict-as-owner.json`, [`8-consumer-service/`](8-consumer-service/) |
 
 Demo 3 uses `--explain` (spec 118): the terse `VIOLATION` line is followed by a reviewer-grade block in
 the shape of a spectastic triage card — the **offending code** shown in context with the flagged line
@@ -34,6 +34,10 @@ owner repo that changes nothing — demos 1–7 reproduce byte-identically, the 
 `8-consumer-service/` (project `acme/reconciliation-service`) the same decision, evaluated under a non-owner
 identity, flags a textbook persistence adapter that writes the store — a path glob would call it sanctioned;
 the defect is *whose store it is*, not where the write sits. Flip `spectastic.json` to the owner identity and
-the identical file is clean. **Honest scope:** the consumer carries a verbatim copy of D-007 because the
+the identical file is clean. Spec 120 makes the *output* ownership-aware too: the violation carries
+`cause: "ownership"` plus the store's `owner` and `storeCoordinate` (set once, in the verdict — the only
+place the owner comparison happens); `--explain` replaces "sanctioned path" with "owned elsewhere — route the
+change through its owner", and `--teach` asks why the data needs to live here rather than being routed through
+the owning service. Demos 1–7 carry `cause: "path"` and render exactly as before. **Honest scope:** the consumer carries a verbatim copy of D-007 because the
 federated cross-repo read is deferred — the verdict reads only its own checkout's `specs/*/design.html`; and
 the touch detector is still the content pattern (an API call, a topic, a migration is not a SQL string).

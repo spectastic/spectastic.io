@@ -360,14 +360,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         <div class="step-num" style="background:var(--deny)">3</div>
         <div style="padding-bottom:24px">
           <h3 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.2rem;margin:0;color:var(--ink)">Death at merge — the verdict</h3>
-          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Skip spec and design entirely; commit <span class="mono">PositionReconciliationJob</span> straight to a branch. The merge gate judges the actual diff against the decisions governing it and composes a verdict — <span class="mono">{decision, rule, reason, file:line, source → target}</span> — persisted as plain JSON that reconstructs from the changed file and the decision record. Exit 1. The verdict kernel's transitive imports carry zero child-process modules: running a foreign command is not something it <em>can</em> do.</p>
+          <p style="font-family:'Source Serif 4',serif;font-size:1.0rem;line-height:1.55;color:var(--ink-soft);margin:8px 0 0">Skip spec and design entirely; commit <span class="mono">PositionReconciliationJob</span> straight to a branch. The merge gate judges the actual diff against the decisions governing it and composes a verdict — <span class="mono">{decision, rule, reason, file:line, source → target, cause}</span> — persisted as plain JSON that reconstructs from the changed file and the decision record. Exit 1. The verdict kernel's transitive imports carry zero child-process modules: running a foreign command is not something it <em>can</em> do.</p>
           <div class="term" style="margin-top:12px">
             <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">docs/priya-pr/PositionReconciliationJob.java</span></div>
             <div><span style="color:var(--deny);font-weight:600">VIOLATION</span> <span style="color:var(--crimson)">002-downstream-consumers/D-007</span> [no_sql_write_to_positions_outside_adapter] at docs/priya-pr/PositionReconciliationJob.java:<span style="color:var(--ink)">20</span></div>
             <div>&nbsp;&nbsp;docs/priya-pr/PositionReconciliationJob.java → UPDATE\s+positions</div>
             <div>&nbsp;&nbsp;Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; a direct</div>
             <div>&nbsp;&nbsp;write to the position store bypasses the emission and the audit hooks that live in the adapter.</div>
-            <div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout. Decisions owned by other repositories are not evaluated.</div>
+            <div style="color:var(--ink-faint)">Scope: repo-local — evaluated 2 decisions from this checkout. A decision not present in this checkout is not evaluated.</div>
             <div style="color:var(--ink-faint)">Wrote .spectastic/verdict.json</div>
             <div><span style="color:var(--deny)">exit 1</span></div>
           </div>
@@ -382,7 +382,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     <span class="k">"ruleId"</span>: <span class="s">"no_sql_write_to_positions_outside_adapter"</span>,
     <span class="k">"reason"</span>: <span class="s">"Every position change must emit PositionChanged so Risk, P&amp;L, and the audit trail stay consistent; …"</span>,
     <span class="k">"file"</span>: <span class="s">"docs/priya-pr/PositionReconciliationJob.java"</span>,  <span class="k">"line"</span>: <span class="t">20</span>,
-    <span class="k">"detector"</span>: <span class="s">"content"</span>,
+    <span class="k">"detector"</span>: <span class="s">"content"</span>,  <span class="k">"cause"</span>: <span class="s">"path"</span>,
     <span class="k">"source"</span>: <span class="s">"docs/priya-pr/PositionReconciliationJob.java"</span>,  <span class="k">"target"</span>: <span class="s">"UPDATE\\s+positions"</span>
   }]
 }</div>
@@ -499,7 +499,33 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
         </div>
       </div>
     </div>
-    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:14px 0 0">The reason text is the same in both directions — it was written for the single-repo case and still holds. What the explanation does <em>not</em> yet say is that this violation is about ownership: <span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">--explain</span> still points the consumer at <span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">src/**/persistence/**</span> as the sanctioned path, which is where the file already is. The honest sanctioned path for a non-owner is "nowhere in this service — ask the owner." That rendering gap is recorded, not hidden.</p>
+    <p style="font-family:'Source Serif 4',serif;font-size:1.05rem;line-height:1.6;color:var(--ink-soft);margin:22px 0 0">The verdict also <em>says</em> why. The owner comparison happens once, in the kernel, and is recorded on the violation as <span class="mono">cause: "ownership"</span> with the store's coordinate and owner — so the explanation and the teaching question read it rather than re-deriving it. A non-owner is no longer pointed at a "sanctioned path" (which is where the file already was); it is pointed at the <strong style="color:var(--ink)">authority</strong>.</p>
+    <div class="term" style="margin-top:14px;font-size:.74rem">
+      <div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">src/acme/…/persistence/PositionRepositoryAdapter.java</span> --explain --teach &nbsp;<span style="color:var(--ink-faint)"># as acme/reconciliation-service</span></div>
+      <div style="color:var(--ink-faint)">VIOLATION 002-downstream-consumers/D-007 … <em>(as above)</em></div>
+      <div>&nbsp;</div>
+      <div style="color:var(--crimson)">── D-007 · ADR-0007 — only the persistence adapter touches the data store ──</div>
+      <div style="color:var(--ink-faint)">&nbsp;&nbsp;Offending … Why it is a violation … <em>(the same composition as the single-repo case)</em></div>
+      <div>&nbsp;</div>
+      <div style="color:var(--ink)">&nbsp;&nbsp;Owned elsewhere — nowhere in this service; route the change through its owner:</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;the store <span style="color:var(--sea)">spectastic://briancorbin/position-keeper-guardrails/datastore/positions</span> is owned by <span style="color:var(--green)">briancorbin/position-keeper-guardrails</span></div>
+      <div>&nbsp;</div>
+      <div style="color:var(--purple)">Teaching follow-up (advisory — reason for yourself, this is not a fix):</div>
+      <div>&nbsp;&nbsp;· The store spectastic://briancorbin/position-keeper-guardrails/datastore/positions is owned by briancorbin/position-keeper-guardrails, not this</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;service — this change has …PositionRepositoryAdapter.java writing it directly. <span style="color:var(--ink)">What makes holding this data here necessary,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">rather than routing the change through briancorbin/position-keeper-guardrails?</span></div>
+    </div>
+    <div style="font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;color:var(--ink-soft);margin:14px 0 6px"><span style="font-family:'IBM Plex Mono',monospace">demonstrations/8-verdict.json</span> — the violation, with its cause</div>
+    <div class="code">{
+  <span class="k">"decisionId"</span>: <span class="s">"D-007"</span>,  <span class="k">"specId"</span>: <span class="s">"002-downstream-consumers"</span>,
+  <span class="k">"ruleId"</span>: <span class="s">"no_sql_write_to_positions_outside_adapter"</span>,
+  <span class="k">"file"</span>: <span class="s">"src/acme/recon/hex/persistence/PositionRepositoryAdapter.java"</span>,  <span class="k">"line"</span>: <span class="t">21</span>,
+  <span class="k">"detector"</span>: <span class="s">"content"</span>,
+  <span class="k">"cause"</span>: <span class="s">"ownership"</span>,
+  <span class="k">"owner"</span>: <span class="s">"briancorbin/position-keeper-guardrails"</span>,
+  <span class="k">"storeCoordinate"</span>: <span class="s">"spectastic://briancorbin/position-keeper-guardrails/datastore/positions"</span>
+}</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:.9rem;font-style:italic;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">The reason text is the same in both directions — it was written for the single-repo case and still holds. Every violation on the owner side carries <span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">cause: "path"</span> and renders exactly as before; a pre-existing artifact with no <span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">cause</span> is read as <span class="mono" style="font-style:normal;font-size:.9em;color:var(--ink-soft)">path</span>. That gap was found by dogfooding this page, triaged, and closed the same day.</p>
 
     <!-- rubric -->
     <h2 id="rubric" style="font-family:'Fraunces',serif;font-weight:540;font-size:1.7rem;letter-spacing:-.01em;color:var(--ink);margin:56px 0 0;scroll-margin-top:80px">The rubric, scored twice</h2>
@@ -726,19 +752,24 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Source Serif 4'
     },
     owner: {
       blurb: 'The reconciliation team builds the job in their own service and writes the store from a clean, well-layered persistence adapter of their own. Every path rule is satisfied. But D-007 names the store\'s owner, and acme/reconciliation-service is not it — so the verdict, resolved under the consumer\'s project identity, flags the write anyway. The defect is ownership, not layering.',
-      stages: { retrieve:['skip','different repo'], plan:['skip','no design to gate'], merge:['fail','VIOLATION D-007 · exit 1'], teach:['skip','(see the honest note below)'] },
+      stages: { retrieve:['skip','different repo'], plan:['skip','no design to gate'], merge:['fail','VIOLATION D-007 · cause: ownership'], teach:['teach','routed to the owner + one question'] },
       verdict: ['fail','✕ Dies at merge in the consumer\'s own CI — a path glob would have called this clean.'],
       left: ['The consumer\'s adapter — what was committed', CONSUMER],
       right: ['What the gate said · project acme/reconciliation-service', [
         '<div><span style="color:var(--green)">$</span> cat spectastic.json &nbsp;<span style="color:var(--ink-faint)"># the identity the verdict compares to D-007\'s owner</span></div>',
         '<div>{ "project": "<span style="color:var(--ink)">acme/reconciliation-service</span>" }</div>',
         '<div>&nbsp;</div>',
-        '<div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">src/acme/recon/hex/persistence/PositionRepositoryAdapter.java</span></div>',
+        '<div><span style="color:var(--green)">$</span> spectastic verdict --changed <span style="color:var(--sea)">src/acme/recon/hex/persistence/PositionRepositoryAdapter.java</span> --explain --teach</div>',
         '<div><span style="color:var(--deny);font-weight:600">VIOLATION</span> <span style="color:var(--crimson)">002-downstream-consumers/D-007</span> [no_sql_write_to_positions_outside_adapter]</div>',
         '<div>&nbsp;&nbsp;at src/acme/recon/hex/persistence/PositionRepositoryAdapter.java:<span style="color:var(--ink)">21</span></div>',
         '<div>&nbsp;&nbsp;…PositionRepositoryAdapter.java → UPDATE\\s+positions</div>',
         '<div>&nbsp;&nbsp;' + REASON + '</div>',
         '<div style="color:var(--ink-faint)">Scope: repo-local — evaluated 1 decision from this checkout.</div>',
+        '<div>&nbsp;</div>',
+        '<div style="color:var(--ink)">&nbsp;&nbsp;Owned elsewhere — nowhere in this service; route the change through its owner:</div>',
+        '<div>&nbsp;&nbsp;&nbsp;&nbsp;the store spectastic://…/datastore/positions is owned by <span style="color:var(--green)">briancorbin/position-keeper-guardrails</span></div>',
+        '<div style="color:var(--purple)">Teaching follow-up:</div>',
+        '<div>&nbsp;&nbsp;· <span style="color:var(--ink)">What makes holding this data here necessary, rather than routing the change through briancorbin/position-keeper-guardrails?</span></div>',
         '<div><span style="color:var(--deny)">exit 1</span></div>',
         '<div>&nbsp;</div>',
         '<div><span style="color:var(--green)">$</span> sed -i "" "s#acme/reconciliation-service#briancorbin/position-keeper-guardrails#" spectastic.json &nbsp;<span style="color:var(--ink-faint)"># same file, owner identity</span></div>',
