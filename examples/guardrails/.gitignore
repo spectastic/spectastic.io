@@ -1,4 +1,14 @@
 # >>> spectastic (managed — do not edit inside; put your own rules outside) >>>
 .spectastic/courses/
 explorations/**/explore.html
+build/
+target/
+*.class
 # <<< spectastic <<<
+
+# Gradle (not in the managed java set) and local spectastic run artifacts
+.gradle/
+*.mv.db
+*.trace.db
+**/.spectastic/adr-retrieval.json
+**/.spectastic/verdict.json

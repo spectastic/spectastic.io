@@ -16,7 +16,7 @@
   <h1>Nightly reconciliation</h1>
   <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">How we will build it — the happy path, which acknowledges ADR-0007 and corrects through the use case.</p>
   <spec-meta>
-    <b>Status</b>     <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Status</b>     <span><spec-status value="accepted">Accepted</spec-status></span>
     <b>Spec</b>       <span><a href="./spec.html">007-reconciliation</a></span>
     <b>Owner</b>      <span>Ops Engineering</span>
     <b>Branch</b>     <span><code>feat/nightly-reconciliation</code></span>
@@ -40,7 +40,7 @@ positions store, so ADR-0007 holds by construction.</p>
 only the persistence adapter touches the data store; every position change must emit PositionChanged). The plan honours it:
 corrections are applied through the position use case (which emits the event), and the only persistence-package addition is a
 <em>read-side</em> snapshot reader that uses the existing adapter — it adds no new writer. Retrieval:
-<code>spectastic adrs --for src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java</code> returns D-007; this section
+<code>spectastic adrs --for src/main/java/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java</code> returns D-007; this section
 is its acknowledgment.</p>
 </section>
 
@@ -54,8 +54,69 @@ is its acknowledgment.</p>
 
 <section id="data">
 <h2>3 · Data model &amp; contracts</h2>
-<p>No external contract. The job consumes the custodian file (instrument, quantity) and emits corrections as ordinary use-case
-calls carrying a reconciliation <code>tradeId</code>.</p>
+<p>The job consumes the custodian file (instrument, quantity) and emits corrections as ordinary use-case
+calls carrying a reconciliation <code>tradeId</code>. Since change <code>2026-09-18-http-corrections</code> the same correction
+path is also reachable over HTTP, for a downstream service that computes its own deltas — the contract below.</p>
+<spec-contract shape="request-response" name="corrections" path="api/corrections.openapi.yaml" format="openapi">
+  <p><code>POST /corrections</code> with <code>{instrument, quantity, tradeId}</code> brings the instrument to
+  <code>quantity</code> through <code>PositionService.correct</code> — the same path the nightly job uses — and answers the
+  resulting position. A caller may rely on: a repeated <code>tradeId</code> is a <code>200</code> that changes nothing; every
+  applied correction emitted <code>PositionChanged</code> before the response; the caller never touches the store. Authored at
+  the proposed location and promoted by <code>/spectastic.apply</code>.</p>
+<spec-contract-view lines="53" tabindex="0" aria-label="Projection of api/corrections.openapi.yaml">openapi: 3.1.0
+info:
+  title: Position keeper — corrections
+  version: 0.1.0
+  description: &gt;-
+    Corrections accepted from a downstream service (007-reconciliation, FR-005). Every correction
+    is applied through the position use case, so it emits PositionChanged like any other mutation;
+    the caller never touches the store. Idempotent on tradeId.
+paths:
+  /corrections:
+    post:
+      operationId: postCorrection
+      summary: Bring an instrument to a target quantity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: &quot;#/components/schemas/Correction&quot; }
+            example: { instrument: AAPL, quantity: 100, tradeId: &quot;recon:b7078fc6:AAPL&quot; }
+      responses:
+        &quot;200&quot;:
+          description: The position after the correction — unchanged when the tradeId was already applied
+          content:
+            application/json:
+              schema: { $ref: &quot;#/components/schemas/Position&quot; }
+              example: { instrument: AAPL, quantity: 100 }
+        &quot;400&quot;:
+          description: The body is not a correction — missing or blank field, non-integer quantity
+          content:
+            application/json:
+              schema: { $ref: &quot;#/components/schemas/Error&quot; }
+        &quot;405&quot;:
+          description: Any method but POST
+components:
+  schemas:
+    Correction:
+      type: object
+      required: [instrument, quantity, tradeId]
+      properties:
+        instrument: { type: string, minLength: 1, maxLength: 32 }
+        quantity: { type: integer, format: int64, description: The target quantity, signed whole units }
+        tradeId: { type: string, minLength: 1, maxLength: 64, description: Attribution and idempotency key }
+    Position:
+      type: object
+      required: [instrument, quantity]
+      properties:
+        instrument: { type: string }
+        quantity: { type: integer, format: int64 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }</spec-contract-view>
+</spec-contract>
 </section>
 
 <section id="grounding">
@@ -101,9 +162,11 @@ existing adapter, not a new writer), computes per-instrument deltas, and applies
 
 <section id="structure">
 <h2>9 · Project structure</h2>
-<pre><code>src/xyz/briancorbin/pk/hex/recon/ReconciliationJob.java             # the job (application layer)
-src/xyz/briancorbin/pk/hex/recon/CustodianFileParser.java           # parse the EOD file
-src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  # read current positions via the adapter (read-only)</code></pre>
+<pre><code>src/main/java/xyz/briancorbin/pk/hex/recon/ReconciliationJob.java             # the job (application layer)
+src/main/java/xyz/briancorbin/pk/hex/recon/CustodianFileParser.java           # parse the EOD file
+src/main/java/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  # read current positions via the adapter (read-only)
+src/main/java/xyz/briancorbin/pk/hex/http/CorrectionsHandler.java              # POST /corrections → PositionService.correct (change 2026-09-18-http-corrections)
+specs/007-reconciliation/contracts/corrections.openapi.yaml                    # the contract, proposed (→ api/corrections.openapi.yaml at apply)</code></pre>
 </section>
 
 <section id="risks">
@@ -119,6 +182,8 @@ src/xyz/briancorbin/pk/hex/persistence/CustodianSnapshotReader.java  # read curr
 <section id="complexity"><h2>11 · Complexity tracking</h2><p>None.</p></section>
 <section id="open-questions"><h2>12 · Open questions</h2><p>None outstanding.</p></section>
 <section id="changelog"><h2>13 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Declares the <code>corrections</code> contract (<code>api/corrections.openapi.yaml</code>) and the <code>CorrectionsHandler</code> path for change <code>2026-09-18-http-corrections</code>: a downstream service reaches the same use-case correction path over <code>POST /corrections</code>. No decision changes; ADR-0007 is honoured the same way.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (11/11); ./gradlew build green with ReconciliationJobTest (SC-001, SC-002) verified passing and the reconcile subcommand exercised twice against one store (2 corrections, then 0) per author pre-confirmation for 003–007. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
   <li><time datetime="2026-09-13">13 Sep 2026</time><span>Design drafted (happy path) — corrections through the use case; acknowledges ADR-0007 (002-downstream-consumers/D-007); grounds settlement-window drift in KB-0001. The demonstrations also exercise a bypass variant (caught at plan) and a direct-write commit (caught at merge).</span></li>
 </ol></spec-changelog></section>
 </main>

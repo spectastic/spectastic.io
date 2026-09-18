@@ -5,15 +5,54 @@
     {
       "tool": { "driver": { "name": "ArchUnit", "rules": [{ "id": "only_the_persistence_adapter_touches_data_access_apis" }] } },
       "results": [
-        {
-          "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
-          "level": "error",
-          "message": { "text": "xyz.briancorbin.pk.recon.PositionReconciliationJob accesses java.sql from outside the persistence adapter" },
-          "locations": [
-            { "physicalLocation": { "artifactLocation": { "uri": "docs/priya-pr/PositionReconciliationJob.java" }, "region": { "startLine": 15 } } }
-          ]
-        }
-      ]
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.Connection.prepareStatement(java.lang.String)> in (PositionReconciliationJob.java:22)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 22 } } }
+  ]
+},
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.PreparedStatement.close()> in (PositionReconciliationJob.java:21)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 21 } } }
+  ]
+},
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.PreparedStatement.close()> in (PositionReconciliationJob.java:26)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 26 } } }
+  ]
+},
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.PreparedStatement.executeUpdate()> in (PositionReconciliationJob.java:25)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 25 } } }
+  ]
+},
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.PreparedStatement.setLong(int, long)> in (PositionReconciliationJob.java:23)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 23 } } }
+  ]
+},
+{
+  "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+  "level": "error",
+  "message": { "text": "Method <xyz.briancorbin.pk.recon.PositionReconciliationJob.reconcile(xyz.briancorbin.pk.recon.CustodianFile)> calls method <java.sql.PreparedStatement.setString(int, java.lang.String)> in (PositionReconciliationJob.java:24)" },
+  "locations": [
+    { "physicalLocation": { "artifactLocation": { "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java" }, "region": { "startLine": 24 } } }
+  ]
+}]
     }
   ]
 }

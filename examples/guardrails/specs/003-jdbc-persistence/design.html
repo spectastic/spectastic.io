@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>JDBC persistence · Design</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Design · 003-jdbc-persistence</p>
+  <h1>JDBC persistence</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it — the second sighting of ADR-0007, and a routine one.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">003-jdbc-persistence</a></span>
+    <b>Owner</b>      <span>Position Keeping team</span>
+    <b>Branch</b>     <span><code>build-out</code></span>
+    <b>Created</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Implement the port with the existing <code>JdbcPositionRepositoryAdapter</code> over an embedded, file-backed H2 database
+    reached through plain JDBC — no ORM, no pool. <code>H2Database.open(path)</code> applies <code>db/schema.sql</code> and
+    <code>db/grants.sql</code> as the admin and hands the adapter a connection as the <code>pk_adapter</code> role, so D-008's
+    grant is live at runtime, not only in a test. The write stays a literal <code>UPDATE positions</code> (falling back to an
+    <code>INSERT</code> when no row exists) inside one transaction with the applied-tradeId row; the event is emitted on the
+    same call, after commit. Biggest risk: the adapter is the file every guardrail demonstration points at, so its shape
+    changes only additively.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verified against <a href="../../principles.html">v0.1.0</a>. No exception, no violation.</p>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-1 · Clarity over cleverness</td><td><spec-pill>OK</spec-pill></td><td>Three SQL statements and a transaction; no ORM, no <code>MERGE</code> trick.</td></tr>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>One adapter, one opener; the in-memory adapter stays for tests.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Schema applied by an explicit <code>open</code>, not by a framework on first touch.</td></tr>
+    <tr><td>P-4 · One set of conventions, enforced</td><td><spec-pill>OK</spec-pill></td><td>001's floor applies unchanged.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>Three decisions below; the write shape is kept for the guardrail's sake and says so.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td><code>JdbcPositionRepositoryAdapterTest</code> reopens a file database (SC-001); <code>CoreRulesTest</code> already holds SC-002.</td></tr>
+    <tr><td>P-7 · Contract-first interfaces</td><td><spec-pill>OK</spec-pill></td><td>No interface exposed; the SQL DDL in <code>db/</code> is the store's checked-in shape.</td></tr>
+    <tr><td>P-8 · Library-first boundaries</td><td><spec-pill>OK</spec-pill></td><td>Still no entry point; 004 wires <code>Main</code>.</td></tr>
+    <tr><td>P-9 · Secure by default</td><td><spec-pill>OK</spec-pill></td><td>Role passwords are H2-local placeholders in an embedded file; the design names that as the deliberate exception for an embedded store with no network listener.</td></tr>
+    <tr><td>P-10 · Least privilege</td><td><spec-pill>OK</spec-pill></td><td>The adapter runs as <code>pk_adapter</code>, which can write <code>positions</code>; readers get <code>pk_reader</code> (004).</td></tr>
+    <tr><td>P-11 · Semantic versioning</td><td><spec-pill>OK</spec-pill></td><td>No release.</td></tr>
+    <tr><td>P-12 · Supply-chain hygiene</td><td><spec-pill>OK</spec-pill></td><td>H2 2.3.232 becomes the project's single runtime dependency, pinned.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="acknowledged">Governing decisions acknowledged</h3>
+<p>This plan's surface is <code>src/main/java/xyz/briancorbin/pk/hex/persistence/</code> and <code>db/</code>, governed by two
+decisions of <code>002-downstream-consumers</code>:</p>
+<ul>
+  <li><code>002-downstream-consumers/D-007</code> (ADR-0007 — only the persistence adapter touches the data store; every
+  position change emits <code>PositionChanged</code>). Honoured by construction: the only class that imports <code>java.sql</code>
+  is in the adapter package, its <code>UPDATE positions</code> is the statement the Semgrep rule's <code>allowed-in</code>
+  permits, and it emits on every write. <code>spectastic adrs --for src/main/java/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java</code>
+  returns D-007.</li>
+  <li><code>002-downstream-consumers/D-008</code> (the DB-grant backstop, scope <code>db/**</code>). This plan does not change
+  the grant files; it makes them <em>run</em> — <code>H2Database.open</code> applies them, and the adapter connects as the
+  granted role.</li>
+</ul>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 on the Gradle build (<a href="../001-position-core/design.html#D-001">001/D-001</a>).</dd>
+  <dt>Frameworks</dt>       <dd>None. JDBC from the JDK (<code>java.sql</code>); the H2 driver is the only dependency.</dd>
+  <dt>Architecture</dt>     <dd>Hexagonal (<a href="../001-position-core/design.html#D-002">001/D-002</a>): this feature is one adapter behind the existing port. No new pattern decision.</dd>
+  <dt>Storage</dt>          <dd>Embedded H2 2.3.232, file-backed (<code>jdbc:h2:file:</code>) — <a href="#D-001">D-001</a>. Two tables from <code>db/schema.sql</code>.</dd>
+  <dt>Testing</dt>          <dd>JUnit 5 (<a href="../001-position-core/design.html#D-003">001/D-003</a>); the adapter test uses a <code>@TempDir</code> file database and reopens it.</dd>
+  <dt>Coverage</dt>         <dd>Not in scope (standard profile).</dd>
+  <dt>Perf targets</dt>     <dd>Not in scope — one statement per write at end-of-day volumes.</dd>
+  <dt>Constraints</dt>      <dd>The write statement stays literally <code>UPDATE positions …</code> (the Semgrep rule's pattern and demonstration 4a's subject); the adapter file keeps its name and package.</dd>
+</dl>
+
+<h3 id="toolchain">Toolchain / enforcement</h3>
+<p>No new category: <code>spectastic enforce</code> reports the floor covered since 001. This feature moves <code>h2</code> from
+<code>testImplementation</code> to <code>implementation</code> and adds nothing else to <code>build.gradle</code>.
+<code>spectastic gitignore --stack</code> is current (java detected); <code>*.mv.db</code> / <code>*.trace.db</code> — the H2
+file database — are already ignored outside the managed block.</p>
+</section>
+
+
+<section id="contracts">
+<h2>3 · Data model &amp; contracts</h2>
+
+<p>The spec's <a href="./spec.html#data">positions table</a> lands as <code>db/schema.sql</code> declares it (002 T-012):
+<code>positions(instrument VARCHAR(32) PK, quantity BIGINT)</code> plus <code>applied_trades(trade_id VARCHAR(64) PK,
+instrument)</code>, the idempotency record 001's port already implies (<code>wasApplied</code>).</p>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Conceptual entity</th><th>Physical shape</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./spec.html#data">positions table</a></td><td><code>positions(instrument VARCHAR(32) PRIMARY KEY, quantity BIGINT NOT NULL)</code></td><td>Written only by the adapter as <code>pk_adapter</code>; readers use <code>pk_reader</code>.</td></tr>
+    <tr><td>Applied trade (001 port)</td><td><code>applied_trades(trade_id VARCHAR(64) PRIMARY KEY, instrument VARCHAR(32))</code></td><td>Inserted in the same transaction as the quantity — the two never disagree.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<spec-contract shape="none">
+  <p>No interface: the adapter is reached through <code>PositionRepository</code> only. The DDL under <code>db/</code> is
+  checked in but is a store schema, not a consumer contract.</p>
+</spec-contract>
+</section>
+
+
+<section id="grounding">
+<h2>5 · Grounding &amp; evidence</h2>
+<p>Facts this plan rests on. One spike, claim written first: <em>“An H2 file database at
+<code>jdbc:h2:file:&lt;dir&gt;/pk</code> keeps a row across close and reopen; the DDL (<code>CREATE … IF NOT EXISTS</code>,
+<code>CREATE USER IF NOT EXISTS</code>, <code>GRANT</code>) is idempotent on the second open; a <code>pk_adapter</code>
+connection to the same file can <code>UPDATE positions</code> while <code>pk_reader</code> cannot.”</em></p>
+
+<div style="overflow-x:auto;">
+<table class="evidence">
+  <thead><tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr></thead>
+  <tbody>
+    <tr><td>The adapter already writes <code>UPDATE positions SET quantity = ? WHERE instrument = ?</code> and emits after the write</td>
+        <td><code>src/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java:20-27</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Kept verbatim as the write statement; the file moves to <code>src/main/java</code> and gains <code>find</code>, <code>wasApplied</code>, the INSERT fallback and the transaction.</td></tr>
+    <tr><td>An H2 file database survives reopen; the DDL is idempotent; role grants hold on the reopened file</td>
+        <td>Spike — scratch project, H2 2.3.232, <code>@TempDir</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Open 1: <code>UPDATE</code> → 0 rows → <code>INSERT</code>; open 2: <code>UPDATE</code> → 1 row; the DDL ran twice without error; <code>pk_reader</code> read 100 and was refused an update with state <code>90096</code>.</td></tr>
+    <tr><td>Multiple statements in one <code>Statement.execute</code> string run in H2</td>
+        <td><code>src/test/java/xyz/briancorbin/pk/hex/persistence/GrantBackstopTest.java:31-32</code> (002)</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td><code>schema.sql</code> and <code>grants.sql</code> are each executed as one string today; <code>H2Database.open</code> reuses that.</td></tr>
+    <tr><td>The port is <code>find / wasApplied / write(String, long, String)</code> and idempotency is the use case's</td>
+        <td><code>src/main/java/xyz/briancorbin/pk/hex/core/PositionRepository.java</code>; <a href="../001-position-core/design.html#D-005">001/D-005</a></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>The adapter implements the three methods; it does not re-decide idempotency.</td></tr>
+    <tr><td>The core and use-case packages never depend on <code>java.sql</code> (spec SC-002)</td>
+        <td><code>src/test/java/xyz/briancorbin/pk/enforcement/CoreRulesTest.java</code> — <code>theCoreAndTheUseCasesNeverTouchJdbc</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Already in the build since 001 and negatively checked there; SC-002 needs no new test.</td></tr>
+    <tr><td>D-007 scopes <code>src/**/persistence/**</code> and D-008 scopes <code>db/**</code></td>
+        <td><code>specs/002-downstream-consumers/design.html#D-007</code>, <code>#D-008</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Both acknowledged in <a href="#acknowledged">§1</a>.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+
+<section id="approach">
+<h2>6 · Approach</h2>
+
+<p><code>H2Database.open(Path file)</code> connects as <code>sa</code>, runs <code>db/schema.sql</code> then
+<code>db/grants.sql</code> (both idempotent), and returns a small handle that opens connections as <code>pk_adapter</code> (for
+the adapter) or <code>pk_reader</code> (for 004's queries). <code>JdbcPositionRepositoryAdapter(H2Database, EventBus)</code>
+implements the port: <code>find</code> and <code>wasApplied</code> are single <code>SELECT</code>s; <code>write</code> opens a
+transaction, runs the existing <code>UPDATE positions</code>, inserts the row when the update touched none, inserts the
+<code>applied_trades</code> row, commits, and only then emits <code>PositionChanged</code> — on the same call, so a failed
+commit emits nothing and a committed write always does.</p>
+
+<spec-sidenote>H2's <code>MERGE INTO</code> would do the upsert in one statement. It is not used, because the guardrail's
+Semgrep rule and demonstration 4a both name the literal <code>UPDATE positions</code>; a clever statement here would quietly
+change what the example proves.</spec-sidenote>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="The JDBC adapter behind the port, over an H2 file opened with the schema and grants applied">
+  <style>
+    .box { fill: var(--c-surface, #fcfbf7); stroke: var(--c-border, #c4c1bb); stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill: var(--c-text-soft, #4a4a46); letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill: var(--c-text, #353534); }
+    .arr { stroke: var(--c-muted, #73706d); stroke-width:1.2; fill:none; }
+    .arrh { fill: var(--c-muted, #73706d); }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">PositionService</text>
+  <text class="body"  x="56" y="122">use case (001)</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">Jdbc adapter</text>
+  <text class="body"  x="286" y="122">UPDATE → INSERT · txn · emit</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">H2 file</text>
+  <text class="body"  x="516" y="122">positions · applied_trades</text>
+  <rect class="box" x="270" y="170" width="160" height="50" rx="4"/>
+  <text class="label" x="286" y="190">H2Database.open</text>
+  <text class="body"  x="286" y="208">sa: schema.sql + grants.sql</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 195 L560 195 L560 140" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="arrh" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+</svg>
+<figcaption>The adapter connects as <code>pk_adapter</code>; the opener applied the DDL and the grant as <code>sa</code> first.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>7 · Alternatives considered</h2>
+<p>The store was the only real choice. Criteria: no external process for the example to run, the grant model D-008 needs, and
+how little the build gains.</p>
+
+<spec-matrix>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Option</th><th>Embedded, no daemon</th><th>Roles + GRANT</th><th>Build weight</th><th class="score">Total</th></tr></thead>
+  <tbody>
+    <tr data-winner><td>H2 2.3, file-backed, plain JDBC — chosen</td><td>3</td><td>3</td><td>3 — one jar</td><td class="score">9</td></tr>
+    <tr><td>SQLite via xerial sqlite-jdbc</td><td>3</td><td>0 — no users or grants</td><td>3</td><td class="score">6</td></tr>
+    <tr><td>PostgreSQL via Testcontainers</td><td>0 — Docker</td><td>3</td><td>1 — containers + driver</td><td class="score">4</td></tr>
+  </tbody>
+</table>
+</div>
+</spec-matrix>
+</section>
+
+
+<section id="decisions">
+<h2>8 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Embedded, file-backed H2 over plain JDBC</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The spec needs durability across a restart and D-008 needs a database with roles and grants; the example must run with no daemon. Spike (<a href="#grounding">§5</a>): reopen, idempotent DDL and role grants all hold on <code>h2@2.3.232</code>.</dd>
+    <dt>Decision drivers</dt> <dd>no external process · GRANT support · one dependency</dd>
+    <dt>Considered options</dt>
+    <dd>
+      <ul class="considered-options">
+        <li><strong>H2, file-backed — chosen</strong> — + embedded, real users and grants, one jar. − Not what production would run; fine for a worked example.</li>
+        <li><strong>SQLite</strong> — + embedded. − no users, so D-008 could not be real.</li>
+        <li><strong>PostgreSQL (Testcontainers)</strong> — + production-shaped. − Docker in every build and CI job.</li>
+      </ul>
+    </dd>
+    <dt>Decision</dt>     <dd><code>jdbc:h2:file:&lt;path&gt;</code>; <code>com.h2database:h2:2.3.232</code> as <code>implementation</code>; no pool, no ORM.</dd>
+    <dt>Consequences</dt> <dd>+ <code>./gradlew run</code> (004) needs nothing installed. + The grant is real at runtime. − H2-specific SQL state codes in the test.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Write = UPDATE, INSERT when no row, applied-trade row, commit, then emit — one call</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The existing adapter's statement (<code>JdbcPositionRepositoryAdapter.java:22</code>) is the one the Semgrep rule and demonstration 4a name; 002 NFR-001 wants a committed position and its event never to diverge; 001/D-005 wants the tradeId recorded with the quantity.</dd>
+    <dt>Decision</dt>     <dd><code>setAutoCommit(false)</code>; <code>UPDATE positions …</code>; if 0 rows, <code>INSERT INTO positions</code>; <code>INSERT INTO applied_trades</code>; <code>commit</code>; <code>bus.emit(…)</code>. A failure before commit rolls back and emits nothing.</dd>
+    <dt>Consequences</dt> <dd>+ The literal <code>UPDATE positions</code> survives, so the guardrail's proofs are unchanged. + Emission after commit means no event for a rolled-back write; on the same thread means no gap in which a consumer sees the old book. − Two statements where <code>MERGE</code> would be one.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · The adapter connects as <code>pk_adapter</code>; the opener applies DDL and grants as <code>sa</code></h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>D-008 is recorded as a none-with-reason because no static check can see a grant; the next best thing is for the running system to actually use the granted role, so the backstop is exercised on every write. <code>GrantBackstopTest</code> (002) already proves the refusal.</dd>
+    <dt>Decision</dt>     <dd><code>H2Database.open(path)</code> runs <code>db/schema.sql</code> and <code>db/grants.sql</code> as <code>sa</code>, then exposes <code>adapterConnection()</code> (<code>pk_adapter</code>) and <code>readerConnection()</code> (<code>pk_reader</code>). Passwords are the role names — an embedded file with no listener; recorded as the P-9 exception.</dd>
+    <dt>Consequences</dt> <dd>+ Least privilege is real: a second writer connecting as anything but <code>pk_adapter</code> is refused by the database. − Two connections per process instead of one.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>9 · Project structure</h2>
+
+<p>Only the new or changed paths.</p>
+
+<pre><code>build.gradle                                                                  # h2: testImplementation → implementation
+src/main/java/xyz/briancorbin/pk/hex/persistence/H2Database.java              # open(path): schema + grants as sa; role connections (D-003)
+src/main/java/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java  # moved from src/xyz/…; find / wasApplied / write (D-002)
+src/test/java/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapterTest.java  # SC-001: book, close, reopen, read back; emits once
+db/schema.sql, db/grants.sql                                                  # unchanged (002); now applied at open
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>10 · Risks &amp; mitigations</h2>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Reformatting the moved adapter changes the bytes demonstration 4a's capture is built on</td><td>H</td><td>L</td><td>4a is regenerated in stage 11 anyway (its path changes); the verdict reads the decision, not the file's bytes.</td></tr>
+    <tr><td>A test leaves an H2 file behind in the tree</td><td>M</td><td>L</td><td>Tests use <code>@TempDir</code>; <code>*.mv.db</code> is ignored.</td></tr>
+    <tr><td>A second process opens the same file</td><td>L</td><td>M</td><td>Out of scope — single-process example; H2 refuses a second opener with a lock error rather than corrupting.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+
+<section id="complexity">
+<h2>11 · Complexity tracking</h2>
+<p>Two roles and an opener are more than a demo needs; they exist so D-008 is a live grant rather than a comment, which is the
+point of this feature's second sighting of ADR-0007.</p>
+
+<spec-assumption>
+<p>The applied-tradeId record lives in the database (not the use case), because the port already asks the adapter
+<code>wasApplied</code> — 001/D-005 — and durability must cover it too or a restart would double-count.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>12 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the store, the write shape and the runtime role were anchored by the spike and by the two governing
+decisions this plan acknowledges.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>13 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (8/8); ./gradlew build green with JdbcPositionRepositoryAdapterTest (SC-001) and CoreRulesTest (SC-002) verified passing per author pre-confirmation for 003–007. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial plan — embedded file-backed H2 over plain JDBC; UPDATE-then-INSERT in one transaction, emit after commit; the adapter runs as the granted role. Acknowledges 002/D-007 and 002/D-008; six facts grounded (five against source, one spike run).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Design for 003-jdbc-persistence · JDBC persistence · authored 2026-09-18
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

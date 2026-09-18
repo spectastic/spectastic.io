@@ -1,0 +1,52 @@
+// Build for the position keeper (001-position-core, design D-001/D-004).
+// Groovy DSL on purpose: `spectastic enforce` reads Java tooling from build.gradle only.
+plugins {
+  id 'java'
+  id 'application'
+  id 'checkstyle'
+  id 'com.diffplug.spotless' version '8.10.2'
+}
+
+group = 'xyz.briancorbin.pk'
+version = '0.1.0'
+
+java {
+  toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+application {
+  mainClass = 'xyz.briancorbin.pk.Main'
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+  implementation 'com.h2database:h2:2.3.232'
+
+  testImplementation platform('org.junit:junit-bom:5.11.4')
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+  testImplementation 'com.tngtech.archunit:archunit:1.4.1'
+}
+
+test {
+  useJUnitPlatform()
+  testLogging { events 'failed'; exceptionFormat 'full' }
+}
+
+// Formatter (enforce: formatter). Only the Gradle source sets — the quoted
+// bypass under docs/priya-pr, the consumer demo and the not-yet-moved adapter
+// under src/xyz keep their bytes.
+spotless {
+  java {
+    target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+    googleJavaFormat('1.36.1')
+  }
+}
+
+// Linter (enforce: linter). Layout belongs to the formatter; this catches imports.
+checkstyle {
+  toolVersion = '14.1.0'
+  configFile = file('config/checkstyle/checkstyle.xml')
+  maxWarnings = 0
+}

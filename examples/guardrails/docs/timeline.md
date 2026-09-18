@@ -19,3 +19,23 @@ ADR-0007 was born as the answer to a requirement in feature 2 ("what guarantees 
 emits an event?"), not as governance ceremony. Features 4–6 are the distance: three merges that never
 mention it. Then the reconciliation request arrives, and the guardrail — not anyone's memory — surfaces
 the decision, at plan and again at merge.
+
+## Narrated vs. real
+
+The dates above are the narrative — the distance between the decision and the request, as the reader would have lived
+it. The git history is real and starts on 13 Sep 2026: the artifacts were authored with the spectastic verbs, then on
+**18 Sep 2026** (`build-out`) every bundle was driven through tasks → implement → verify against a real Gradle build, in
+order, 001 → 007, each flipping Draft → Accepted on its last tick:
+
+| Bundle | Real commit | What landed |
+|---|---|---|
+| 001 | `001-position-core: design → tasks → implement → verify` | Gradle bootstrap · core · `PositionService` · in-memory adapter · `CoreRulesTest` |
+| 002 | `002-downstream-consumers: …` | `PositionChanged` · `SyncEventBus` · consumers · `DataAccessRulesTest` moved into the build with a SARIF writer · `db/` · grant test |
+| 003 | `003-jdbc-persistence: …` | `H2Database` · the JDBC adapter behind the port |
+| 004 | `004-query-endpoint: …` | `GET /positions/{instrument}` · `Main` · the first OpenAPI contract |
+| 005 | `005-instrument-refdata: …` | `refdata` beside the hexagon, isolation rule |
+| 006 | `006-health-check: …` | `StoreProbe` · `GET /health` |
+| 007 | `007-reconciliation: …` then `apply(007): 2026-09-18-http-corrections` | the job · `reconcile` subcommand · `POST /corrections` via propose → apply |
+
+The bypass is a real branch too — `feat/nightly-reconciliation`, PR #1, red on the verdict and on ArchUnit — and the
+consumer is a real subproject. The narrated "18 months" is the only fiction left.

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>position-keeper-guardrails · Inbox</title>
+<link rel="stylesheet" href="assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script src="assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Inbox · position-keeper-guardrails</p>
+  <h1>What's coming up</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    A live list of unrouted items, the small things that don't need a spec, and what's deferred.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="draft">Active</spec-status></span>
+    <b>Owner</b>      <span>Position Keeping team</span>
+    <b>Updated</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Items land here first. <code>/spectastic.triage</code> with a list pastes one
+    <code>&lt;spec-triage&gt;</code> card per item; classification fills in the
+    <code>layer=</code> attribute. <code>/spectastic.implement</code> drains the
+    <code>just-do</code> queue one item at a time. Use this for cross-cutting fixes,
+    typos, small UI tweaks, and anything that doesn't fit cleanly inside a single spec's
+    triage log. Gaps this build-out surfaces in <em>spectastic itself</em> go to the
+    meta-repo's inbox, not here.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="protocol">
+<h2>Protocol</h2>
+
+<p>Four card states:</p>
+
+<dl>
+  <dt>Unrouted</dt>     <dd>No <code>layer=</code> attribute yet. Just-captured items. Needs classification.</dd>
+  <dt>Just-do</dt>      <dd><code>layer="just-do"</code>. Small enough that a spec would not change the decision — one file, no public-contract change, revert-safe. Implement immediately; no proposal.</dd>
+  <dt>Defer</dt>        <dd><code>layer="defer"</code>. Back-burner. Carries <code>defer-to=</code> pointing at a sibling spec ID, <code>TBD</code>, or <code>never</code>.</dd>
+  <dt>Routed to a layer</dt> <dd><code>layer="spec"</code> | <code>design</code> | <code>implementation</code> | <code>cross-spec</code> | <code>principles</code> | <code>platform</code>. The item became (or needs to become) a spec change-proposal or constitutional amendment.</dd>
+</dl>
+
+<p>Once a <code>just-do</code> card is implemented, it gets <code>data-status="done"</code>
+and stays in the inbox as history — strikethrough, faded, with a DONE pill.</p>
+</section>
+
+
+<section id="items">
+<h2>Items</h2>
+
+<spec-triage-log>
+
+<spec-triage id="I-001" layer="just-do" data-status="done">
+  <header>
+    <h4>001's assumptions bullet cites itself</h4>
+    <span class="meta">
+      <span class="layer-pill">Just-do</span>
+    </span>
+  </header>
+  <p class="headline">§6 of <code>specs/001-position-core/spec.html</code> reads “Fits the hexagonal shape established in 001” — 001 <em>is</em> the spec that establishes it. Reword to state the assumption 001 actually makes (the shape is the one 002 will pin as the single-writer boundary).</p>
+  <dl>
+    <dt>Target</dt>   <dd><code>specs/001-position-core/spec.html</code></dd>
+    <dt>Why small</dt><dd>One sentence in one file; no requirement, criterion or contract changes.</dd>
+    <dt>Captured</dt> <dd><time datetime="2026-09-18">18 Sep 2026</time> — noticed while designing 001; the spec was already Draft-locked by the flip before it was fixed.</dd>
+    <dt>Fixed</dt>    <dd><time datetime="2026-09-18">18 Sep 2026</time> — two bullets: whole-unit quantities, and the shape as the boundary 002 pins. No requirement or criterion touched.</dd>
+  </dl>
+</spec-triage>
+
+<spec-triage id="I-002" layer="just-do" data-status="done">
+  <header>
+    <h4>AGENTS.md still says the enforcement floor is unwired</h4>
+    <span class="meta">
+      <span class="layer-pill">Just-do</span>
+    </span>
+  </header>
+  <p class="headline">The “Enforcement floor” section reads “Still to wire (add a tool + CI gate): formatter, linter, test-runner”; since 001's bootstrap <code>spectastic enforce</code> reports all four categories covered and the CI gate is installed. Rewrite the section from the real <code>enforce</code> output and name the two workflows.</p>
+  <dl>
+    <dt>Target</dt>   <dd><code>AGENTS.md</code></dd>
+    <dt>Why small</dt><dd>Prose in one file; no verb refreshes this text (a gap filed against spectastic, not here).</dd>
+    <dt>Captured</dt> <dd><time datetime="2026-09-18">18 Sep 2026</time></dd>
+    <dt>Fixed</dt>    <dd><time datetime="2026-09-18">18 Sep 2026</time> — section rewritten from the live <code>enforce</code> output; names the managed and the project-owned workflow and the refresh command.</dd>
+  </dl>
+</spec-triage>
+
+<spec-triage id="I-003" layer="defer" defer-to="TBD-principles-ratification" data-status="done">
+  <header>
+    <h4>Every spec cites principles v1.0.0; principles.html is Draft v0.1.0 with scaffold placeholders</h4>
+    <span class="meta">
+      <span class="layer-pill">Defer</span>
+    </span>
+  </header>
+  <p class="headline">All seven <code>spec.html</code> headers link <code>principles.html</code> as v1.0.0, but the document is the <code>init --profile standard</code> seed: version 0.1.0, Status Draft, Scope and Owners still “fill in”. The honest fix is not to downgrade seven links but to finish the principles — scope, owners, governance — and ratify v1.0.0 through <code>/spectastic.principles</code>.</p>
+  <dl>
+    <dt>Defer to</dt> <dd><code>TBD-principles-ratification</code> — the docs-and-merge stage of the build-out, once every spec bundle is Accepted and the project's real scope is known.</dd>
+    <dt>Reason</dt>   <dd>Ratifying is a constitutional act, not a link fix; doing it mid-build would ratify placeholders.</dd>
+    <dt>Fixed</dt>    <dd><time datetime="2026-09-18">18 Sep 2026</time> — <code>principles.html</code> ratified v1.0.0 at the docs stage of the build-out: scope, non-goals and owners filled, the twelve seeded principles unchanged (every design had been checked against them). The seven specs' <code>v1.0.0</code> links are now true; the designs' “verified against v0.1.0” notes stand as history.</dd>
+  </dl>
+</spec-triage>
+
+</spec-triage-log>
+</section>
+
+
+<section id="changelog">
+<h2>Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>I-003 done — principles ratified v1.0.0.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>I-001, I-002 done — the assumptions bullets and the AGENTS.md floor section.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Inbox created; I-001, I-002 (just-do) and I-003 (defer) added from the 001 build-out.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  position-keeper-guardrails · Inbox
+</footer>
+
+</main>
+<script src="assets/spec.js"></script>
+</body>
+</html>

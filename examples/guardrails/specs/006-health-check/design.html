@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Health check · Design</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Design · 006-health-check</p>
+  <h1>Health check</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it — a probe port, a read-only role, and a second route on the server 004 built.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">006-health-check</a></span>
+    <b>Owner</b>      <span>Position Keeping team</span>
+    <b>Branch</b>     <span><code>build-out</code></span>
+    <b>Created</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>A <code>StoreProbe</code> port in the core (<code>boolean reachable()</code>), an <code>H2StoreProbe</code> adapter that runs
+    <code>SELECT 1</code> as the read-only <code>pk_reader</code> role, and a <code>HealthHandler</code> on <code>GET /health</code>
+    answering <code>200 {"live":true,"ready":true}</code> or <code>503 {"live":true,"ready":false}</code>. The contract is a second
+    OpenAPI sidecar. Biggest risk: a probe that can write; it cannot — the role has no write grant and the port has no write method.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verified against <a href="../../principles.html">v0.1.0</a>. No exception, no violation.</p>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-1 · Clarity over cleverness</td><td><spec-pill>OK</spec-pill></td><td>One boolean port, one query.</td></tr>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>Three small classes and a route.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Readiness is one named check, not an aggregate of guesses.</td></tr>
+    <tr><td>P-4 · One set of conventions, enforced</td><td><spec-pill>OK</spec-pill></td><td>001's floor.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>Two decisions below.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td><code>HealthEndpointTest</code> toggles a stub probe (SC-001); <code>H2StoreProbeTest</code> proves the real one against a file and a missing file.</td></tr>
+    <tr><td>P-7 · Contract-first interfaces</td><td><spec-pill>OK</spec-pill></td><td>OpenAPI sidecar at <code>specs/006-health-check/contracts/health.openapi.yaml</code>, declared in <a href="#contracts">§3</a>.</td></tr>
+    <tr><td>P-8 · Library-first boundaries</td><td><spec-pill>OK</spec-pill></td><td>The handler holds the port; <code>Main</code> wires the adapter.</td></tr>
+    <tr><td>P-9 · Secure by default</td><td><spec-pill>OK</spec-pill></td><td>The response reveals reachability only — no versions, no paths.</td></tr>
+    <tr><td>P-10 · Least privilege</td><td><spec-pill>OK</spec-pill></td><td>The probe connects as <code>pk_reader</code>, which cannot write (<a href="../002-downstream-consumers/design.html#D-008">002/D-008</a>).</td></tr>
+    <tr><td>P-11 · Semantic versioning</td><td><spec-pill>OK</spec-pill></td><td>Contract <code>info.version: 0.1.0</code>.</td></tr>
+    <tr><td>P-12 · Supply-chain hygiene</td><td><spec-pill>OK</spec-pill></td><td>No new dependency.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="acknowledged">Governing decisions acknowledged</h3>
+<p>This plan adds <code>src/main/java/xyz/briancorbin/pk/hex/persistence/H2StoreProbe.java</code>, inside the scope of
+<code>002-downstream-consumers/D-007</code> (ADR-0007 — only the persistence adapter touches the data store; every position
+change emits <code>PositionChanged</code>). Honoured: the probe is read-only — <code>SELECT 1</code> as the <code>pk_reader</code>
+role, which the grant (<code>002-downstream-consumers/D-008</code>) denies any write — and adds no writer.
+<code>spectastic adrs --for src/main/java/xyz/briancorbin/pk/hex/persistence/H2StoreProbe.java</code> returns D-007; this
+section is its acknowledgment.</p>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 on the Gradle build (<a href="../001-position-core/design.html#D-001">001/D-001</a>).</dd>
+  <dt>Frameworks</dt>       <dd>None — the JDK HTTP server from <a href="../004-query-endpoint/design.html#D-001">004/D-001</a>.</dd>
+  <dt>Architecture</dt>     <dd>Hexagonal (<a href="../001-position-core/design.html#D-002">001/D-002</a>): a new outbound port (<code>StoreProbe</code>) with one adapter, and one inbound route — <a href="#D-001">D-001</a>.</dd>
+  <dt>Storage</dt>          <dd>None new; readiness asks the H2 store one trivial query.</dd>
+  <dt>Testing</dt>          <dd>JUnit 5 (<a href="../001-position-core/design.html#D-003">001/D-003</a>); the endpoint test uses a stub probe, the adapter test a real file.</dd>
+  <dt>Coverage</dt>         <dd>Not in scope (standard profile).</dd>
+  <dt>Perf targets</dt>     <dd>Spec NFR-001 says “quickly” without a number; the probe is one <code>SELECT 1</code> over an embedded file, so a target is not set — recorded, not invented.</dd>
+  <dt>Constraints</dt>      <dd>The probe mutates nothing (NFR-001) — enforced by the reader role and the port's shape.</dd>
+</dl>
+<h3 id="toolchain">Toolchain / enforcement</h3>
+<p>No change to the build or the floor.</p>
+</section>
+
+
+<section id="contracts">
+<h2>3 · Data model &amp; contracts</h2>
+<p>The spec's <a href="./spec.html#data">Health status</a> is <code>{"live": bool, "ready": bool}</code>: <code>live</code> is
+true whenever the handler answers at all; <code>ready</code> is the probe's answer. The status code carries the same fact:
+<code>200</code> when ready, <code>503</code> when not.</p>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Conceptual entity</th><th>Physical shape</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./spec.html#data">Health status</a></td><td><code>application/json</code> <code>{live: boolean, ready: boolean}</code></td><td><code>200</code> / <code>503</code>; <code>405</code> for any method but GET.</td></tr>
+    <tr><td>Store probe (port)</td><td><code>interface StoreProbe { boolean reachable(); }</code></td><td>JDK-only, in <code>hex.core</code>; the H2 adapter is the only implementation outside tests.</td></tr>
+  </tbody>
+</table>
+</div>
+<spec-contract shape="request-response" name="health" path="api/health.openapi.yaml" format="openapi">
+  <p>A consumer (the orchestrator) may rely on: <code>200</code> means the store answered a query in this request; <code>503</code>
+  means the process is up but the store did not; the body always carries both booleans. Authored at the proposed location and
+  promoted to <code>api/</code> when the bundle lands, as 004's was.</p>
+<spec-contract-view lines="35" tabindex="0" aria-label="Projection of api/health.openapi.yaml">openapi: 3.1.0
+info:
+  title: Position keeper — health
+  version: 0.1.0
+  description: &gt;-
+    Liveness and readiness for the orchestrator (006-health-check). The probe reads nothing but a
+    reachability check of the store and mutates no state.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness and readiness
+      responses:
+        &quot;200&quot;:
+          description: The process is live and its store is reachable
+          content:
+            application/json:
+              schema: { $ref: &quot;#/components/schemas/Health&quot; }
+              example: { live: true, ready: true }
+        &quot;503&quot;:
+          description: The process is live but its store is unreachable
+          content:
+            application/json:
+              schema: { $ref: &quot;#/components/schemas/Health&quot; }
+              example: { live: true, ready: false }
+        &quot;405&quot;:
+          description: Any method but GET
+components:
+  schemas:
+    Health:
+      type: object
+      required: [live, ready]
+      properties:
+        live: { type: boolean, description: The process answers at all }
+        ready: { type: boolean, description: The position store answered a trivial query }</spec-contract-view>
+</spec-contract>
+</section>
+
+
+<section id="grounding">
+<h2>5 · Grounding &amp; evidence</h2>
+<p>Facts this plan rests on; no spike was needed.</p>
+<div style="overflow-x:auto;">
+<table class="evidence">
+  <thead><tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr></thead>
+  <tbody>
+    <tr><td><code>H2Database.readerConnection()</code> exists and connects as <code>pk_reader</code>, which has <code>SELECT</code> only</td>
+        <td><code>src/main/java/xyz/briancorbin/pk/hex/persistence/H2Database.java</code>; <code>db/grants.sql</code>; <code>GrantBackstopTest.aNonAdapterRoleCannotUpdatePositions</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>The probe's role cannot write even if the code tried.</td></tr>
+    <tr><td>A second context on the same <code>HttpApi</code> is one <code>handle(path, handler)</code> call</td>
+        <td><code>src/main/java/xyz/briancorbin/pk/hex/http/HttpApi.java</code> — <code>handle</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>No server change; <code>Main</code> adds one line.</td></tr>
+    <tr><td>A JDBC failure to connect surfaces as <code>SQLException</code>, catchable without touching state</td>
+        <td>JDK 21 — <code>DriverManager.getConnection</code> declares <code>SQLException</code>; the H2 file URL fails when the directory is unwritable or the file is locked</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td><code>reachable()</code> is <code>try { SELECT 1 } catch (SQLException) { false }</code>.</td></tr>
+    <tr><td>Two <code>request-response</code> contracts may coexist if their coordinate names differ</td>
+        <td><code>@spectastic/schema · rules/contract-name-unique.ts</code>; 004 declares <code>positions</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>This one is <code>health</code>.</td></tr>
+    <tr><td>D-007 scopes <code>src/**/persistence/**</code> and this plan adds a file there</td>
+        <td><code>specs/002-downstream-consumers/design.html#D-007</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Acknowledged in <a href="#acknowledged">§1</a> — a legitimate sighting, not the prefix over-fire.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+
+<section id="approach">
+<h2>6 · Approach</h2>
+<p>Add <code>StoreProbe</code> to <code>hex.core</code>. <code>H2StoreProbe(H2Database)</code> opens a reader connection and runs
+<code>SELECT 1</code>; any exception is <code>false</code>. <code>HealthHandler(StoreProbe)</code> answers GET with the JSON pair and
+the matching status, 405 otherwise. <code>Main</code> registers <code>/health</code> beside <code>/positions/</code>.</p>
+<spec-sidenote>Liveness could also check the bus or the consumers, but they are in-process objects with nothing to fail; a
+liveness that is always true is the honest one here.</spec-sidenote>
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 160" role="img" aria-label="GET /health asks the StoreProbe port, whose H2 adapter runs SELECT 1 as the read-only role">
+  <style>
+    .box { fill: var(--c-surface, #fcfbf7); stroke: var(--c-border, #c4c1bb); stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill: var(--c-text-soft, #4a4a46); letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill: var(--c-text, #353534); }
+    .arr { stroke: var(--c-muted, #73706d); stroke-width:1.2; fill:none; }
+    .arrh { fill: var(--c-muted, #73706d); }
+  </style>
+  <rect class="box" x="40"  y="50" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="72">HealthHandler</text>
+  <text class="body"  x="56" y="92">GET /health → 200 | 503</text>
+  <rect class="box" x="270" y="50" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="72">StoreProbe</text>
+  <text class="body"  x="286" y="92">port · reachable()</text>
+  <rect class="box" x="500" y="50" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="72">H2StoreProbe</text>
+  <text class="body"  x="516" y="92">SELECT 1 as pk_reader</text>
+  <path class="arr" d="M200 80 L270 80" marker-end="url(#a)"/>
+  <path class="arr" d="M430 80 L500 80" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="arrh" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+</svg>
+<figcaption>Read-only end to end.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>7 · Alternatives considered</h2>
+<p>How readiness should reach the store. Criteria: cannot mutate, honours the port boundary, cost per probe.</p>
+<spec-matrix>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Option</th><th>Cannot mutate</th><th>Honours ports</th><th>Cost</th><th class="score">Total</th></tr></thead>
+  <tbody>
+    <tr data-winner><td>A <code>StoreProbe</code> port; H2 adapter runs <code>SELECT 1</code> as <code>pk_reader</code> — chosen</td><td>3 — role has no write grant</td><td>3</td><td>3</td><td class="score">9</td></tr>
+    <tr><td>Call <code>PositionRepository.find("__probe__")</code></td><td>2 — read-only in practice, as the adapter's role</td><td>2 — abuses the port</td><td>3</td><td class="score">7</td></tr>
+    <tr><td>Check the H2 file exists on disk</td><td>3</td><td>1 — bypasses the store entirely</td><td>3</td><td class="score">7</td></tr>
+  </tbody>
+</table>
+</div>
+</spec-matrix>
+</section>
+
+
+<section id="decisions">
+<h2>8 · Decisions</h2>
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Readiness is a <code>StoreProbe</code> port answered by <code>SELECT 1</code> as the reader role</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>Spec FR-002 needs the store's reachability; NFR-001 forbids mutation. <code>H2Database.readerConnection()</code> and the grant (<a href="#grounding">§5</a>) make a probe that cannot write.</dd>
+    <dt>Decision drivers</dt> <dd>cannot mutate · port discipline · one query</dd>
+    <dt>Considered options</dt>
+    <dd><ul class="considered-options">
+      <li><strong>Port + <code>SELECT 1</code> as <code>pk_reader</code> — chosen</strong> — + read-only by grant. − one more port.</li>
+      <li><strong>Reuse <code>find</code></strong> — − runs as the adapter's writable role; misuses the port.</li>
+      <li><strong>File exists</strong> — − says nothing about the database answering.</li>
+    </ul></dd>
+    <dt>Decision</dt>     <dd><code>interface StoreProbe { boolean reachable(); }</code> in <code>hex.core</code>; <code>H2StoreProbe</code> in <code>hex.persistence</code>.</dd>
+    <dt>Consequences</dt> <dd>+ Tests toggle readiness with a lambda. − The persistence package grows by one read-only class (acknowledged above).</dd>
+  </dl>
+</spec-decision>
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Contract first: a second OpenAPI sidecar, coordinate <code>health</code></h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>Same reasoning as <a href="../004-query-endpoint/design.html#D-002">004/D-002</a>; a second contract needs its own coordinate name (<code>contract-name-unique</code>).</dd>
+    <dt>Decision</dt>     <dd><code>specs/006-health-check/contracts/health.openapi.yaml</code> → <code>api/health.openapi.yaml</code> at the last tick; <code>name="health"</code>.</dd>
+    <dt>Consequences</dt> <dd>+ The orchestrator's contract is a file. − Two small OpenAPI documents rather than one; merging them is a later editorial choice.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>9 · Project structure</h2>
+<p>Only the new or changed paths.</p>
+<pre><code>specs/006-health-check/contracts/health.openapi.yaml                # the contract, proposed (→ api/health.openapi.yaml)
+src/main/java/xyz/briancorbin/pk/hex/core/StoreProbe.java             # port (D-001)
+src/main/java/xyz/briancorbin/pk/hex/persistence/H2StoreProbe.java    # SELECT 1 as pk_reader; false on any failure
+src/main/java/xyz/briancorbin/pk/hex/http/HealthHandler.java          # GET /health → 200 | 503; else 405
+src/main/java/xyz/briancorbin/pk/Main.java                            # + /health route
+src/test/java/xyz/briancorbin/pk/hex/http/HealthEndpointTest.java     # SC-001: stub probe toggled → 200 / 503
+src/test/java/xyz/briancorbin/pk/hex/persistence/H2StoreProbeTest.java  # real file → true; unreachable → false
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>10 · Risks &amp; mitigations</h2>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Making the store “unreachable” in a test is awkward for an embedded file</td><td>M</td><td>L</td><td><code>H2StoreProbeTest</code> points a probe at a database under a path that cannot be created; the endpoint test uses a stub.</td></tr>
+    <tr><td>An orchestrator polls faster than a connection open costs</td><td>L</td><td>L</td><td>Embedded H2 opens in milliseconds; not quantified because the spec sets no number.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section id="complexity"><h2>11 · Complexity tracking</h2>
+<p>None beyond the spec.</p>
+<spec-assumption><p>Liveness is always true when the handler runs — there is no separate liveness failure mode in a single-process JDK server.</p></spec-assumption>
+</section>
+
+<section id="questions"><h2>12 · Open questions</h2>
+<spec-questions><p>None outstanding — the probe's shape and role, and the contract, were anchored against 003's opener and the grant test.</p></spec-questions>
+</section>
+
+<section id="changelog"><h2>13 · Change log</h2>
+<spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (7/7); ./gradlew build green with HealthEndpointTest (SC-001) and H2StoreProbeTest verified passing and curl -si localhost:8080/health answering 200 per author pre-confirmation for 003–007; contract promoted to api/health.openapi.yaml. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial plan — a <code>StoreProbe</code> port answered by <code>SELECT 1</code> as the reader role, a second OpenAPI sidecar; five facts verified against source. Acknowledges 002/D-007 (a legitimate sighting: one read-only class in the adapter package).</span></li>
+</ol></spec-changelog>
+</section>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Design for 006-health-check · Health check · authored 2026-09-18
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

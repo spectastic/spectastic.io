@@ -13,24 +13,25 @@
 <main>
 
 <header>
-  <!-- Default version: v0.1.0 per FR-008 of specs/008-core-principles/spec.html — Draft artifacts MUST stay below 1.0.0.
-       Graduate to v1.0.0 at the Draft → Accepted bundled-flip prompt (REQ-LIFECYCLE-005), not here. -->
-  <p class="small-caps">Principles · v0.1.0</p>
+  <p class="small-caps">Principles · v1.0.0</p>
   <h1>position-keeper-guardrails</h1>
   <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
-    A standard project — principles seeded by `spectastic init --profile standard`.
+    Twelve rules a position keeper is built under — and the reason ADR-0007 could be written as data, not remembered.
   </p>
 
   <spec-meta>
-    <b>Status</b>      <span><spec-status value="draft">Draft</spec-status></span>
-    <b>Version</b>     <span>0.1.0</span>
-    <b>Ratified</b>    <span><time datetime="2026-09-13">13 Sep 2026</time></span>
-    <b>Last amended</b><span><time datetime="2026-09-13">13 Sep 2026</time></span>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Version</b>     <span>1.0.0</span>
+    <b>Ratified</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Last amended</b><span><time datetime="2026-09-18">18 Sep 2026</time></span>
     <b>Read time</b>   <span data-reading-time></span>
   </spec-meta>
 
   <spec-tldr>
-    <p>Starter principles for this project, seeded from the chosen profile. Refine them with /spectastic.principles, then ratify.</p>
+    <p>The standard profile's twelve principles, seeded at <code>init</code> and ratified unchanged once all seven feature bundles had
+    been designed and built against them. P-3 (explicit over implicit), P-5 (record the why) and P-10 (least privilege) are the ones
+    the guardrail leans on: a decision about who may write the positions store is recorded as data with its reason, and every
+    role — the adapter's, the reader's, a downstream service's — gets the narrowest capability that does the job.</p>
   </spec-tldr>
 </header>
 
@@ -85,17 +86,18 @@
 <spec-goals>
   <h3>This project does</h3>
   <ul>
-    <li>What this project builds — fill in.</li>
-    <li>A second in-scope area.</li>
-    <li>A third in-scope area.</li>
+    <li>Keep securities positions from a stream of trade events, idempotently, behind ports — and prove every change reaches Risk, P&amp;L and the audit trail.</li>
+    <li>Serve read-only queries, health and reference data over a small HTTP surface, contract first.</li>
+    <li>Reconcile the book against the custodian's settled snapshot, nightly and on request from a downstream service — always through the position use case.</li>
+    <li>Demonstrate spectastic's architectural guardrails on a real two-service Gradle build: a decision recorded in 2024's timeline catches a 2026 request at plan and at merge.</li>
   </ul>
 </spec-goals>
 
 <spec-non-goals>
   <h3>This project does not</h3>
   <ul>
-    <li>What this project deliberately does not do.</li>
-    <li>A second non-goal.</li>
+    <li>Run in production — the store is an embedded H2 file, authentication is deferred to a gateway that does not exist here, and the dates in <code>docs/timeline.md</code> are narrated.</li>
+    <li>Own the downstream reconciliation service's book: <code>services/reconciliation-service</code> is a separate spectastic project that routes corrections through this one.</li>
   </ul>
 </spec-non-goals>
 </section>
@@ -105,14 +107,15 @@
 <h2>Governance</h2>
 
 <dl>
-  <dt>Owners</dt>           <dd>Project owner — fill in.</dd>
+  <dt>Owners</dt>           <dd>Position Keeping team — Brian Corbin · <code>@briancorbinxyz</code>.</dd>
   <dt>Decision style</dt>   <dd>Owner decides; propose changes by PR.</dd>
   <dt>Amendment process</dt><dd>PR to this file with a version bump and a Sync Impact Report.</dd>
   <dt>Versioning</dt>       <dd>Semver. MAJOR = principle removed/redefined. MINOR = principle added. PATCH = wording.</dd>
 </dl>
 
 <spec-assumption>
-<p>Assumes the standard profile's level of rigor fits this project.</p>
+<p>The standard profile's level of rigor fits this project: a soft enforcement gate (formatter, linter, test-runner — all
+covered by the Gradle build) and the plan-stage constraint at merge, without the verified tier's coverage floor.</p>
 </spec-assumption>
 </section>
 
@@ -121,13 +124,14 @@
 <h2>Change log</h2>
 <spec-changelog>
 <ol>
-  <li><span class="rev"><b>v0.1.0</b> · <time datetime="2026-09-13">13 Sep 2026</time></span><span>Ratified.</span></li>
+  <li><span class="rev"><b>v1.0.0</b> · <time datetime="2026-09-18">18 Sep 2026</time></span><span>Ratified — the twelve seeded principles unchanged; scope, non-goals and owners filled in at the end of the build-out, once every spec bundle (001–007) had been designed and built against them. Closes inbox I-003: the specs' <code>v1.0.0</code> links are now true.</span></li>
+  <li><span class="rev"><b>v0.1.0</b> · <time datetime="2026-09-13">13 Sep 2026</time></span><span>Seeded by <code>spectastic init --profile standard</code>.</span></li>
 </ol>
 </spec-changelog>
 </section>
 
 <footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
-  Principles v0.1.0 · ratified 2026-09-13
+  Principles v1.0.0 · ratified 2026-09-18
 </footer>
 
 </main>

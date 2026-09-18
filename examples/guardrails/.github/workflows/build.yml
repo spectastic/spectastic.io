@@ -1,0 +1,92 @@
+# Project-owned CI. The spectastic guarantee-layer gate (validate → enforce → merge verdict) is the
+# sibling spectastic.yml, which `spectastic init --tools` owns and drift-checks — not edited here.
+# This workflow carries what that gate deliberately leaves to the project: the Gradle build, the
+# project's own enforcers (ArchUnit via the build, Semgrep), the nested consumer project's
+# validate, decision coverage, and — on pull requests — the verdict fed with the real ArchUnit
+# SARIF. The `guardrail-fires` job keeps the intentional violations honest: it asserts they fail.
+name: build
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+env:
+  SPECTASTIC: npx --yes @spectastic/cli@0.1.0-pre.28
+jobs:
+  gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build (compile · spotlessCheck · checkstyle · test, both projects)
+        run: ./gradlew build --no-daemon
+      - name: Semgrep — ADR-0007's content rule over the owner's sources
+        if: ${{ !cancelled() }}
+        run: |
+          pipx install semgrep
+          semgrep --config enforcement/semgrep-positions.yaml --error --sarif -o build/semgrep.sarif src/
+      - name: Validate the consumer project's own artifacts
+        if: ${{ !cancelled() }}
+        working-directory: services/reconciliation-service
+        run: $SPECTASTIC validate 'specs/**/*.html'
+      - name: Decision coverage
+        if: ${{ !cancelled() }}
+        run: $SPECTASTIC adrs --coverage
+      - name: Merge verdict with the real ArchUnit SARIF
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE="$(git merge-base "origin/$BASE_REF" HEAD)"
+          CHANGED="$(git diff --name-only "$BASE" HEAD -- 'src/**' 'db/**' 'services/**')"
+          if [ -z "$CHANGED" ]; then echo "No governed paths changed."; exit 0; fi
+          $SPECTASTIC verdict --changed $CHANGED --enforcer-output build/reports/archunit/archunit-results.sarif --out build/verdict-with-archunit.json
+      - name: Keep the reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            build/reports/
+            build/semgrep.sarif
+            build/verdict-with-archunit.json
+            services/reconciliation-service/build/reports/
+          if-no-files-found: ignore
+
+  # The worked example keeps two intentional violations in the tree — the quoted Priya job and the
+  # consumer's adapter. Nothing marks them "expected" for the verdict, so this job does: each is
+  # asserted to FAIL, and a green run here means the guardrail still fires.
+  guardrail-fires:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The Priya job is a path violation (native detector, owner identity)
+        run: |
+          set +e
+          $SPECTASTIC verdict --changed docs/priya-pr/PositionReconciliationJob.java --out build/expected-priya.json
+          test $? -eq 1
+      - name: The consumer's adapter is an ownership violation (non-owner identity)
+        working-directory: services/reconciliation-service
+        run: |
+          set +e
+          $SPECTASTIC verdict --changed src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java --out build/expected-consumer.json
+          test $? -eq 1
+      - name: The real SARIF from PR #1 joins to D-007
+        run: |
+          set +e
+          $SPECTASTIC verdict --changed docs/priya-pr/PositionReconciliationJob.java --enforcer-output enforcement/archunit-results.sarif --out build/expected-sarif.json
+          test $? -eq 1
+          grep -c '"only_the_persistence_adapter_touches_data_access_apis"' build/expected-sarif.json

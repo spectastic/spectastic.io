@@ -1,31 +1,31 @@
 # Demo 8 — ownership, not layering: a NON-OWNER service touches the store from its own adapter (specs 119 + 120)
-# The consumer repo is demonstrations/8-consumer-service (project acme/reconciliation-service). It carries a verbatim
-# copy of D-007 — the federated read is deferred, so the decision must be present in the checkout — and a textbook
+# The consumer project is services/reconciliation-service (acme/reconciliation-service), a real Gradle subproject. It carries a
+# verbatim copy of D-007 — the federated read is deferred, so the decision must be present in the checkout — and a textbook
 # persistence adapter that writes the positions store. A path rule would call it sanctioned. It is not the owner.
-$ cd demonstrations/8-consumer-service
-$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java
-VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at src/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
-  src/acme/recon/hex/persistence/PositionRepositoryAdapter.java → UPDATE\s+positions
+$ cd services/reconciliation-service
+$ spectastic verdict --changed src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java
+VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
+  src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java → UPDATE\s+positions
   Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
 Scope: repo-local — evaluated 1 decision from this checkout. A decision not present in this checkout is not evaluated.
-Wrote ../8-verdict.json
+Wrote ../../demonstrations/8-verdict.json
 exit: 1
 
 # --explain (spec 120) routes the non-owner to the owner, not to their own directory. A path violation would print a
 # "Sanctioned path" here; an ownership violation names the store's AUTHORITY and where the change belongs instead.
-$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java --explain
-VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at src/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
-  src/acme/recon/hex/persistence/PositionRepositoryAdapter.java → UPDATE\s+positions
+$ spectastic verdict --changed src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java --explain
+VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
+  src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java → UPDATE\s+positions
   Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
 Scope: repo-local — evaluated 1 decision from this checkout. A decision not present in this checkout is not evaluated.
 
 Explanation (advisory — the decision and the code, so you can act):
 
 ── D-007 · ADR-0007 — only the persistence adapter touches the data store ──
-  Rule no_sql_write_to_positions_outside_adapter · src/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
+  Rule no_sql_write_to_positions_outside_adapter · src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java:21
 
   Offending — the change the gate flagged:
-      18|
+      18| 
       19|   public void correct(String instrument, long quantity) throws Exception {
       20|     try (PreparedStatement ps =
   >   21|         db.prepareStatement("UPDATE positions SET quantity = ? WHERE instrument = ?")) {
@@ -40,20 +40,20 @@ Explanation (advisory — the decision and the code, so you can act):
 
   Owned elsewhere — nowhere in this service; route the change through its owner:
     the store spectastic://briancorbin/position-keeper-guardrails/datastore/positions is owned by briancorbin/position-keeper-guardrails
-Wrote ../8-verdict.json
+Wrote ../../demonstrations/8-verdict.json
 exit: 1
 
 # --teach (spec 120) asks an ownership question, not a layering one — templated from the recorded cause + authority.
-$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java --teach
+$ spectastic verdict --changed src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java --teach
   … VIOLATION as above …
 Teaching follow-up (advisory — reason for yourself, this is not a fix):
-  · The store spectastic://briancorbin/position-keeper-guardrails/datastore/positions is owned by briancorbin/position-keeper-guardrails, not this service — this change has src/acme/recon/hex/persistence/PositionRepositoryAdapter.java writing it directly. What makes holding this data here necessary, rather than routing the change through briancorbin/position-keeper-guardrails?
+  · The store spectastic://briancorbin/position-keeper-guardrails/datastore/positions is owned by briancorbin/position-keeper-guardrails, not this service — this change has src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java writing it directly. What makes holding this data here necessary, rather than routing the change through briancorbin/position-keeper-guardrails?
 exit: 1
 
 # Same file, same decision — but with the OWNER identity in spectastic.json: the path rule applies and the adapter is sanctioned.
 $ sed -i "" "s#acme/reconciliation-service#briancorbin/position-keeper-guardrails#" spectastic.json
-$ spectastic verdict --changed src/acme/recon/hex/persistence/PositionRepositoryAdapter.java
+$ spectastic verdict --changed src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java
 verdict: no governance violations in the changed paths.
 Scope: repo-local — evaluated 1 decision from this checkout. A decision not present in this checkout is not evaluated.
-Wrote ../8-verdict-as-owner.json
+Wrote ../../demonstrations/8-verdict-as-owner.json
 exit: 0

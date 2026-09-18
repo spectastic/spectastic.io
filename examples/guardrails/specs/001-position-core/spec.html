@@ -70,10 +70,12 @@ The domain compiles with no import of any framework or persistence library.
 <details><summary>Observed at</summary><p>An ArchUnit rule asserting the core package imports only JDK + domain types.</p></details>
 </spec-criterion>
 </section>
-<section id="assumptions"><h2>6 · Assumptions</h2><ul><li>Fits the hexagonal shape established in 001.</li></ul></section>
+<section id="assumptions"><h2>6 · Assumptions</h2><ul><li>Whole-unit quantities (a signed <code>long</code>); fractional lots are not in this timeline.</li><li>The ports-and-adapters shape chosen here is the boundary a later feature (002) will pin as the single writer of the store.</li></ul></section>
 <section id="questions"><h2>7 · Open questions</h2><p>None outstanding.</p></section>
 <section id="conformance"><h2>8 · Conformance index</h2><spec-conformance></spec-conformance></section>
 <section id="changelog"><h2>9 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (13/13); ./gradlew clean build green with PositionServiceTest (SC-001) and CoreRulesTest (SC-002) verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-15">15 Sep 2026</time><span>Reset to Draft — re-driven through tasks → implement → verify against a real Gradle build; the 2024–25 dates in docs/timeline.md remain the narrated history.</span></li>
   <li><time datetime="2024-02-05">05 Feb 2024</time><span>Accepted — the hexagonal core with an in-memory repo; ports-and-adapters and a JDK-only domain.</span></li>
 </ol></spec-changelog></section>
 </main>

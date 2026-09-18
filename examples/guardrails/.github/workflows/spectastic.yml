@@ -1,0 +1,50 @@
+# spectastic guarantee-layer CI gate — managed by `spectastic init --tools`; do not edit by hand
+# Re-run `spectastic init --tools --ci-only` to refresh it; `spectastic validate` reports drift.
+name: spectastic
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Validate the artifact corpus
+        run: npx --yes @spectastic/cli@0.1.0-pre.28 validate --format sarif 'specs/**/*.html' '*.html' 'examples/*.html' > spectastic.sarif
+      - name: Upload findings to code scanning
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: spectastic.sarif
+          category: spectastic
+      - name: Enforce the profile floor
+        if: ${{ !cancelled() }}
+        run: npx --yes @spectastic/cli@0.1.0-pre.28 enforce
+      - name: Merge verdict for the changed paths
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE="$(git merge-base "origin/$BASE_REF" HEAD)"
+          CHANGED="$(git diff --name-only "$BASE" HEAD)"
+          if [ -z "$CHANGED" ]; then echo "No changed paths to judge."; exit 0; fi
+          # one path per word; paths containing whitespace are not supported here
+          npx --yes @spectastic/cli@0.1.0-pre.28 verdict --changed $CHANGED --out .spectastic/verdict.json
+          # a project with its own enforcer output can pass it through, e.g.:
+          # npx --yes @spectastic/cli@0.1.0-pre.28 verdict --changed $CHANGED --enforcer-output enforcer.sarif --out .spectastic/verdict.json
+      - name: Upload the verdict
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectastic-verdict
+          path: .spectastic/verdict.json
+          if-no-files-found: ignore

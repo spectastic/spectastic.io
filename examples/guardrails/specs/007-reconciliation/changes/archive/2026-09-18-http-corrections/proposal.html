@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Accept corrections from a downstream service over HTTP · Change proposal</title>
+<link rel="stylesheet" href="../../../../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../../../../assets/favicon.svg">
+<script src="../../../../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Change proposal · 007-reconciliation</p>
+  <h1>Accept corrections from a downstream service over HTTP</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Give the reconciliation service a sanctioned door — <code>POST /corrections</code> — so the change it wants routes through the owner instead of into the store.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="applied">Applied</spec-status></span>
+    <b>Change ID</b>  <span>2026-09-18-http-corrections</span>
+    <b>Spec</b>       <span><a href="../../../spec.html">007-reconciliation</a></span>
+    <b>Author</b>     <span>Position Keeping team</span>
+    <b>Created</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Targets</b>    <span>1 requirement</span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>Adds one requirement, <code>FR-005</code>: the position keeper accepts a correction over <code>POST /corrections</code> and
+    applies it through the position use case, exactly as the nightly job does. It exists because demonstration 8's verdict on the
+    consumer service says “route the change through its owner” — and until now the owner had no route to offer. Additive; no
+    decision changes; ADR-0007 is honoured the same way the job honours it.</p>
+  </spec-tldr>
+</header>
+
+
+<spec-change id="2026-09-18-http-corrections" status="applied">
+
+<header>
+  <h3>Accept corrections from a downstream service over HTTP</h3>
+  <span class="meta"><spec-status value="applied">Applied</spec-status></span>
+</header>
+
+
+<section id="intent">
+<h2>1 · Intent</h2>
+<p>The consumer service (<code>acme/reconciliation-service</code>, demonstration 8) computes corrections of its own and, in the
+demonstrated bypass, writes them into the positions store from its own adapter. The verdict flags that as an <em>ownership</em>
+violation and its explanation says: route the change through the owning service. That advice is only actionable if the owner
+exposes a way in. Today it does not — the nightly job is the only correction path, and it is in-process.</p>
+<p>This change gives the owner that door. A correction over HTTP is the same operation the job performs — bring an instrument to
+a target quantity under a supplied <code>tradeId</code> — so it lands on <code>PositionService.correct</code>, emits
+<code>PositionChanged</code> through the adapter, and stays idempotent on the caller's <code>tradeId</code>. Nothing about
+ADR-0007's boundary moves.</p>
+</section>
+
+
+<section id="scope">
+<h2>2 · Scope</h2>
+
+<spec-goals>
+  <h3>In scope</h3>
+  <ul>
+    <li><code>POST /corrections</code> with <code>{instrument, quantity, tradeId}</code>, answering the resulting position.</li>
+    <li>The OpenAPI contract for it, authored first at <code>specs/007-reconciliation/contracts/corrections.openapi.yaml</code> and promoted to <code>api/corrections.openapi.yaml</code> on apply; declared in the design's §3.</li>
+    <li>Idempotency on the caller's <code>tradeId</code> — a repeat is a <code>200</code> that changes nothing and emits nothing.</li>
+    <li>A handler test against a live server asserting the event, the store and the idempotent repeat.</li>
+  </ul>
+</spec-goals>
+
+<spec-non-goals>
+  <h3>Out of scope</h3>
+  <ul>
+    <li defer-to="TBD-auth">Authentication and authorisation of the caller — the spec defers auth to the gateway (004); a downstream service's identity is the same question.</li>
+    <li defer-to="TBD-batch-corrections">Batch corrections (many instruments per request) — the nightly job already handles the batch case in-process; one instrument per request is enough for the consumer's needs today.</li>
+    <li defer-to="010-reconciliation-service">The consumer's side — its <code>PositionKeeperClient</code> calling this endpoint — lives in the second service's own bundle.</li>
+  </ul>
+</spec-non-goals>
+</section>
+
+
+<section id="approach">
+<h2>3 · Approach</h2>
+<p>A third handler on the existing JDK HTTP server (<a href="../../../../004-query-endpoint/design.html#D-001">004/D-001</a>):
+<code>hex.http.CorrectionsHandler</code> parses the JSON body — three fields, hand-parsed like the rest of the surface — and
+calls <code>PositionService.correct(instrument, quantity, tradeId)</code> (007 T-010), answering <code>Json.position</code> of the
+result. A malformed body is <code>400</code>; any method but <code>POST</code> is <code>405</code>. <code>Main</code> registers it.
+The handler holds the use case only, never a repository — the same read-only-by-construction discipline as 004, applied to a
+write path: the only write it can cause is the one the adapter performs and emits.</p>
+<spec-note><p>The design's §3 already declares the contract (amended for this change) so that <code>/spectastic.apply</code>'s
+promotion step has a declared effective path to write to — the first contract promotion this project performs through the verb
+rather than by hand.</p></spec-note>
+</section>
+
+
+<section id="deltas">
+<h2>4 · Deltas</h2>
+<p>One <code>&lt;spec-delta&gt;</code>: an ADD.</p>
+
+<spec-delta op="added" target="FR-005">
+  <spec-requirement id="FR-005" priority="must">
+    <p>The service MUST accept a correction from a downstream reconciliation service over <code>POST /corrections</code> —
+    instrument, the custodian quantity that service reconciles against, and a synthetic <code>tradeId</code> identifying
+    <em>that service's</em> reconciliation run — and apply it through the position use case, so it emits
+    <code>PositionChanged</code> like every other mutation; a repeated <code>tradeId</code> MUST change nothing and answer the
+    current position.</p>
+    <details><summary>Rationale</summary><p>ADR-0007's verdict on a non-owner service tells it to route the change through the owner.
+    This is the route. It reuses the job's correction path so that there is still exactly one way a position changes.</p></details>
+  </spec-requirement>
+</spec-delta>
+</section>
+
+
+<section id="subtraction">
+<h2>4b · What this change removes</h2>
+<p>Each entry names one thing this change takes away &mdash; a clause dropped from a requirement it retypes,
+an obligation a sibling loses, a behaviour or affordance no requirement records. <strong>An empty register is
+the answer &ldquo;this removes nothing&rdquo;</strong>, so the common case needs no editing.</p>
+<spec-subtraction>
+</spec-subtraction>
+</section>
+
+
+<section id="risks">
+<h2>5 · Risk register</h2>
+<p>Populated by the adversarial risk pass (the ADD is <code>must</code>-tier). One <code>&lt;spec-risk&gt;</code> per finding.</p>
+
+<spec-risk-log>
+<spec-risk target="FR-005" status="accepted" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">The new door is a write endpoint with no caller identity check at all — deferring auth to a gateway that doesn't exist yet means, until that gateway ships, any network caller (not only the vetted reconciliation service) can set any instrument to any quantity under any tradeId, which is a materially larger blast radius than the in-process nightly job this reuses ever had.</p>
+  <p class="citation">§2 out-of-scope: "Authentication and authorisation of the caller — the spec defers auth to the gateway (004); a downstream service's identity is the same question." — deferred, not resolved, and FR-005 itself carries no caller constraint.</p>
+  <div class="response">Accepted, eyes open. The whole HTTP surface (004's reads included) defers caller identity to the gateway under <code>TBD-auth</code>, and the process binds <code>localhost</code> by default, so the door is not network-reachable until someone deliberately exposes it. The correct fix is the gateway, not a one-off check on this route; the risk is recorded so that exposing the port is a decision, not an accident.</div>
+</spec-risk>
+
+<spec-risk target="FR-003" status="mitigated" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">FR-005 lets the HTTP caller supply its own tradeId for idempotency and attribution, but the live FR-003 requires a correction to carry "a synthetic tradeId identifying the reconciliation run" — a downstream service's own transaction id identifies its own action, not a reconciliation run, so a correction arriving over POST /corrections cannot satisfy both requirements' plain text at once.</p>
+  <p class="citation">FR-003: "A correction MUST carry a synthetic tradeId identifying the reconciliation run, so consumers stay idempotent and the audit trail attributes the change."</p>
+  <div class="response">Mitigated by rewording the delta: FR-005 now requires "a synthetic <code>tradeId</code> identifying <em>that service's</em> reconciliation run" — the caller is a reconciliation service and its run id is a reconciliation run id, so FR-003's attribution and idempotency hold for corrections from either source. The consumer's client (010) formats it the same way the job does: <code>recon:&lt;sha8&gt;:&lt;instrument&gt;</code>.</div>
+</spec-risk>
+
+<spec-risk target="§2" status="rejected" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">The in-scope item generalises the correction door to "a downstream service" as a class, but 007-reconciliation is scoped to the nightly custodian-file job; the actual, named consumer of this HTTP surface is 010-reconciliation-service (called out in the same §2's non-goals) — this looks like a capability that belongs to that consuming spec, or to 002-downstream-consumers as a write-surface amendment, rather than a requirement bolted onto the nightly job's FR list.</p>
+  <p class="citation">§2 in-scope: "POST /corrections with {instrument, quantity, tradeId}, answering the resulting position." — generalised past the nightly job's custodian-file semantics that the rest of 007's requirements (FR-001, FR-003, FR-004) are written around.</p>
+  <div class="response">Rejected on placement, with the point about generality taken. D-007 names this project as the store's owner; "route the change through its owner" means the owner specifies the door and the consumer's spec specifies the client — the consumer cannot add a requirement to a service it does not own. 007 is the spec whose subject is <em>corrections</em> and whose use case (<code>correct</code>) the door reuses, so it is the right owner-side home; 002 is about emission, not correction. The generality concern is answered by the reworded FR-005, which now names a downstream <em>reconciliation</em> service reconciling against a custodian quantity, not any caller with a number.</div>
+</spec-risk>
+
+<spec-risk target="KB-0001@2026-09-13" status="mitigated" by="Brian Corbin · @briancorbinxyz">
+  <p class="claim">FR-001 rests on the domain fact that a correction's authority comes from the custodian's settled end-of-day file being compared against the trade-date book; FR-005 creates a second, ungoverned correction source — a downstream service's own computed target quantity, with no requirement it derives from any custodian snapshot — which contradicts that domain grounding rather than extending it.</p>
+  <p class="citation">KB-0001@2026-09-13: "Reconciliation compares the position keeper's trade-date book against the custodian's settled snapshot and corrects the difference," against FR-001: "The job MUST read the custodian end-of-day file and compute... the delta between the custodian quantity and the stored quantity."</p>
+  <div class="response">Mitigated in the same rewording: the quantity a caller sends is "the custodian quantity that service reconciles against", so the authority is still the custodian's settled snapshot — held by a different service, but the same source of truth KB-0001 names. The endpoint cannot verify that (it has no custodian file); the requirement states it and the consumer's spec is where it is proven.</div>
+</spec-risk>
+</spec-risk-log>
+</section>
+
+
+<section id="tasks">
+<h2>6 · Tasks</h2>
+<p>Scoped to this change only. On <code>/spectastic.apply</code> these fold into the target's
+<code>tasks.html</code> as a new provenance-linked phase (per <code>REQ-CHANGE-006</code>) that
+<code>/spectastic.implement</code> drains — this list is then the frozen intent record.</p>
+
+<ul style="list-style:none;padding-left:0;">
+  <li><input type="checkbox"> Test the corrections endpoint — start <code>HttpApi</code> on port 0 with <code>CorrectionsHandler</code> over an in-memory repository, bus and recorder; <code>POST /corrections {"instrument":"AAPL","quantity":100,"tradeId":"c-1"}</code> → 200 <code>{"instrument":"AAPL","quantity":100}</code> and exactly one <code>PositionChanged(AAPL, 100, c-1)</code>; the same body again → 200 and still one event; <code>{"instrument":"AAPL"}</code> → 400; <code>GET /corrections</code> → 405 <span class="path">src/test/java/xyz/briancorbin/pk/hex/http/CorrectionsEndpointTest.java</span></li>
+  <li><input type="checkbox"> Implement the corrections handler — POST only (405 with <code>Allow: POST</code>); parse the three fields from the JSON body (400 naming the missing or malformed field); <code>positions.correct(instrument, quantity, tradeId)</code>; 200 with <code>Json.position</code> <span class="path">src/main/java/xyz/briancorbin/pk/hex/http/CorrectionsHandler.java</span></li>
+  <li><input type="checkbox"> Register the route and exercise it — <code>Main</code> adds <code>.handle("/corrections", new CorrectionsHandler(positions))</code>; <code>./gradlew run</code> then <code>curl -si -X POST localhost:8080/corrections -d '{"instrument":"AAPL","quantity":100,"tradeId":"c-1"}'</code> → 200 and a <code>PositionChanged</code> log line; the same request again → 200 and no new line <span class="path">src/main/java/xyz/briancorbin/pk/Main.java</span></li>
+</ul>
+</section>
+
+
+<section id="questions">
+<h2>7 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the endpoint's shape follows 004's, its semantics follow the job's, and the out-of-scope items each carry a destination.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>8 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Adversarial risk pass: four findings (the corpus angle fired on KB-0001). FR-005 reworded so the tradeId identifies the caller's reconciliation run and the quantity is the custodian's; the unauthenticated-door risk accepted with rationale; the placement concern rejected — the owner specifies the door.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Proposal authored — one additive requirement giving the owner a sanctioned correction route for downstream services; the contract sidecar authored alongside and declared in the design.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Applied on 18 Sep 2026 — Added FR-005 — a downstream reconciliation service can bring an instrument to its custodian quantity over POST /corrections, through the same use-case path the nightly job uses; the corrections contract promoted to api/corrections.openapi.yaml.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+</spec-change>
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  2026-09-18-http-corrections · Accept corrections from a downstream service over HTTP · authored 2026-09-18
+</footer>
+
+</main>
+<script src="../../../../../assets/spec.js"></script>
+</body>
+</html>
