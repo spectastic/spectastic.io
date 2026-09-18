@@ -77,7 +77,7 @@ ADR-0007's boundary moves.</p>
   <ul>
     <li defer-to="TBD-auth">Authentication and authorisation of the caller — the spec defers auth to the gateway (004); a downstream service's identity is the same question.</li>
     <li defer-to="TBD-batch-corrections">Batch corrections (many instruments per request) — the nightly job already handles the batch case in-process; one instrument per request is enough for the consumer's needs today.</li>
-    <li defer-to="010-reconciliation-service">The consumer's side — its <code>PositionKeeperClient</code> calling this endpoint — lives in the second service's own bundle.</li>
+    <li defer-to="TBD-reconciliation-service-client">The consumer's side — its <code>PositionKeeperClient</code> calling this endpoint — lives in the second service's own bundle.</li>
   </ul>
 </spec-non-goals>
 </section>
@@ -143,7 +143,7 @@ the answer &ldquo;this removes nothing&rdquo;</strong>, so the common case needs
 </spec-risk>
 
 <spec-risk target="§2" status="rejected" by="Brian Corbin · @briancorbinxyz">
-  <p class="claim">The in-scope item generalises the correction door to "a downstream service" as a class, but 007-reconciliation is scoped to the nightly custodian-file job; the actual, named consumer of this HTTP surface is 010-reconciliation-service (called out in the same §2's non-goals) — this looks like a capability that belongs to that consuming spec, or to 002-downstream-consumers as a write-surface amendment, rather than a requirement bolted onto the nightly job's FR list.</p>
+  <p class="claim">The in-scope item generalises the correction door to "a downstream service" as a class, but 007-reconciliation is scoped to the nightly custodian-file job; the actual, named consumer of this HTTP surface is the reconciliation service (called out in the same §2's non-goals) — this looks like a capability that belongs to that consuming spec, or to 002-downstream-consumers as a write-surface amendment, rather than a requirement bolted onto the nightly job's FR list.</p>
   <p class="citation">§2 in-scope: "POST /corrections with {instrument, quantity, tradeId}, answering the resulting position." — generalised past the nightly job's custodian-file semantics that the rest of 007's requirements (FR-001, FR-003, FR-004) are written around.</p>
   <div class="response">Rejected on placement, with the point about generality taken. D-007 names this project as the store's owner; "route the change through its owner" means the owner specifies the door and the consumer's spec specifies the client — the consumer cannot add a requirement to a service it does not own. 007 is the spec whose subject is <em>corrections</em> and whose use case (<code>correct</code>) the door reuses, so it is the right owner-side home; 002 is about emission, not correction. The generality concern is answered by the reworded FR-005, which now names a downstream <em>reconciliation</em> service reconciling against a custodian quantity, not any caller with a number.</div>
 </spec-risk>
@@ -183,6 +183,7 @@ the answer &ldquo;this removes nothing&rdquo;</strong>, so the common case needs
 <h2>8 · Change log</h2>
 <spec-changelog>
 <ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Out-of-scope pointer corrected: the consumer's client side was deferred to a spec id (010) that was never created; it is <code>TBD-reconciliation-service-client</code>. The client lives in <code>services/reconciliation-service/</code> without a bundle of its own.</span></li>
   <li><time datetime="2026-09-18">18 Sep 2026</time><span>Adversarial risk pass: four findings (the corpus angle fired on KB-0001). FR-005 reworded so the tradeId identifies the caller's reconciliation run and the quantity is the custodian's; the unauthenticated-door risk accepted with rationale; the placement concern rejected — the owner specifies the door.</span></li>
   <li><time datetime="2026-09-18">18 Sep 2026</time><span>Proposal authored — one additive requirement giving the owner a sanctioned correction route for downstream services; the contract sidecar authored alongside and declared in the design.</span></li>
   <li><time datetime="2026-09-18">18 Sep 2026</time><span>Applied on 18 Sep 2026 — Added FR-005 — a downstream reconciliation service can bring an instrument to its custodian quantity over POST /corrections, through the same use-case path the nightly job uses; the corrections contract promoted to api/corrections.openapi.yaml.</span></li>

@@ -33,7 +33,7 @@ jobs:
       - name: Semgrep — ADR-0007's content rule over the owner's sources
         if: ${{ !cancelled() }}
         run: |
-          pipx install semgrep
+          pipx install semgrep==1.176.0   # the version that produced enforcement/semgrep-results.sarif
           semgrep --config enforcement/semgrep-positions.yaml --error --sarif -o build/semgrep.sarif src/
       - name: Validate the consumer project's own artifacts
         if: ${{ !cancelled() }}
@@ -88,5 +88,5 @@ jobs:
         run: |
           set +e
           $SPECTASTIC verdict --changed docs/priya-pr/PositionReconciliationJob.java --enforcer-output enforcement/archunit-results.sarif --out build/expected-sarif.json
-          test $? -eq 1
+          if [ $? -ne 1 ]; then echo 'expected the verdict to fail (exit 1)'; exit 1; fi
           grep -c '"only_the_persistence_adapter_touches_data_access_apis"' build/expected-sarif.json

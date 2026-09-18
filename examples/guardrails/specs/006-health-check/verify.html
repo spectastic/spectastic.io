@@ -34,11 +34,11 @@
 <section id="run">
 <h2>1 · Run / Demo</h2>
 <spec-runblock>
-  <spec-run>./gradlew :run</spec-run>
+  <spec-run>./gradlew build</spec-run>
   <spec-toggle></spec-toggle>
-  <spec-exercise>curl -si localhost:8080/health</spec-exercise>
+  <spec-exercise></spec-exercise>
   <spec-tests cites="T-100 T-101">./gradlew test --tests '*HealthEndpointTest' --tests '*H2StoreProbeTest'</spec-tests>
-  <spec-demo cites="SC-001">With the process running, GET /health answers 200 {&quot;live&quot;:true,&quot;ready&quot;:true}; HealthEndpointTest flips a stub probe and asserts 503 {&quot;live&quot;:true,&quot;ready&quot;:false}; H2StoreProbeTest points the real probe at an unopenable path and asserts false, and that the reachable probe wrote no row</spec-demo>
+  <spec-demo cites="SC-001">Start the service with ./gradlew :run; GET /health answers 200 {&quot;live&quot;:true,&quot;ready&quot;:true}; HealthEndpointTest flips a stub probe and asserts 503 {&quot;live&quot;:true,&quot;ready&quot;:false}; H2StoreProbeTest points the real probe at an unopenable path and asserts false, and that the reachable probe wrote no row</spec-demo>
 </spec-runblock>
 </section>
 

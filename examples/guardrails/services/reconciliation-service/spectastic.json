@@ -1,3 +1,4 @@
 {
+  "$schema": "https://unpkg.com/@spectastic/schema@0.1.0-pre.28/dist/config.schema.json",
   "project": "acme/reconciliation-service"
 }

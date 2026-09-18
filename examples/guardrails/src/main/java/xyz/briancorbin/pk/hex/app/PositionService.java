@@ -38,7 +38,9 @@ public final class PositionService {
 
   /**
    * Bring the instrument to {@code target} by booking the delta under the supplied tradeId (007: a
-   * reconciliation run). Zero delta books nothing; a repeated tradeId is idempotent like any other.
+   * reconciliation run). Zero delta books nothing — and records nothing, so a tradeId whose
+   * correction was a no-op is not remembered; a repeated tradeId that did book is idempotent like
+   * any other.
    */
   public Position correct(String instrument, long target, String tradeId) {
     long delta = target - current(instrument).quantity();

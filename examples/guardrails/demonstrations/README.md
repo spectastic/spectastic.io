@@ -26,8 +26,11 @@ or reviewer act without leaving the diff to go read the ADR.
 
 Demo 2 is **forward-only** (114): the plan-constraint fires on a *Draft* design and never on an Accepted one. It was
 captured while 007's design was still Draft — by removing the "Governing decisions acknowledged" paragraph, running
-`validate`, and restoring it — and cannot be reproduced against `main`, where every bundle is Accepted. To reproduce
-it, reset `specs/007-reconciliation/design.html`'s status pill to `draft` in a scratch checkout first. The `→` fix-hint
+`validate`, and restoring it — and cannot be reproduced against `main`, where every bundle is Accepted. To reproduce it in a
+scratch checkout: set all three of 007's status pills (spec, design, tasks) to `draft` — a split bundle is a `status-disagreement`
+error that pre-empts the scan — and strip every mention of `002-downstream-consumers/D-007` from the design (the
+acknowledgment paragraph, the risk row, D-001's context and the changelog), because any textual mention of the coordinate
+counts as an acknowledgment; then run `spectastic validate 'specs/**/*.html' '*.html'`. The `→` fix-hint
 line joined the capture on 18 Sep 2026; the CLI prints it now.
 
 Demo 4 shows the detector/explainer split: spectastic's own content detector *and* ArchUnit's

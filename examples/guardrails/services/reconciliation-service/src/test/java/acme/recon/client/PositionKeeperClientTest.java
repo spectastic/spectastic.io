@@ -18,9 +18,12 @@ class PositionKeeperClientTest {
     stubOwner.createContext(
         "/corrections",
         exchange -> {
-          received.add(exchange.getRequestMethod() + " "
-              + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-          byte[] body = "{\"instrument\":\"AAPL\",\"quantity\":100}".getBytes(StandardCharsets.UTF_8);
+          received.add(
+              exchange.getRequestMethod()
+                  + " "
+                  + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+          byte[] body =
+              "{\"instrument\":\"AAPL\",\"quantity\":100}".getBytes(StandardCharsets.UTF_8);
           exchange.sendResponseHeaders(200, body.length);
           exchange.getResponseBody().write(body);
           exchange.close();
@@ -33,7 +36,8 @@ class PositionKeeperClientTest {
 
       assertEquals("{\"instrument\":\"AAPL\",\"quantity\":100}", answer);
       assertEquals(
-          List.of("POST {\"instrument\":\"AAPL\",\"quantity\":100,\"tradeId\":\"recon:c0ffee00:AAPL\"}"),
+          List.of(
+              "POST {\"instrument\":\"AAPL\",\"quantity\":100,\"tradeId\":\"recon:c0ffee00:AAPL\"}"),
           received);
     } finally {
       stubOwner.stop(0);

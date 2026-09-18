@@ -78,6 +78,16 @@ class CorrectionsEndpointTest {
   }
 
   @Test
+  void aNonIntegerQuantityIs400() throws Exception {
+    HttpResponse<String> r =
+        post("{\"instrument\":\"AAPL\",\"quantity\":1.5,\"tradeId\":\"recon:x:AAPL\"}");
+
+    assertEquals(400, r.statusCode());
+    assertTrue(r.body().contains("quantity"), r.body());
+    assertTrue(emitted.isEmpty());
+  }
+
+  @Test
   void anythingButPostIs405() throws Exception {
     HttpResponse<String> r =
         client.send(

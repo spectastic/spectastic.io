@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
- * acme/reconciliation-service: a health endpoint on 8081 and, with
- * `correct <instrument> <quantity> <tradeId>`, one correction routed through the owner.
+ * acme/reconciliation-service: a health endpoint on 8081 and, with `correct <instrument> <quantity>
+ * <tradeId>`, one correction routed through the owner.
  */
 public final class Main {
   private Main() {}
@@ -25,7 +25,8 @@ public final class Main {
     HttpServer server = HttpServer.create(new InetSocketAddress("localhost", port), 0);
     server.createContext("/health", new HealthHandler());
     server.start();
-    System.out.printf("reconciliation-service listening on http://localhost:%d (owner %s)%n",
+    System.out.printf(
+        "reconciliation-service listening on http://localhost:%d (owner %s)%n",
         server.getAddress().getPort(), owner);
   }
 

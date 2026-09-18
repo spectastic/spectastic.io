@@ -34,11 +34,11 @@
 <section id="run">
 <h2>1 · Run / Demo</h2>
 <spec-runblock>
-  <spec-run>./gradlew :run</spec-run>
+  <spec-run>./gradlew build</spec-run>
   <spec-toggle></spec-toggle>
-  <spec-exercise>curl -si localhost:8080/positions/AAPL</spec-exercise>
+  <spec-exercise></spec-exercise>
   <spec-tests cites="T-100">./gradlew test --tests '*PositionsEndpointTest'</spec-tests>
-  <spec-demo cites="SC-001">With the process running on 8080, GET /positions/AAPL answers 404 {&quot;error&quot;:&quot;unknown instrument&quot;} on a fresh store and PUT answers 405 Allow: GET; PositionsEndpointTest books t-1 AAPL +100 and asserts 200 {&quot;instrument&quot;:&quot;AAPL&quot;,&quot;quantity&quot;:100}, 404 for MSFT, 405 for PUT, and exactly one PositionChanged across every request</spec-demo>
+  <spec-demo cites="SC-001">Start the service with ./gradlew :run; on 8080, GET /positions/AAPL answers 404 {&quot;error&quot;:&quot;unknown instrument&quot;} on a fresh store and PUT answers 405 Allow: GET; PositionsEndpointTest books t-1 AAPL +100 and asserts 200 {&quot;instrument&quot;:&quot;AAPL&quot;,&quot;quantity&quot;:100}, 404 for MSFT, 405 for PUT, and exactly one PositionChanged across every request</spec-demo>
 </spec-runblock>
 </section>
 

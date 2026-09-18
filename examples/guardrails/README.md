@@ -17,7 +17,7 @@ service too, where the write is cleanly layered and the defect is ownership.
 2. `spectastic corpus import settlement-domain` — a real domain pack; the ingester assigned `KB-0001`
    in `knowledge/index.md`. ADR-0007 and the reconciliation decision ground a domain fact against it
    (`KB-0001@2026-09-13`).
-3. The seven features authored through the verbs (spec → design). ADR-0007 lives in
+3. The seven features authored through the verbs — spec for all seven, design for 002 and 007 on 13 Sep 2026; the other five designs came with the build-out in step 6. ADR-0007 lives in
    `specs/002-downstream-consumers/design.html` as `<spec-decision id="D-007">` with scope, enforcement
    rule-ids, posture, review-by, and a reason; the DB-grant backstop (`D-008`) is a `none`-with-reason.
    Amended 13 Sep 2026 with a *resource scope* (spec 119): the decision names the positions store by
@@ -27,13 +27,16 @@ service too, where the write is cleanly layered and the defect is ownership.
    pull request; spec 121) — pinned to the installing CLI and drift-checked by `validate`.
 5. The eight guardrail behaviors run in [`demonstrations/`](demonstrations/README.md) with committed output.
 6. **Every spec bundle driven to Accepted** (`build-out`, 18 Sep 2026): `/spectastic.design` → `/spectastic.tasks` →
-   `/spectastic.implement --all` → the bundled Draft → Accepted flip on the last tick → `spectastic verify` from the real
+   `/spectastic.implement --all` → the bundled Draft → Accepted flip on the last tick (001 and 002 each confirmed at the
+   prompt; 003–007 pre-confirmed in one gesture, as their changelogs say) → `spectastic verify` from the real
    run. 001's setup phase is the Gradle bootstrap (Groovy DSL + Java 21 toolchain, JUnit 5, ArchUnit, Spotless, Checkstyle),
    so the stack is a set of recorded decisions in `specs/001-position-core/design.html`. Seven `tasks.html`, seven
-   `verify.html`, ~30 tests.
+   `verify.html`, 38 tests.
 7. **One change proposal**, `/spectastic.propose` → adversarial risk pass → `/spectastic.apply`: 007 gains
    `POST /corrections` (FR-005), the sanctioned door demo 8's verdict tells the consumer to use; its OpenAPI contract was
-   promoted from the sidecar to `api/` by the apply verb (spec 071). See
+   promoted from the sidecar to `api/` by the apply verb (spec 071) — the only contract the verb promoted; 004's and
+   006's were moved by hand at their flips, because a spec's *first* contract has no promotion path outside `apply`
+   (meta-repo I-088). See
    [`specs/007-reconciliation/changes/archive/`](specs/007-reconciliation/changes/archive/).
 8. **The bypass is a real branch.** `feat/nightly-reconciliation` compiles the Priya job into the build and is
    [PR #1](https://github.com/spectastic/example-position-keeper-guardrails/pull/1) — left open and red: the managed gate
@@ -66,7 +69,7 @@ Run it: `./gradlew build` · `./gradlew :run` (8080: `/positions/{instrument}`, 
 ## Honest scope
 
 The **guardrail behavior is real** — every command runs the actual tooling and the outputs are committed — and so
-is the build: a two-service Gradle project, `./gradlew build` green on `main` (~30 tests including the ArchUnit fitness
+is the build: a two-service Gradle project, `./gradlew build` green on `main` (38 tests including the ArchUnit fitness
 functions) and red on `feat/nightly-reconciliation` (PR #1), with GitHub Actions running the managed spectastic gate and the
 Gradle build on every push and pull request. What is still narrated is the **calendar**: the 2024–25 dates in
 `docs/timeline.md` are the story of when each decision would have been met; the real git history is the `build-out`

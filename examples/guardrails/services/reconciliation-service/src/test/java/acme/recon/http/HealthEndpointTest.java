@@ -21,7 +21,8 @@ class HealthEndpointTest {
           HttpClient.newHttpClient()
               .send(
                   HttpRequest.newBuilder(
-                          URI.create("http://localhost:" + server.getAddress().getPort() + "/health"))
+                          URI.create(
+                              "http://localhost:" + server.getAddress().getPort() + "/health"))
                       .GET()
                       .build(),
                   HttpResponse.BodyHandlers.ofString());

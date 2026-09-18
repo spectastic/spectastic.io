@@ -9,9 +9,8 @@ import java.net.http.HttpResponse;
 /**
  * The sanctioned way to correct a position: route it through the owner
  * (briancorbin/position-keeper-guardrails) over its POST /corrections door
- * (api/corrections.openapi.yaml in the owner's repo), so the owner's adapter
- * writes and emits. This is what demo 8's explanation asks for instead of
- * PositionRepositoryAdapter's direct write.
+ * (api/corrections.openapi.yaml in the owner's repo), so the owner's adapter writes and emits. This
+ * is what demo 8's explanation asks for instead of PositionRepositoryAdapter's direct write.
  */
 public final class PositionKeeperClient {
   private final HttpClient http = HttpClient.newHttpClient();
@@ -25,8 +24,13 @@ public final class PositionKeeperClient {
   public String correct(String instrument, long quantity, String tradeId)
       throws IOException, InterruptedException {
     String body =
-        "{\"instrument\":\"" + instrument + "\",\"quantity\":" + quantity
-            + ",\"tradeId\":\"" + tradeId + "\"}";
+        "{\"instrument\":\""
+            + instrument
+            + "\",\"quantity\":"
+            + quantity
+            + ",\"tradeId\":\""
+            + tradeId
+            + "\"}";
     HttpResponse<String> r =
         http.send(
             HttpRequest.newBuilder(corrections)

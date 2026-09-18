@@ -3,6 +3,8 @@
 plugins {
   id 'java'
   id 'application'
+  id 'checkstyle'
+  id 'com.diffplug.spotless'
 }
 
 group = 'acme.recon'
@@ -30,4 +32,20 @@ test {
   // root that filter reaches this subproject too, where no such test exists. Gradle fails a test
   // task whose filter matches nothing unless told otherwise (enforcement/README.md).
   filter.failOnNoMatchingTests = false
+}
+
+// The same floor as the root (AGENTS.md says the build is formatted and linted; make that true
+// for both services). The intentional violation keeps its bytes — demo 8 cites its line 21.
+spotless {
+  java {
+    target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+    targetExclude 'src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java'
+    googleJavaFormat('1.36.1')
+  }
+}
+
+checkstyle {
+  toolVersion = '14.1.0'
+  configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+  maxWarnings = 0
 }

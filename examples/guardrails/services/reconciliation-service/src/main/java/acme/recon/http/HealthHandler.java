@@ -12,7 +12,8 @@ public final class HealthHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     byte[] body = "{\"live\":true}".getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().set("Content-Type", "application/json");
-    exchange.sendResponseHeaders("GET".equals(exchange.getRequestMethod()) ? 200 : 405, body.length);
+    exchange.sendResponseHeaders(
+        "GET".equals(exchange.getRequestMethod()) ? 200 : 405, body.length);
     try (OutputStream out = exchange.getResponseBody()) {
       out.write(body);
     }

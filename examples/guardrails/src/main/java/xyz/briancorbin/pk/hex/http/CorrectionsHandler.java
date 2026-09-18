@@ -13,11 +13,18 @@ import xyz.briancorbin.pk.hex.app.PositionService;
  * for a downstream reconciliation service. The correction lands on {@link PositionService#correct}
  * — the nightly job's own path — so it emits PositionChanged through the adapter; this class holds
  * the use case, never a repository. Three flat fields, hand-parsed like the rest of the surface.
+ *
+ * <p>The instrument is not checked against reference data: 005 is a module beside the hexagon
+ * (CoreRulesTest forbids hex → refdata), so an unknown symbol simply becomes a new position — the
+ * same thing a booked trade for it would do.
  */
 public final class CorrectionsHandler implements HttpHandler {
   private static final Pattern INSTRUMENT =
       Pattern.compile("\"instrument\"\\s*:\\s*\"([^\"]{1,32})\"");
-  private static final Pattern QUANTITY = Pattern.compile("\"quantity\"\\s*:\\s*(-?\\d{1,18})\\b");
+  // A whole number, and nothing numeric after it: "1.5" is not "1" with a suffix, it is not an
+  // integer at all (the contract answers 400).
+  private static final Pattern QUANTITY =
+      Pattern.compile("\"quantity\"\\s*:\\s*(-?\\d{1,18})(?![\\d.eE])");
   private static final Pattern TRADE_ID = Pattern.compile("\"tradeId\"\\s*:\\s*\"([^\"]{1,64})\"");
 
   private final PositionService positions;

@@ -30,7 +30,7 @@
   </spec-meta>
 
   <spec-tldr>
-    <p>11 tasks across three phases — nothing to set up. Foundational (a <code>correct</code> use case, the file parser, a
+    <p>10 tasks across three phases (plus three folded in by the 18 Sep change) — nothing to set up. Foundational (a <code>correct</code> use case, the file parser, a
     fixture) → US1 (a drifted position corrected audibly) → US2 (re-run, no double correction) → Polish. Tasks marked
     <span class="par">[P]</span> can run in parallel. Tests for a story <strong>MUST</strong> be written and failing before its
     implementation tasks start. This is the happy path the design describes — corrections through the use case; the only
@@ -148,8 +148,8 @@ US1, US2        → Polish
 <section id="changelog">
 <h2>8 · Change log</h2>
 <spec-changelog><ol>
-  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (11/11); ./gradlew build green with ReconciliationJobTest (SC-001, SC-002) verified passing and the reconcile subcommand exercised twice against one store (2 corrections, then 0) per author pre-confirmation for 003–007. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
-  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial task breakdown — 11 tasks, 2 parallel; corrections through a new <code>correct</code> use case keyed by <code>recon:&lt;sha8&gt;:&lt;instrument&gt;</code>.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (10/10); ./gradlew build green with ReconciliationJobTest (SC-001, SC-002) verified passing and the reconcile subcommand exercised twice against one store (2 corrections, then 0) per author pre-confirmation for 003–007. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial task breakdown — 10 tasks, 2 parallel; corrections through a new <code>correct</code> use case keyed by <code>recon:&lt;sha8&gt;:&lt;instrument&gt;</code>.</span></li>
 </ol></spec-changelog>
 </section>
 

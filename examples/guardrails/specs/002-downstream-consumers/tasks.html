@@ -30,7 +30,7 @@
   </spec-meta>
 
   <spec-tldr>
-    <p>14 tasks across four phases. Setup (the H2 test dependency) → Foundational (the event, the bus port, D-006's bus,
+    <p>15 tasks across four phases. Setup (the H2 test dependency) → Foundational (the event, the bus port, D-006's bus,
     D-008's DDL) → User stories (US1 the adapter emits and Risk hears · US2 P&amp;L is idempotent) → Polish. Tasks marked
     <span class="par">[P]</span> can run in parallel — different files, no dependency. Tests for a story <strong>MUST</strong>
     be written and failing before its implementation tasks start. US1 also lands ADR-0007's fitness function where the build
@@ -177,8 +177,8 @@ US1, US2        → Polish
 <h2>8 · Change log</h2>
 <spec-changelog>
 <ol>
-  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (14/14); ./gradlew build green with DownstreamConsumersTest (SC-001), PnlRevaluerTest (SC-002), DataAccessRulesTest and GrantBackstopTest verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
-  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial task breakdown — 14 tasks, 6 parallel; ADR-0007's ArchUnit rule moves into the Gradle test source set with a hand-written SARIF writer.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (15/15); ./gradlew build green with DownstreamConsumersTest (SC-001), PnlRevaluerTest (SC-002), DataAccessRulesTest and GrantBackstopTest verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial task breakdown — 15 tasks, 6 parallel; ADR-0007's ArchUnit rule moves into the Gradle test source set with a hand-written SARIF writer.</span></li>
 </ol>
 </spec-changelog>
 </section>

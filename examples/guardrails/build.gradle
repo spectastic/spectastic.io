@@ -4,7 +4,7 @@ plugins {
   id 'java'
   id 'application'
   id 'checkstyle'
-  id 'com.diffplug.spotless' version '8.10.2'
+  id 'com.diffplug.spotless' version '8.10.2' // also applied by :reconciliation-service, which inherits the version from here
 }
 
 group = 'xyz.briancorbin.pk'
@@ -31,12 +31,11 @@ dependencies {
 
 test {
   useJUnitPlatform()
-  testLogging { events 'failed'; exceptionFormat 'full' }
+  testLogging { events = ['failed']; exceptionFormat = 'full' }
 }
 
-// Formatter (enforce: formatter). Only the Gradle source sets — the quoted
-// bypass under docs/priya-pr, the consumer demo and the not-yet-moved adapter
-// under src/xyz keep their bytes.
+// Formatter (enforce: formatter). Only this project's source sets — the quoted
+// bypass under docs/priya-pr keeps its bytes (demos 3 and 7 cite its line 20).
 spotless {
   java {
     target 'src/main/java/**/*.java', 'src/test/java/**/*.java'

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/@spectastic/schema@0.1.0-pre.26/dist/config.schema.json",
+  "$schema": "https://unpkg.com/@spectastic/schema@0.1.0-pre.28/dist/config.schema.json",
   "project": "briancorbin/position-keeper-guardrails",
   "corpus": {
     "marketplace": "briancorbin/position-keeper-guardrails",

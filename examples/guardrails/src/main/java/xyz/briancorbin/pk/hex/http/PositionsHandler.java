@@ -33,13 +33,11 @@ public final class PositionsHandler implements HttpHandler {
       respond(exchange, 404, Json.error("unknown instrument"));
       return;
     }
+    var position = positions.lookup(instrument);
     respond(
         exchange,
-        positions.lookup(instrument).isPresent() ? 200 : 404,
-        positions
-            .lookup(instrument)
-            .map(Json::position)
-            .orElseGet(() -> Json.error("unknown instrument")));
+        position.isPresent() ? 200 : 404,
+        position.map(Json::position).orElseGet(() -> Json.error("unknown instrument")));
   }
 
   static void respond(HttpExchange exchange, int status, String json) throws IOException {

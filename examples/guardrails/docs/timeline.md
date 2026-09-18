@@ -9,7 +9,7 @@ tested it.
 |---|---------|--------|------------------------|
 | 1 | specs/001-position-core | 05 Feb 2024 | — (ports-and-adapters; JDK-only domain) |
 | 2 | specs/002-downstream-consumers | **11 Mar 2024** | **ADR-0007 created** (D-007) + ArchUnit fitness function; DB-grant backstop (D-008) |
-| 3 | specs/003-jdbc-persistence | 20 May 2024 | ADR-0007 **amended** — Semgrep content rule + DB grant, now that real SQL exists |
+| 3 | specs/003-jdbc-persistence | 20 May 2024 | ADR-0007 **amended** — the Semgrep content rule, now that real SQL exists (the DB-grant backstop D-008 dates from 002) |
 | 4 | specs/004-query-endpoint | 14 Aug 2024 | — (read-only; does not touch positions writes) |
 | 5 | specs/005-instrument-refdata | 03 Nov 2024 | — (separate module) |
 | 6 | specs/006-health-check | 18 Feb 2025 | — (operational plumbing) |
