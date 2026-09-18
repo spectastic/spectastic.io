@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: Position keeper — health
+  version: 0.1.0
+  description: >-
+    Liveness and readiness for the orchestrator (006-health-check). The probe reads nothing but a
+    reachability check of the store and mutates no state.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness and readiness
+      responses:
+        "200":
+          description: The process is live and its store is reachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { live: true, ready: true }
+        "503":
+          description: The process is live but its store is unreachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { live: true, ready: false }
+        "405":
+          description: Any method but GET
+components:
+  schemas:
+    Health:
+      type: object
+      required: [live, ready]
+      properties:
+        live: { type: boolean, description: The process answers at all }
+        ready: { type: boolean, description: The position store answered a trivial query }

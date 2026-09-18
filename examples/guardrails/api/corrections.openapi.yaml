@@ -1,0 +1,53 @@
+openapi: 3.1.0
+info:
+  title: Position keeper — corrections
+  version: 0.1.0
+  description: >-
+    Corrections accepted from a downstream service (007-reconciliation, FR-005). Every correction
+    is applied through the position use case, so it emits PositionChanged like any other mutation;
+    the caller never touches the store. Idempotent on tradeId.
+paths:
+  /corrections:
+    post:
+      operationId: postCorrection
+      summary: Bring an instrument to a target quantity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Correction" }
+            example: { instrument: AAPL, quantity: 100, tradeId: "recon:b7078fc6:AAPL" }
+      responses:
+        "200":
+          description: The position after the correction — unchanged when the tradeId was already applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Position" }
+              example: { instrument: AAPL, quantity: 100 }
+        "400":
+          description: The body is not a correction — missing or blank field, non-integer quantity
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "405":
+          description: Any method but POST
+components:
+  schemas:
+    Correction:
+      type: object
+      required: [instrument, quantity, tradeId]
+      properties:
+        instrument: { type: string, minLength: 1, maxLength: 32 }
+        quantity: { type: integer, format: int64, description: The target quantity, signed whole units }
+        tradeId: { type: string, minLength: 1, maxLength: 64, description: Attribution and idempotency key }
+    Position:
+      type: object
+      required: [instrument, quantity]
+      properties:
+        instrument: { type: string }
+        quantity: { type: integer, format: int64 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }

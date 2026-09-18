@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Position keeping core · Design</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Design · 001-position-core</p>
+  <h1>Position keeping core</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    How we will build it — and the Gradle build every later feature compiles into.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">001-position-core</a></span>
+    <b>Owner</b>      <span>Position Keeping team</span>
+    <b>Branch</b>     <span><code>build-out</code></span>
+    <b>Created</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>A JDK-only hexagonal core — <code>Position</code> and <code>TradeEvent</code> records, a <code>PositionRepository</code>
+    port, a <code>PositionService</code> use case that decides idempotency against the repository's applied-tradeId record — plus
+    the Gradle 9 build (Groovy DSL, Java 21 toolchain, JUnit 5, ArchUnit, Spotless, Checkstyle) that this and the six later
+    features compile into. The single biggest risk is the build itself: it is the first real one in this repository, and
+    <code>spectastic enforce</code> only recognises a Gradle build written in the Groovy DSL.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="principles-check">
+<h2>1 · Principles check</h2>
+<p>Verified against <a href="../../principles.html">v0.1.0</a>. No exception, no violation.</p>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Principle</th><th>Compliance</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>P-1 · Clarity over cleverness</td><td><spec-pill>OK</spec-pill></td><td>Records, one interface, one use case; no framework, no reflection.</td></tr>
+    <tr><td>P-2 · Small, reversible changes</td><td><spec-pill>OK</spec-pill></td><td>The core is one package; the build bootstrap is four files.</td></tr>
+    <tr><td>P-3 · Explicit over implicit</td><td><spec-pill>OK</spec-pill></td><td>Idempotency is a named check in the use case, not a side effect of a map put.</td></tr>
+    <tr><td>P-4 · One set of conventions, enforced</td><td><spec-pill>OK</spec-pill></td><td>Spotless (google-java-format) + Checkstyle wired in the same bootstrap; see <a href="#toolchain">Toolchain</a>.</td></tr>
+    <tr><td>P-5 · Record the why</td><td><spec-pill>OK</spec-pill></td><td>Every stack pick is a decision below with its driver named.</td></tr>
+    <tr><td>P-6 · Tests accompany behavior</td><td><spec-pill>OK</spec-pill></td><td>TDD — <a href="./spec.html#SC-001">SC-001</a> and <a href="./spec.html#SC-002">SC-002</a> each have a test written first.</td></tr>
+    <tr><td>P-7 · Contract-first interfaces</td><td><spec-pill>OK</spec-pill></td><td>This feature exposes no interface (<a href="#contracts">§3</a>); the ports are typed Java signatures.</td></tr>
+    <tr><td>P-8 · Library-first boundaries</td><td><spec-pill>OK</spec-pill></td><td>The core has no entry point at all; <code>Main</code> arrives with 004.</td></tr>
+    <tr><td>P-9 · Secure by default</td><td><spec-pill>OK</spec-pill></td><td>No credentials, no I/O in this slice.</td></tr>
+    <tr><td>P-10 · Least privilege</td><td><spec-pill>OK</spec-pill></td><td>Nothing granted yet; the DB grant is 002/003's concern.</td></tr>
+    <tr><td>P-11 · Semantic versioning</td><td><spec-pill>OK</spec-pill></td><td><code>version = '0.1.0'</code> in the build; no release is cut in this slice.</td></tr>
+    <tr><td>P-12 · Supply-chain hygiene</td><td><spec-pill>OK</spec-pill></td><td>Three test-scope dependencies, each pinned to an exact version; zero runtime dependencies.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="acknowledged">Governing decisions acknowledged</h3>
+<p>This plan's surface includes <code>src/main/java/xyz/briancorbin/pk/hex/persistence/</code>, governed by
+<code>002-downstream-consumers/D-007</code> (ADR-0007 — only the persistence adapter touches the data store; every position
+change emits <code>PositionChanged</code>). The plan honours it: the only persistence-package additions are the in-memory adapter
+and the moved JDBC adapter, both <em>inside</em> the permitted package, and the use case reaches the store through the port alone.
+<code>spectastic adrs --for src/main/java/xyz/briancorbin/pk/hex/persistence/InMemoryPositionRepository.java</code> returns
+D-007; this section is its acknowledgment.</p>
+</section>
+
+
+<section id="technical-context">
+<h2>2 · Technical context</h2>
+<dl>
+  <dt>Language(s)</dt>      <dd>Java 21 (Gradle toolchain; the build runs on any JDK 17+ host JVM).</dd>
+  <dt>Frameworks</dt>       <dd>None in the domain (<a href="./spec.html#NFR-001">NFR-001</a>). Build: Gradle 9.2.1 wrapper, Groovy DSL — <a href="#D-001">D-001</a>.</dd>
+  <dt>Architecture</dt>     <dd>Hexagonal ports-and-adapters — <a href="#D-002">D-002</a>; shapes <a href="#project-structure">Project structure</a>.</dd>
+  <dt>Storage</dt>          <dd>In-memory only (<code>InMemoryPositionRepository</code>); durable storage is deferred to 003.</dd>
+  <dt>Testing</dt>          <dd>JUnit 5.11.4 + ArchUnit 1.4.1, test-first — <a href="#D-003">D-003</a>.</dd>
+  <dt>Coverage</dt>         <dd>Not in scope — the standard profile's floor has no coverage category (<code>spectastic enforce</code> requires formatter · linter · test-runner).</dd>
+  <dt>Perf targets</dt>     <dd>Not in scope — no NFR quantifies latency; end-of-day volumes.</dd>
+  <dt>Constraints</dt>      <dd>The domain core imports the JDK only (NFR-001, checked by ArchUnit). The build file is <code>build.gradle</code>, never <code>.kts</code>, because <code>spectastic enforce</code> detects Java tooling from <code>build.gradle</code> alone.</dd>
+</dl>
+
+<h3 id="toolchain">Toolchain / enforcement</h3>
+<p><code>spectastic enforce</code> on the standard profile reports <em>covered: contract-first · missing: formatter, linter, test-runner</em>.
+The three gaps resolve on the first rung of the escalation ladder — the ecosystem's standard gates, all in <code>build.gradle</code>
+so detection sees them: <strong>Spotless 8.10.2</strong> running google-java-format 1.36.1 (formatter), <strong>Checkstyle 14.1.0</strong>
+with a minimal <code>config/checkstyle/checkstyle.xml</code> (linter), and Gradle's <code>test</code> task on the JUnit Platform
+(test-runner). The CI gate for all three is the spectastic-managed workflow <code>spectastic init --tools --ci github</code> writes
+(validate → enforce → merge verdict on every pull request); a second, project-owned workflow runs <code>./gradlew build</code>.
+<code>spectastic gitignore --stack</code> ran before the build existed and detected no stack; it re-runs in the setup phase once
+<code>build.gradle</code> is present, and <code>.gradle/</code> is added by hand outside the managed block because the Java entry set
+(<code>build/ target/ *.class</code>) does not include it.</p>
+</section>
+
+
+<section id="contracts">
+<h2>3 · Data model &amp; contracts</h2>
+
+<p>The spec's two entities land as Java records in the core package: <a href="./spec.html#data">Position</a> is
+<code>(String instrument, long quantity)</code>; <a href="./spec.html#data">Trade event</a> is
+<code>(String tradeId, String instrument, long quantity)</code>. Quantity is a signed <code>long</code> — whole units, no
+fractional lots in this timeline. The applied-tradeId record is the repository's, not the entity's: the port answers
+<code>wasApplied(tradeId)</code>, and <code>write</code> records the tradeId together with the new quantity so the two can never
+disagree.</p>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Conceptual entity</th><th>Physical shape</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./spec.html#data">Position</a></td><td><code>record Position(String instrument, long quantity)</code></td><td>Immutable; the repository returns a fresh value per read.</td></tr>
+    <tr><td><a href="./spec.html#data">Trade event</a></td><td><code>record TradeEvent(String tradeId, String instrument, long quantity)</code></td><td><code>tradeId</code> is the idempotency key (<a href="./spec.html#FR-002">FR-002</a>).</td></tr>
+    <tr><td>Repository port</td><td><code>interface PositionRepository { Optional&lt;Position&gt; find(String); boolean wasApplied(String); void write(String instrument, long quantity, String tradeId); }</code></td><td><code>write</code> keeps the signature the existing adapter already implements.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<spec-contract shape="none">
+  <p>No interface is exposed: the core is a library reached through its ports (<a href="./spec.html#FR-003">FR-003</a>). The
+  HTTP surface is 004's and the event stream 002's; each declares its own contract there.</p>
+</spec-contract>
+</section>
+
+
+<section id="grounding">
+<h2>5 · Grounding &amp; evidence</h2>
+<p>Every design-bearing fact this plan rests on, and how it was confirmed (per <code>REQ-LIFECYCLE-006</code>). Two facts
+needed a spike; it was run on this host before the interview and its claim was written down first: <em>“Gradle 9.2.1 with
+<code>toolchain 21</code> finds the asdf-installed Temurin 21 on a JDK 25 host, and a JUnit 5.11.4 test that imports ArchUnit
+1.4.1 and opens an H2 2.3.232 connection runs green on 21.”</em></p>
+
+<div style="overflow-x:auto;">
+<table class="evidence">
+  <thead>
+    <tr><th>Claim the design rests on</th><th>Source</th><th>Status</th><th>Finding / note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>spectastic enforce</code> detects Java tooling from <code>build.gradle</code> only — never <code>build.gradle.kts</code>; the test-runner signal is the literal <code>test</code></td>
+        <td><code>@spectastic/cli@0.1.0-pre.28 · packages/core/src/enforce/detect.ts:118-170</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Every Java signal names <code>file: 'build.gradle'</code>; no <code>.kts</code> entry. Forces the Groovy DSL (D-001).</td></tr>
+    <tr><td>The Gradle toolchain resolver finds JDK 21 via asdf on this JDK 25 host</td>
+        <td>Spike — scratch project, <code>gradle javaToolchains</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td><code>Location: ~/.asdf/installs/java/temurin-21.0.9+10.0.LTS · Detected by: asdf-vm</code>; <code>gradle test</code> exit 0 with <code>java.version</code> starting <code>21</code>. No <code>JAVA_HOME</code> needed.</td></tr>
+    <tr><td>JUnit 5.11.4, ArchUnit 1.4.1 and H2 2.3.232 resolve from Maven Central and load on 21</td>
+        <td>Spike — same scratch project; <code>org.junit:junit-bom:5.11.4</code>, <code>com.tngtech.archunit:archunit:1.4.1</code>, <code>com.h2database:h2:2.3.232</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td><code>ClassFileImporter().importPackages(..)</code> and <code>DriverManager.getConnection("jdbc:h2:mem:x")</code> both ran inside a green test.</td></tr>
+    <tr><td><code>com.sun.net.httpserver.HttpServer</code> is available to a JDK 21 compile without a dependency</td>
+        <td>Spike — <code>jdk.httpserver</code> module; a class referencing <code>HttpServer.class</code> compiled</td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Grounds 004/006's zero-dependency HTTP choice now, so the stack is settled once.</td></tr>
+    <tr><td>The existing adapter implements <code>PositionRepository.write(String, long, String)</code> and emits after the write</td>
+        <td><code>src/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java:16-29</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>The port keeps that signature so the file moves to the Gradle layout unchanged in shape; <code>find</code>/<code>wasApplied</code> are additive.</td></tr>
+    <tr><td>Spotless 8.10.2, google-java-format 1.36.1 and Checkstyle 14.1.0 are the current releases</td>
+        <td><code>plugins.gradle.org … com.diffplug.spotless/maven-metadata.xml</code>; <code>repo1.maven.org … checkstyle/maven-metadata.xml</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td><code>&lt;latest&gt;</code> read from each metadata file this turn.</td></tr>
+    <tr><td><code>002-downstream-consumers/D-007</code> scopes <code>src/**/persistence/**</code>, and the plan-constraint reduces that glob to the static prefix <code>src</code></td>
+        <td><code>specs/002-downstream-consumers/design.html#D-007</code>; <code>packages/core/src/guardrail/plan-constraint.ts:22-28,62-70</code></td>
+        <td><spec-status value="accepted">verified</spec-status></td>
+        <td>Any Draft design declaring a <code>src/…</code> path overlaps the decision; this design acknowledges it (<a href="#acknowledged">§1</a>).</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+
+<section id="approach">
+<h2>6 · Approach</h2>
+
+<p>Bootstrap the build first — <code>settings.gradle</code>, <code>build.gradle</code>, the wrapper, Spotless and Checkstyle —
+because nothing else in this repository has ever compiled and every later feature needs the same four files. Then the core:
+<code>xyz.briancorbin.pk.hex.core</code> holds the two records and the <code>PositionRepository</code> port;
+<code>xyz.briancorbin.pk.hex.app.PositionService</code> is the one use case, <code>book(TradeEvent)</code>: ask the repository
+whether the tradeId was applied, return the current position unchanged if so, otherwise add the quantity and <code>write</code>
+the new quantity and the tradeId together. <code>xyz.briancorbin.pk.hex.persistence.InMemoryPositionRepository</code> is the
+first adapter — a map and a set. The existing JDBC adapter moves into the Gradle layout as-is; making it compile against H2 is
+003's work.</p>
+
+<spec-sidenote>Idempotency could have lived in the adapter (“ignore a write whose tradeId you have seen”). It lives in the use
+case instead so that <a href="./spec.html#FR-002">FR-002</a> holds for every adapter, including the JDBC one that 003 writes and
+the reconciliation path 007 adds.</spec-sidenote>
+
+<spec-arch>
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="Hexagonal core: trade events enter the use case, which reaches the store only through the repository port">
+  <style>
+    .box { fill: var(--c-surface, #fcfbf7); stroke: var(--c-border, #c4c1bb); stroke-width:1.2; }
+    .label { font: 700 11px Lato, sans-serif; fill: var(--c-text-soft, #4a4a46); letter-spacing:0.06em; text-transform:uppercase; }
+    .body { font: 400 12px "Source Serif 4", Georgia, serif; fill: var(--c-text, #353534); }
+    .arr { stroke: var(--c-muted, #73706d); stroke-width:1.2; fill:none; }
+    .arrh { fill: var(--c-muted, #73706d); }
+  </style>
+  <rect class="box" x="40"  y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="56" y="102">TradeEvent</text>
+  <text class="body"  x="56" y="122">record · tradeId, instrument, qty</text>
+  <rect class="box" x="270" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="286" y="102">PositionService</text>
+  <text class="body"  x="286" y="122">book() · idempotent on tradeId</text>
+  <rect class="box" x="500" y="80" width="160" height="60" rx="4"/>
+  <text class="label" x="516" y="102">PositionRepository</text>
+  <text class="body"  x="516" y="122">port · find / wasApplied / write</text>
+  <rect class="box" x="500" y="170" width="160" height="50" rx="4"/>
+  <text class="label" x="516" y="190">InMemory adapter</text>
+  <text class="body"  x="516" y="208">map + applied set (003: JDBC)</text>
+  <path class="arr" d="M200 110 L270 110" marker-end="url(#a)"/>
+  <path class="arr" d="M430 110 L500 110" marker-end="url(#a)"/>
+  <path class="arr" d="M580 170 L580 140" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="arrh" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+</svg>
+<figcaption>The slice 001 builds. The domain never sees the adapter; the adapter implements the port. Dependencies point inward.</figcaption>
+</figure>
+</spec-arch>
+</section>
+
+
+<section id="alternatives">
+<h2>7 · Alternatives considered</h2>
+<p>The build tool was the only pick with real contenders; the criteria were whether <code>spectastic enforce</code> can see the
+gates, whether the toolchain can provision JDK 21 without host configuration, and how much build code a reader must hold.</p>
+
+<spec-matrix>
+<div style="overflow-x:auto;">
+<table>
+  <thead>
+    <tr><th>Option</th><th>Seen by <code>enforce</code></th><th>JDK 21 without <code>JAVA_HOME</code></th><th>Build code to read</th><th class="score">Total</th></tr>
+  </thead>
+  <tbody>
+    <tr data-winner><td>Gradle 9, Groovy DSL — chosen</td><td>3</td><td>3</td><td>3</td><td class="score">9</td></tr>
+    <tr><td>Gradle 9, Kotlin DSL</td><td>0 — <code>.kts</code> is never read</td><td>3</td><td>3</td><td class="score">6</td></tr>
+    <tr><td>Maven 3.9</td><td>1 — only the test-runner (<code>pom.xml</code>)</td><td>1 — no toolchain provisioning; the sibling example exports <code>JAVA_HOME</code></td><td>2</td><td class="score">4</td></tr>
+  </tbody>
+</table>
+</div>
+</spec-matrix>
+</section>
+
+
+<section id="decisions">
+<h2>8 · Decisions</h2>
+
+<spec-decision id="D-001" grounding="verified">
+  <h4>D-001 · Gradle 9 with the Groovy DSL and a Java 21 toolchain</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd>The project has never had a build. <code>spectastic enforce</code> reads Java signals from <code>build.gradle</code> only (<code>detect.ts:118-170</code>), and the spike showed Gradle's toolchain resolver finds the asdf Temurin 21 on the JDK 25 host with no configuration.</dd>
+    <dt>Decision drivers</dt> <dd>enforce detection · zero-config JDK 21 · least build code</dd>
+    <dt>Considered options</dt>
+    <dd>
+      <ul class="considered-options">
+        <li><strong>Gradle 9, Groovy DSL — chosen</strong> — + every gate visible to <code>enforce</code>; toolchain provisions 21. − Groovy is the less type-safe DSL.</li>
+        <li><strong>Gradle 9, Kotlin DSL</strong> — + type-safe. − <code>enforce</code> would report the floor as uncovered forever.</li>
+        <li><strong>Maven</strong> — + ubiquitous. − no toolchain provisioning; formatter/linter invisible to <code>enforce</code>.</li>
+      </ul>
+    </dd>
+    <dt>Decision</dt>     <dd><code>settings.gradle</code> + <code>build.gradle</code> (Groovy), Gradle 9.2.1 wrapper committed, <code>java.toolchain.languageVersion = 21</code>.</dd>
+    <dt>Consequences</dt> <dd>+ One build for all seven features and, later, the consumer subproject. + <code>./gradlew</code> works on any JDK 17+ host. − Groovy DSL; − the wrapper jar is a committed binary.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-002" grounding="verified">
+  <h4>D-002 · Hexagonal ports-and-adapters</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-003">FR-003</a> requires the domain be reachable only through ports, and the existing adapter already implements <code>PositionRepository.write</code> (<code>JdbcPositionRepositoryAdapter.java:16</code>). 002's D-007 depends on this shape: the adapter package is the boundary its rule names.</dd>
+    <dt>Decision drivers</dt> <dd>FR-003 · the boundary D-007 enforces · simplest structure that isolates the store</dd>
+    <dt>Considered options</dt>
+    <dd>
+      <ul class="considered-options">
+        <li><strong>Hexagonal ports-and-adapters — chosen</strong> — + the store is behind one port; the adapter package is a checkable boundary. − One more interface than a layered service needs.</li>
+        <li><strong>Layered (service → repository class)</strong> — + familiar. − the repository is a class, not a port; nothing stops a second writer.</li>
+        <li><strong>Vertical slice</strong> — + feature-local. − seven features would each own a slice of the same store.</li>
+      </ul>
+    </dd>
+    <dt>Decision</dt>     <dd>Packages <code>hex.core</code> (records + ports, JDK-only), <code>hex.app</code> (use cases), <code>hex.persistence</code> (adapters). Dependencies point inward; ArchUnit asserts it.</dd>
+    <dt>Consequences</dt> <dd>+ Swapping in-memory for JDBC (003) touches only <code>hex.persistence</code>. + D-007's scope is a real package. − Ceremony for a small domain.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-003" grounding="verified">
+  <h4>D-003 · JUnit 5 + ArchUnit, test-first</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#SC-002">SC-002</a> is observed by an ArchUnit rule, and D-007's fitness function is already written against ArchUnit (<code>enforcement/DataAccessRulesTest.java</code>). The spike resolved <code>junit-bom:5.11.4</code> and <code>archunit:1.4.1</code> and ran both.</dd>
+    <dt>Decision drivers</dt> <dd>SC-002's stated observation · reuse of the existing rule · the standard profile's test-runner floor</dd>
+    <dt>Considered options</dt>
+    <dd>
+      <ul class="considered-options">
+        <li><strong>JUnit 5 + ArchUnit, TDD — chosen</strong> — + the JUnit Platform is what Gradle's <code>test</code> runs; ArchUnit is the only mainstream Java architecture checker. − ArchUnit has no SARIF output of its own.</li>
+        <li><strong>JUnit 4</strong> — − ArchUnit's JUnit 4 support is legacy; no reason to prefer it.</li>
+        <li><strong>Integration-first</strong> — − there is nothing to integrate against until 003/004.</li>
+      </ul>
+    </dd>
+    <dt>Decision</dt>     <dd>Tests under <code>src/test/java</code>, written before the code they exercise; ArchUnit rules are plain <code>@Test</code> methods that evaluate a rule (so later a SARIF writer can sit beside the assertion).</dd>
+    <dt>Consequences</dt> <dd>+ SC-001/SC-002 each have a test that fails before its implementation task. − Plain <code>@Test</code> forgoes ArchUnit's <code>@ArchTest</code> field syntax.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-004" grounding="verified">
+  <h4>D-004 · Enforcement floor: Spotless + Checkstyle + Gradle test, gated by the managed CI workflow</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><code>spectastic enforce</code> lists formatter, linter and test-runner missing (this turn). All three are first-rung ecosystem gates; versions from the plugin-portal and Maven Central metadata read this turn.</dd>
+    <dt>Decision</dt>     <dd>Spotless 8.10.2 (google-java-format 1.36.1) · Checkstyle 14.1.0 with a minimal config · <code>test { useJUnitPlatform() }</code>. CI: <code>spectastic init --tools --ci github</code> installs the managed <code>.github/workflows/spectastic.yml</code> (validate → enforce → verdict); a project-owned <code>build.yml</code> runs <code>./gradlew build</code>.</dd>
+    <dt>Consequences</dt> <dd>+ <code>enforce</code> reports the floor covered; <code>./gradlew build</code> fails on an unformatted or lint-failing file. + The CI gate is a file spectastic owns and drift-checks, pinned to the installing CLI. − Two workflows rather than one, because the managed file is not to be edited.</dd>
+  </dl>
+</spec-decision>
+
+<spec-decision id="D-005" grounding="verified">
+  <h4>D-005 · Idempotency is decided in the use case against the repository's applied-tradeId record</h4>
+  <dl>
+    <dt>Status</dt>       <dd><spec-status value="accepted">Accepted</spec-status></dd>
+    <dt>Context</dt>      <dd><a href="./spec.html#FR-002">FR-002</a> must hold for every adapter. The existing adapter's <code>write(instrument, quantity, tradeId)</code> already receives the tradeId (<code>JdbcPositionRepositoryAdapter.java:20</code>), so recording it beside the quantity costs the port nothing.</dd>
+    <dt>Decision</dt>     <dd><code>PositionService.book</code> checks <code>wasApplied(tradeId)</code> before computing; <code>write</code> stores quantity and tradeId together (one map put + one set add here; one transaction in 003).</dd>
+    <dt>Consequences</dt> <dd>+ One idempotency rule, adapter-independent. + 007's reconciliation tradeIds reuse it. − The port grows by two read methods.</dd>
+  </dl>
+</spec-decision>
+</section>
+
+
+<section id="project-structure">
+<h2>9 · Project structure</h2>
+
+<p>Only the new or changed paths, grouped by the boundaries <a href="#D-002">D-002</a> draws.</p>
+
+<pre><code>settings.gradle                                                   # rootProject.name = 'position-keeper'
+build.gradle                                                      # java · spotless · checkstyle · junit platform (Groovy DSL, D-001)
+gradlew, gradlew.bat, gradle/wrapper/                             # Gradle 9.2.1 wrapper
+config/checkstyle/checkstyle.xml                                  # minimal linter config (D-004)
+.github/workflows/spectastic.yml                                  # managed CI gate, written by `spectastic init --tools --ci github`
+.github/workflows/build.yml                                       # project-owned: ./gradlew build
+src/main/java/xyz/briancorbin/pk/hex/core/Position.java           # record
+src/main/java/xyz/briancorbin/pk/hex/core/TradeEvent.java         # record
+src/main/java/xyz/briancorbin/pk/hex/core/PositionRepository.java # port
+src/main/java/xyz/briancorbin/pk/hex/app/PositionService.java     # the use case: book()
+src/main/java/xyz/briancorbin/pk/hex/persistence/InMemoryPositionRepository.java  # first adapter
+src/main/java/xyz/briancorbin/pk/hex/persistence/JdbcPositionRepositoryAdapter.java  # moved from src/xyz/…; compiles against H2 in 003
+src/test/java/xyz/briancorbin/pk/hex/app/PositionServiceTest.java # SC-001
+src/test/java/xyz/briancorbin/pk/enforcement/CoreRulesTest.java   # SC-002: core imports JDK + core only; core never imports java.sql
+</code></pre>
+</section>
+
+
+<section id="risks">
+<h2>10 · Risks &amp; mitigations</h2>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>The moved JDBC adapter does not compile until 003 supplies H2 and the event port</td><td>H</td><td>M</td><td>Move it under <code>src/main/java</code> in 001 but keep it compiling against an <code>EventBus</code> stub only if 002 is not yet present — otherwise defer the move to 002/003. Decided in tasks: the move lands with 003, when both dependencies exist.</td></tr>
+    <tr><td>google-java-format reformats the existing Java files, changing bytes the demonstrations quote</td><td>M</td><td>H</td><td><code>docs/priya-pr/</code> and <code>demonstrations/8-consumer-service/</code> are outside Spotless's target, which names only the Gradle source sets <code>src/main/java</code> and <code>src/test/java</code>.</td></tr>
+    <tr><td>Toolchain provisioning differs on CI (no asdf)</td><td>L</td><td>L</td><td><code>setup-java` temurin 21</code> in <code>build.yml</code>; Gradle's foojay resolver is deliberately not added.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+
+<section id="complexity">
+<h2>11 · Complexity tracking</h2>
+<p>The only complexity beyond the spec is the build bootstrap itself — Spotless, Checkstyle, wrapper — which the enforcement
+floor requires and every later feature reuses.</p>
+
+<spec-assumption>
+<p>The build is bootstrapped inside 001's setup phase rather than as a separate slice, so the stack picks are recorded here as
+decisions instead of appearing from nowhere. Later designs cite D-001/D-003/D-004 rather than re-deciding them.</p>
+</spec-assumption>
+</section>
+
+
+<section id="questions">
+<h2>12 · Open questions</h2>
+<spec-questions>
+<p>None outstanding — the stack was anchored by the spike and the enforce output, the architecture by FR-003 and the existing
+adapter, and the contract shape (none) by the spec's out-of-scope list.</p>
+</spec-questions>
+</section>
+
+
+<section id="changelog">
+<h2>13 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (13/13); ./gradlew clean build green with PositionServiceTest (SC-001) and CoreRulesTest (SC-002) verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial plan — Gradle 9 Groovy DSL + Java 21 toolchain, hexagonal core, JUnit 5 + ArchUnit, Spotless + Checkstyle floor with the managed CI gate; seven facts grounded (six verified against source, one spike run and recorded).</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Design for 001-position-core · Position keeping core · authored 2026-09-18
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

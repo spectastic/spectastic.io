@@ -1,0 +1,6 @@
+rootProject.name = 'position-keeper'
+
+// The downstream consumer (acme/reconciliation-service) — a separate spectastic project
+// (services/reconciliation-service/spectastic.json) built as a subproject of this one.
+include 'reconciliation-service'
+project(':reconciliation-service').projectDir = file('services/reconciliation-service')

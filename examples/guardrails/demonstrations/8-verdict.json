@@ -1,9 +1,9 @@
 {
-  "at": "2026-09-14T02:30:20.222Z",
+  "at": "2026-09-18T20:23:41.033Z",
   "scope": "repo-local",
   "decisionsEvaluated": 1,
   "changed": [
-    "src/acme/recon/hex/persistence/PositionRepositoryAdapter.java"
+    "src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java"
   ],
   "violations": [
     {
@@ -11,11 +11,11 @@
       "specId": "002-downstream-consumers",
       "ruleId": "no_sql_write_to_positions_outside_adapter",
       "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
-      "file": "src/acme/recon/hex/persistence/PositionRepositoryAdapter.java",
+      "file": "src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java",
       "detector": "content",
       "cause": "ownership",
       "line": 21,
-      "source": "src/acme/recon/hex/persistence/PositionRepositoryAdapter.java",
+      "source": "src/main/java/acme/recon/hex/persistence/PositionRepositoryAdapter.java",
       "target": "UPDATE\\s+positions",
       "owner": "briancorbin/position-keeper-guardrails",
       "storeCoordinate": "spectastic://briancorbin/position-keeper-guardrails/datastore/positions"

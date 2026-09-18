@@ -18,7 +18,7 @@
     "Add a nightly job that corrects positions from the custodian file." The request that, two years and five features after
     ADR-0007 was written, tests whether the guardrail still holds.</p>
   <spec-meta>
-    <b>Status</b>      <span><spec-status value="draft">Draft</spec-status></span>
+    <b>Status</b>      <span><spec-status value="accepted">Accepted</spec-status></span>
     <b>Spec ID</b>     <span>007-reconciliation</span>
     <b>Owner</b>       <span>Ops Engineering</span>
     <b>Reviewers</b>   <span>Position Keeping team</span>
@@ -74,6 +74,16 @@ every other mutation uses.</p>
 <spec-requirement id="FR-002" priority="must">Each correction MUST be applied through the position use case, so every corrected position emits a <code>PositionChanged</code> event — the job MUST NOT write the position store directly. (This is what ADR-0007 governs.)</spec-requirement>
 <spec-requirement id="FR-003" priority="must">A correction MUST carry a synthetic <code>tradeId</code> identifying the reconciliation run, so consumers stay idempotent and the audit trail attributes the change.</spec-requirement>
 <spec-requirement id="FR-004" priority="should">The job SHOULD be re-runnable for the same custodian file without double-correcting (idempotent on the run's <code>tradeId</code>).</spec-requirement>
+<spec-requirement id="FR-005" priority="must">
+    <p>The service MUST accept a correction from a downstream reconciliation service over <code>POST /corrections</code> —
+    instrument, the custodian quantity that service reconciles against, and a synthetic <code>tradeId</code> identifying
+    <em>that service's</em> reconciliation run — and apply it through the position use case, so it emits
+    <code>PositionChanged</code> like every other mutation; a repeated <code>tradeId</code> MUST change nothing and answer the
+    current position.</p>
+    <details><summary>Rationale</summary><p>ADR-0007's verdict on a non-owner service tells it to route the change through the owner.
+    This is the route. It reuses the job's correction path so that there is still exactly one way a position changes.</p></details>
+  </spec-requirement>
+
 <spec-requirement id="NFR-001" priority="must">A reconciliation run MUST leave the store and the emitted events consistent: no position is corrected without a matching event.</spec-requirement>
 <spec-out-of-scope>
 <ul>
@@ -111,7 +121,9 @@ Re-running the job over the same custodian file produces no second correction (i
 <section id="questions"><h2>7 · Open questions</h2><p>None outstanding — the correction path (through the use case) is dictated by ADR-0007.</p></section>
 <section id="conformance"><h2>8 · Conformance index</h2><spec-conformance></spec-conformance></section>
 <section id="changelog"><h2>9 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (11/11); ./gradlew build green with ReconciliationJobTest (SC-001, SC-002) verified passing and the reconcile subcommand exercised twice against one store (2 corrections, then 0) per author pre-confirmation for 003–007. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
   <li><time datetime="2026-09-13">13 Sep 2026</time><span>Drafted — the reconciliation request. Its design (and the seven demonstrations) test whether ADR-0007, written in feature 002, still holds after five intervening features.</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Applied <a href="./changes/archive/2026-09-18-http-corrections/proposal.html">2026-09-18-http-corrections</a>: Added FR-005 — a downstream reconciliation service can bring an instrument to its custodian quantity over POST /corrections, through the same use-case path the nightly job uses; the corrections contract promoted to api/corrections.openapi.yaml.</span></li>
 </ol></spec-changelog></section>
 </main>
 <script src="../../assets/spec.js"></script>

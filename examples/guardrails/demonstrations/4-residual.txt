@@ -8,8 +8,23 @@ $ spectastic verdict --changed <priya> --enforcer-output enforcement/archunit-re
 VIOLATION 002-downstream-consumers/D-007 [no_sql_write_to_positions_outside_adapter] at docs/priya-pr/PositionReconciliationJob.java:20
   docs/priya-pr/PositionReconciliationJob.java → UPDATE\s+positions
   Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
-VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at docs/priya-pr/PositionReconciliationJob.java:15
-  docs/priya-pr/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:22
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:21
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:26
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:25
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:23
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
+  Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
+VIOLATION 002-downstream-consumers/D-007 [only_the_persistence_adapter_touches_data_access_apis] at src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java:24
+  src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java → only_the_persistence_adapter_touches_data_access_apis
   Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.
 Scope: repo-local — evaluated 2 decisions from this checkout. A decision not present in this checkout is not evaluated.
 Wrote demonstrations/4b-verdict-sarif.json

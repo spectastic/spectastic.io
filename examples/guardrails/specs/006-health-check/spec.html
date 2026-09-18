@@ -68,6 +68,8 @@ The health endpoint returns 200 when the store is reachable and 503 when it is n
 <section id="questions"><h2>7 · Open questions</h2><p>None outstanding.</p></section>
 <section id="conformance"><h2>8 · Conformance index</h2><spec-conformance></spec-conformance></section>
 <section id="changelog"><h2>9 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (7/7); ./gradlew build green with HealthEndpointTest (SC-001) and H2StoreProbeTest verified passing and curl -si localhost:8080/health answering 200 per author pre-confirmation for 003–007; contract promoted to api/health.openapi.yaml. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-15">15 Sep 2026</time><span>Reset to Draft — re-driven through tasks → implement → verify against a real Gradle build; the 2024–25 dates in docs/timeline.md remain the narrated history.</span></li>
   <li><time datetime="2025-02-18">18 Feb 2025</time><span>Accepted — health/readiness endpoint. Operational only; unrelated to ADR-0007.</span></li>
 </ol></spec-changelog></section>
 </main>

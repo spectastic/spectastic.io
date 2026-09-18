@@ -1,0 +1,33 @@
+// acme/reconciliation-service — the consumer of the position keeper's corrections door
+// (a real Gradle subproject since the build-out; before that, demonstrations/8-consumer-service).
+plugins {
+  id 'java'
+  id 'application'
+}
+
+group = 'acme.recon'
+version = '0.1.0'
+
+java {
+  toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+application {
+  mainClass = 'acme.recon.Main'
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+  testImplementation platform('org.junit:junit-bom:5.11.4')
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+  useJUnitPlatform()
+  // The owner's decision D-007 records `./gradlew test --tests *DataAccessRulesTest`; run from the
+  // root that filter reaches this subproject too, where no such test exists. Gradle fails a test
+  // task whose filter matches nothing unless told otherwise (enforcement/README.md).
+  filter.failOnNoMatchingTests = false
+}

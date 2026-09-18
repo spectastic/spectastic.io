@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Downstream consumers · Tasks</title>
+<link rel="stylesheet" href="../../assets/spec.css">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<script src="../../assets/theme-boot.js"></script>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="small-caps">Tasks · 002-downstream-consumers</p>
+  <h1>Downstream consumers</h1>
+  <p style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;color:var(--c-text-soft);font-style:italic;max-width:var(--measure);">
+    Ordered, parallelizable work. Tests precede implementation. Drive through with
+    <code>/spectastic.implement</code> — one task per invocation.
+  </p>
+
+  <spec-meta>
+    <b>Status</b>     <span><spec-status value="accepted">Accepted</spec-status></span>
+    <b>Spec</b>       <span><a href="./spec.html">002-downstream-consumers</a></span>
+    <b>Design</b>     <span><a href="./design.html">design</a></span>
+    <b>Branch</b>     <span><code>build-out</code></span>
+    <b>Created</b>    <span><time datetime="2026-09-18">18 Sep 2026</time></span>
+    <b>Read time</b>  <span data-reading-time></span>
+  </spec-meta>
+
+  <spec-tldr>
+    <p>14 tasks across four phases. Setup (the H2 test dependency) → Foundational (the event, the bus port, D-006's bus,
+    D-008's DDL) → User stories (US1 the adapter emits and Risk hears · US2 P&amp;L is idempotent) → Polish. Tasks marked
+    <span class="par">[P]</span> can run in parallel — different files, no dependency. Tests for a story <strong>MUST</strong>
+    be written and failing before its implementation tasks start. US1 also lands ADR-0007's fitness function where the build
+    runs it — <code>DataAccessRulesTest</code> moves from <code>enforcement/</code> into <code>src/test</code> and gains a SARIF
+    writer, since ArchUnit ships no emitter of its own.</p>
+  </spec-tldr>
+</header>
+
+
+<section id="strategy">
+<h2>1 · Execution strategy</h2>
+
+<spec-tabs>
+  <spec-tab label="Incremental">
+    <p>Setup → Foundational → US1 → US2 → Polish. US1 is the feature's whole point (the emission guarantee and its fitness
+    function); US2 is the consumer-side courtesy. This is the tab in use.</p>
+  </spec-tab>
+  <spec-tab label="MVP-first">
+    <p>US1 alone — Risk hears every change and the ArchUnit rule proves the adapter is the only writer.</p>
+  </spec-tab>
+  <spec-tab label="Parallel teams">
+    <p>Not applicable — one engineer.</p>
+  </spec-tab>
+</spec-tabs>
+</section>
+
+
+<section id="phase-setup" class="phase">
+<h2>2 · Phase 1 — Setup</h2>
+
+<spec-task id="T-001">
+  <input type="checkbox" checked>
+  <div><strong>Add H2 to the test classpath</strong> — <code>testImplementation 'com.h2database:h2:2.3.232'</code> (the version the design's grant spike ran against); 003 promotes it to <code>implementation</code>. <span class="path">build.gradle</span></div>
+</spec-task>
+</section>
+
+
+<section id="phase-foundation" class="phase">
+<h2>3 · Phase 2 — Foundational</h2>
+<p>The event and its port belong to the JDK-only core; the bus is <a href="./design.html#D-006">D-006</a>; the DDL is
+<a href="./design.html#D-008">D-008</a>'s substance.</p>
+
+<spec-task id="T-010">
+  <input type="checkbox" checked>
+  <div><strong>Define the event and the outbound port</strong> — <code>record PositionChanged(String instrument, long quantity, String tradeId)</code> and <code>interface EventBus { void emit(PositionChanged); void subscribe(Consumer&lt;PositionChanged&gt;); }</code>; <code>java.util.function</code> only, so <code>CoreRulesTest</code> still holds. <span class="path">src/main/java/xyz/briancorbin/pk/hex/core/</span></div>
+</spec-task>
+<spec-task id="T-011" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Implement the synchronous bus</strong> — <code>SyncEventBus</code>: an ordered list of subscribers, <code>emit</code> calls each in turn on the caller's thread before returning (D-006; spec <a href="./spec.html#NFR-001">NFR-001</a>). <span class="path">src/main/java/xyz/briancorbin/pk/hex/events/SyncEventBus.java</span></div>
+</spec-task>
+<spec-task id="T-012" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Write the store DDL and the grant</strong> — <code>schema.sql</code>: <code>positions(instrument VARCHAR PRIMARY KEY, quantity BIGINT NOT NULL)</code> and <code>applied_trades(trade_id VARCHAR PRIMARY KEY, instrument VARCHAR NOT NULL)</code>; <code>grants.sql</code>: <code>CREATE USER pk_adapter</code>, <code>CREATE USER pk_reader</code>, <code>GRANT SELECT, INSERT, UPDATE ON positions TO pk_adapter</code>, <code>GRANT SELECT, INSERT ON applied_trades TO pk_adapter</code>, <code>GRANT SELECT ON positions TO pk_reader</code> — D-008's backstop as files. <span class="path">db/</span></div>
+</spec-task>
+</section>
+
+
+<section id="phase-us1" class="phase">
+<h2>4 · Phase 3a — US1 · A booked trade reaches Risk, and nothing changes a position silently</h2>
+
+<h3>Tests (write &amp; fail first)</h3>
+<spec-task id="T-100">
+  <input type="checkbox" checked>
+  <div><strong>Test that booking reaches Risk through the adapter's event</strong> — wire <code>SyncEventBus</code> → <code>InMemoryPositionRepository(bus)</code> → <code>PositionService</code>, subscribe a <code>RiskExposureView</code> and a recording subscriber; book <code>t-1 AAPL +100</code> and assert the view's exposure for AAPL is 100 <em>before</em> <code>book</code> returns, the recorded event is <code>(AAPL, 100, t-1)</code>, and re-booking <code>t-1</code> records no second event. <span class="path">src/test/java/xyz/briancorbin/pk/hex/consumers/DownstreamConsumersTest.java</span></div>
+</spec-task>
+<spec-task id="T-101" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Move ADR-0007's fitness function into the build</strong> — <code>git mv enforcement/DataAccessRulesTest.java</code> here; keep the rule name <code>only_the_persistence_adapter_touches_data_access_apis</code> (D-007's <code>run=</code> names this class); rewrite as a plain <code>@Test</code> that imports production classes only (<code>DO_NOT_INCLUDE_TESTS</code> — the grant test opens H2), evaluates the rule, <em>always</em> writes <code>SarifReport</code> to <code>build/reports/archunit/archunit-results.sarif</code>, then asserts no violation. <span class="path">src/test/java/xyz/briancorbin/pk/enforcement/DataAccessRulesTest.java</span></div>
+</spec-task>
+<spec-task id="T-102" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Test D-008's grant against H2</strong> — run <code>db/schema.sql</code> and <code>db/grants.sql</code> into an in-memory H2 as <code>sa</code>; assert <code>UPDATE positions</code> as <code>pk_reader</code> throws SQL state <code>90096</code> and as <code>pk_adapter</code> updates one row. <span class="path">src/test/java/xyz/briancorbin/pk/hex/persistence/GrantBackstopTest.java</span></div>
+</spec-task>
+
+<h3>Implementation</h3>
+<spec-task id="T-110">
+  <input type="checkbox" checked>
+  <div><strong>Make the adapter the single emitter</strong> — <code>InMemoryPositionRepository(EventBus)</code>; <code>write</code> updates the map and the applied set, then <code>emit(new PositionChanged(instrument, quantity, tradeId))</code> on the same call (spec <a href="./spec.html#FR-001">FR-001</a>, <a href="./spec.html#FR-004">FR-004</a>, <a href="./spec.html#NFR-001">NFR-001</a>); keep a no-arg constructor over a fresh <code>SyncEventBus</code> so 001's test is untouched. <span class="path">src/main/java/xyz/briancorbin/pk/hex/persistence/InMemoryPositionRepository.java</span></div>
+</spec-task>
+<spec-task id="T-111" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Implement the Risk exposure view</strong> — subscribes on construction; <code>long exposure(String instrument)</code> returns the last quantity seen (0 when none) — spec <a href="./spec.html#FR-002">FR-002</a>. <span class="path">src/main/java/xyz/briancorbin/pk/hex/consumers/RiskExposureView.java</span></div>
+</spec-task>
+<spec-task id="T-112" parallel>
+  <input type="checkbox" checked>
+  <div><strong>Write the ArchUnit → SARIF converter</strong> — <code>SarifReport.write(Path out, String ruleId, EvaluationResult)</code>: SARIF 2.1.0, tool driver <code>ArchUnit</code>, one <code>result</code> per failure detail with <code>ruleId</code>, <code>message.text</code> = the detail, and a <code>physicalLocation</code> whose <code>uri</code> is <code>src/main/java/&lt;fqcn as path&gt;.java</code> and <code>startLine</code> the <code>(File.java:NN)</code> the detail names; an empty <code>results</code> array when the rule holds. <span class="path">src/test/java/xyz/briancorbin/pk/enforcement/SarifReport.java</span></div>
+</spec-task>
+<spec-task id="T-113">
+  <input type="checkbox" checked>
+  <div><strong>Exercise the emission path and its fitness function</strong> — run <code>./gradlew test --tests '*DownstreamConsumersTest' --tests '*DataAccessRulesTest' --tests '*GrantBackstopTest'</code>; confirm all green and that <code>build/reports/archunit/archunit-results.sarif</code> exists with zero results.</div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#FR-001">FR-001</a>, <a href="./spec.html#FR-002">FR-002</a>, <a href="./spec.html#FR-004">FR-004</a>, <a href="./spec.html#NFR-001">NFR-001</a>, <a href="./spec.html#SC-001">SC-001</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="phase-us2" class="phase">
+<h2>5 · Phase 3b — US2 · P&amp;L revalues once per tradeId</h2>
+
+<h3>Tests (write &amp; fail first)</h3>
+<spec-task id="T-200">
+  <input type="checkbox" checked>
+  <div><strong>Test that a redelivered event revalues once</strong> — deliver <code>(AAPL, 100, t-1)</code> twice through a <code>SyncEventBus</code> to a <code>PnlRevaluer</code>; assert <code>revaluations()</code> is 1 and <code>marked("AAPL")</code> is 100; deliver <code>t-2</code> and assert 2. <span class="path">src/test/java/xyz/briancorbin/pk/hex/consumers/PnlRevaluerTest.java</span></div>
+</spec-task>
+
+<h3>Implementation</h3>
+<spec-task id="T-210">
+  <input type="checkbox" checked>
+  <div><strong>Implement the idempotent P&amp;L revaluer</strong> — subscribes on construction; keeps the set of tradeIds seen and skips a repeat; otherwise records the quantity per instrument and increments the revaluation count — spec <a href="./spec.html#FR-003">FR-003</a>, <a href="./spec.html#FR-005">FR-005</a>. <span class="path">src/main/java/xyz/briancorbin/pk/hex/consumers/PnlRevaluer.java</span></div>
+</spec-task>
+<spec-task id="T-211">
+  <input type="checkbox" checked>
+  <div><strong>Exercise the revaluation path</strong> — run <code>./gradlew test --tests '*PnlRevaluerTest'</code> and confirm one revaluation for two deliveries.</div>
+</spec-task>
+
+<spec-note>
+<p>Closes <a href="./spec.html#FR-003">FR-003</a>, <a href="./spec.html#FR-005">FR-005</a>, <a href="./spec.html#SC-002">SC-002</a>.</p>
+</spec-note>
+</section>
+
+
+<section id="phase-polish" class="phase">
+<h2>6 · Phase 4 — Polish</h2>
+<spec-task id="T-900">
+  <input type="checkbox" checked>
+  <div><strong>Confirm the full build is green with the moved rule</strong> — <code>./gradlew build</code> exits 0; <code>enforcement/</code> no longer holds a Java file (the fixture SARIFs stay until stage 7 replaces them with real output); <code>spectastic validate</code> clean. <span class="path">enforcement/</span></div>
+</spec-task>
+</section>
+
+
+<section id="dependencies">
+<h2>7 · Dependencies</h2>
+<pre><code>Setup           → Foundational        (H2 before the grant test)
+Foundational    → US1, US2            (T-010 first; T-011, T-012 in parallel)
+US1             → US2                 (the bus and the adapter's emission)
+US1, US2        → Polish
+</code></pre>
+</section>
+
+
+<section id="changelog">
+<h2>8 · Change log</h2>
+<spec-changelog>
+<ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (14/14); ./gradlew build green with DownstreamConsumersTest (SC-001), PnlRevaluerTest (SC-002), DataAccessRulesTest and GrantBackstopTest verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Initial task breakdown — 14 tasks, 6 parallel; ADR-0007's ArchUnit rule moves into the Gradle test source set with a hand-written SARIF writer.</span></li>
+</ol>
+</spec-changelog>
+</section>
+
+
+<footer style="margin-top:var(--s-8);padding-top:var(--s-5);border-top:1px solid var(--c-border-soft);font-family:var(--font-sans);font-size:0.78rem;color:var(--c-muted);">
+  Tasks for 002-downstream-consumers · Downstream consumers · authored 2026-09-18
+</footer>
+
+</main>
+<script src="../../assets/spec.js"></script>
+</body>
+</html>

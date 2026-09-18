@@ -1,0 +1,74 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "requires login"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 48,
+                  "endLine": 22,
+                  "snippet": {
+                    "text": "          db.prepareStatement(\"UPDATE positions SET quantity = ? WHERE instrument = ?\")) {"
+                  },
+                  "startColumn": 32,
+                  "startLine": 22
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Direct write to positions outside the persistence adapter violates ADR-0007 (002-downstream-consumers/D-007). Route the change through the position use case so it emits PositionChanged.\n"
+          },
+          "properties": {},
+          "ruleId": "enforcement.no_sql_write_to_positions_outside_adapter"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Direct write to positions outside the persistence adapter violates ADR-0007 (002-downstream-consumers/D-007). Route the change through the position use case so it emits PositionChanged.\n"
+              },
+              "help": {
+                "markdown": "Direct write to positions outside the persistence adapter violates ADR-0007 (002-downstream-consumers/D-007). Route the change through the position use case so it emits PositionChanged.\n",
+                "text": "Direct write to positions outside the persistence adapter violates ADR-0007 (002-downstream-consumers/D-007). Route the change through the position use case so it emits PositionChanged.\n"
+              },
+              "id": "enforcement.no_sql_write_to_positions_outside_adapter",
+              "name": "enforcement.no_sql_write_to_positions_outside_adapter",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: enforcement.no_sql_write_to_positions_outside_adapter"
+              }
+            }
+          ],
+          "semanticVersion": "1.176.0"
+        }
+      }
+    }
+  ],
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
+}

@@ -40,7 +40,7 @@ adapter the sole writer. The emission guarantee is enforced by a fitness functio
 <section id="tech-context">
 <h2>2 · Technical context</h2>
 <dl>
-  <dt>Language / runtime</dt><dd>Java 21, JDK-only domain (001).</dd>
+  <dt>Language / runtime</dt><dd>Java 21 on the Gradle build 001 bootstrapped (<a href="../001-position-core/design.html#D-001">001/D-001</a>); JDK-only domain.</dd>
   <dt>Architecture</dt><dd>Hexagonal — the persistence adapter is the single writer + emitter; consumers subscribe to an in-memory bus.</dd>
   <dt>Enforcement</dt><dd>ArchUnit (boundary) + Semgrep (content) + a DB grant (operational) — layered, per ADR-0007.</dd>
 </dl>
@@ -59,6 +59,7 @@ stays the only write surface; the event is emitted inside the same transaction (
   <tbody>
     <tr><td>ArchUnit can express "only package X calls the data-access API"</td><td>ArchUnit layered/onion rule DSL</td><td>verified</td><td>The adapter package is named as the only one permitted to reach the data-access classes.</td></tr>
     <tr><td>A content rule catches a direct <code>UPDATE positions</code> outside the adapter</td><td>Semgrep pattern <code>UPDATE\s+positions</code>, path-excluded to the adapter</td><td>verified</td><td>Catches the residual SQL case ArchUnit's type-graph misses.</td></tr>
+    <tr><td>A database GRANT can refuse <code>UPDATE positions</code> from any role but the adapter's</td><td>Spike — H2 2.3.232: <code>GRANT SELECT, INSERT, UPDATE ON positions TO pk_adapter</code>, <code>GRANT SELECT … TO pk_reader</code></td><td>verified</td><td>As <code>pk_reader</code> the update fails with SQL state <code>90096</code> (<em>Not enough rights for object "PUBLIC.POSITIONS"</em>); as <code>pk_adapter</code> it updates one row. Grounds D-008; <code>GrantBackstopTest</code> pins it in the build.</td></tr>
     <tr><td>A committed position and its emitted event must not diverge</td><td>Settlement domain — <code>KB-0001@2026-09-13</code></td><td>verified</td><td>Downstream consumers reconcile against a consistent book; a silent write breaks that consistency, which is why emission is guaranteed at the boundary.</td></tr>
   </tbody>
 </table>
@@ -116,23 +117,32 @@ function (ADR-0007) so no later feature can add a second writer without failing 
   that service's own adapter: the defect there is ownership, not layering.</p>
 </spec-decision>
 
-<spec-decision id="D-008" grounding="assumed" status="accepted" posture="warn">
+<spec-decision id="D-008" grounding="verified" status="accepted" posture="warn">
   <spec-scope><spec-path>db/**</spec-path></spec-scope>
   <spec-enforcement><spec-none reason="Defense-in-depth: a database GRANT restricts write on the positions table to the adapter's role. Operational — no static check exists, so it is recorded as unenforceable rather than pretended."></spec-none></spec-enforcement>
   <spec-reason>Even if a static rule is evaded, the database itself refuses a write to positions from any role but the adapter's.</spec-reason>
   <h4>D-008 · DB-grant backstop for the positions table</h4>
-  <p><b>Context.</b> Static rules can be evaded; a defense-in-depth layer belongs at the database. <b>Decision.</b> A GRANT
-  limits writes on <code>positions</code> to the adapter's role. <b>Consequences.</b> + A final backstop below the static checks.
-  − Not statically checkable — recorded as a none-with-reason so coverage reports it honestly.</p>
+  <p><b>Context.</b> Static rules can be evaded; a defense-in-depth layer belongs at the database. Grounded by the H2 grant
+  spike in <a href="#grounding">§5</a>: a role without the grant is refused (<code>90096</code>), the adapter's role is not.
+  <b>Decision.</b> A GRANT limits writes on <code>positions</code> to the adapter's role — <code>db/grants.sql</code>, applied
+  by <code>H2Database.open</code> (003), and pinned by <code>GrantBackstopTest</code>. <b>Consequences.</b> + A final backstop
+  below the static checks. − Not statically checkable at merge time — recorded as a none-with-reason so coverage reports it
+  honestly; the runtime test proves the grant, not the diff.</p>
 </spec-decision>
 </section>
 
 <section id="structure">
 <h2>9 · Project structure</h2>
-<pre><code>src/xyz/briancorbin/pk/hex/core/           # domain: positions, PositionChanged (JDK-only)
-src/xyz/briancorbin/pk/hex/persistence/    # the single writer + emitter (ADR-0007's scope)
-enforcement/DataAccessRulesTest.java        # the ArchUnit fitness function for D-007
-enforcement/semgrep-positions.yaml          # the Semgrep content rule for D-007</code></pre>
+<pre><code>src/main/java/xyz/briancorbin/pk/hex/core/                       # domain: positions, PositionChanged + EventBus port (JDK-only)
+src/main/java/xyz/briancorbin/pk/hex/events/SyncEventBus.java     # D-006: synchronous in-memory bus
+src/main/java/xyz/briancorbin/pk/hex/consumers/                  # RiskExposureView, PnlRevaluer (idempotent on tradeId)
+src/main/java/xyz/briancorbin/pk/hex/persistence/                # the single writer + emitter (ADR-0007's scope)
+src/test/java/xyz/briancorbin/pk/enforcement/DataAccessRulesTest.java  # the ArchUnit fitness function for D-007 (writes SARIF)
+src/test/java/xyz/briancorbin/pk/enforcement/SarifReport.java    # ArchUnit EvaluationResult → SARIF 2.1.0 (no emitter ships with ArchUnit)
+src/test/java/xyz/briancorbin/pk/hex/persistence/GrantBackstopTest.java  # D-008's runtime proof against H2
+db/schema.sql                                                     # positions + applied_trades DDL
+db/grants.sql                                                     # D-008: GRANT UPDATE ON positions TO pk_adapter
+enforcement/semgrep-positions.yaml                                # the Semgrep content rule for D-007</code></pre>
 </section>
 
 <section id="risks">
@@ -148,6 +158,9 @@ enforcement/semgrep-positions.yaml          # the Semgrep content rule for D-007
 <section id="complexity"><h2>11 · Complexity tracking</h2><p>None beyond the layered enforcement, which is the point rather than accidental complexity.</p></section>
 <section id="open-questions"><h2>12 · Open questions</h2><p>None outstanding.</p></section>
 <section id="changelog"><h2>13 · Change log</h2><spec-changelog><ol>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>Status flipped Draft → Accepted on 18 Sep 2026 — zero remaining unchecked tasks (14/14); ./gradlew build green with DownstreamConsumersTest (SC-001), PnlRevaluerTest (SC-002), DataAccessRulesTest and GrantBackstopTest verified passing per author confirmation. Sibling bundle (REQ-LIFECYCLE-005).</span></li>
+  <li><time datetime="2026-09-18">18 Sep 2026</time><span>D-008 grounding <code>assumed</code> → <code>verified</code> by an H2 grant spike (state 90096 for a non-adapter role); its enforcement stays a none-with-reason. Structure block lists the bus, consumers, SARIF writer, grant test and <code>db/</code> DDL the tasks will land.</span></li>
+  <li><time datetime="2026-09-15">15 Sep 2026</time><span>Reset to Draft — re-driven through tasks → implement → verify against a real Gradle build; the 2024–25 dates in docs/timeline.md remain the narrated history.</span></li>
   <li><time datetime="2026-09-13">13 Sep 2026</time><span>D-007 amended with a resource scope (spectastic 119): the decision names the positions store by coordinate and this service as its owner, so a non-owner service's touch — however well layered — is a violation. The owner-side verdict is unchanged (demonstrations 1–7 reproduce byte-identically); demonstration 8 exercises the non-owner case.</span></li>
   <li><time datetime="2024-03-11">11 Mar 2024</time><span>Design accepted — the adapter becomes the single writer + emitter; ADR-0007 (D-007) authored with its ArchUnit fitness function, plus the DB-grant backstop (D-008). Grounds the emission guarantee in settlement consistency (KB-0001).</span></li>
 </ol></spec-changelog></section>

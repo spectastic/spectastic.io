@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-14T02:32:11.213Z",
+  "at": "2026-09-18T20:23:40.539Z",
   "scope": "repo-local",
   "decisionsEvaluated": 2,
   "changed": [
@@ -23,11 +23,71 @@
       "specId": "002-downstream-consumers",
       "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
       "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
-      "file": "docs/priya-pr/PositionReconciliationJob.java",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
       "detector": "enforcer",
       "cause": "path",
-      "line": 15,
-      "source": "docs/priya-pr/PositionReconciliationJob.java",
+      "line": 22,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "target": "only_the_persistence_adapter_touches_data_access_apis"
+    },
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "detector": "enforcer",
+      "cause": "path",
+      "line": 21,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "target": "only_the_persistence_adapter_touches_data_access_apis"
+    },
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "detector": "enforcer",
+      "cause": "path",
+      "line": 26,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "target": "only_the_persistence_adapter_touches_data_access_apis"
+    },
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "detector": "enforcer",
+      "cause": "path",
+      "line": 25,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "target": "only_the_persistence_adapter_touches_data_access_apis"
+    },
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "detector": "enforcer",
+      "cause": "path",
+      "line": 23,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "target": "only_the_persistence_adapter_touches_data_access_apis"
+    },
+    {
+      "decisionId": "D-007",
+      "specId": "002-downstream-consumers",
+      "ruleId": "only_the_persistence_adapter_touches_data_access_apis",
+      "reason": "Every position change must emit PositionChanged so Risk, P&L, and the audit trail stay consistent; a direct write to the position store bypasses the emission and the audit hooks that live in the adapter.",
+      "file": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
+      "detector": "enforcer",
+      "cause": "path",
+      "line": 24,
+      "source": "src/main/java/xyz/briancorbin/pk/recon/PositionReconciliationJob.java",
       "target": "only_the_persistence_adapter_touches_data_access_apis"
     }
   ]

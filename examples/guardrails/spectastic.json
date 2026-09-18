@@ -4,5 +4,8 @@
   "corpus": {
     "marketplace": "briancorbin/position-keeper-guardrails",
     "root": "knowledge"
+  },
+  "verify": {
+    "executeCapturedCommands": true
   }
 }
